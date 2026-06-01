@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة تحصيل الإيجارات السعودية | Saudi Rent Portal</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#006B3F', // Saudi Green
+                        secondary: '#D4AF37', // Gold
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <!-- Ant Design -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/locale/ar.min.js"></script>
+    <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+    <script src="https://unpkg.com/@ant-design/icons/dist/index.umd.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .ant-layout {
+            font-family: 'Cairo', sans-serif !important;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .saudi-gradient {
+            background: linear-gradient(135deg, #006B3F 0%, #004D2E 100%);
+        }
+
+        /* Custom RTL Fixes for AntD if any */
+        .ant-menu-rtl {
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useCallback } = React;
+        const {
+            Layout, Menu, Button, Card, Table, Tag, Space,
+            Typography, Statistic, Row, Col, Modal, Form,
+            Input, InputNumber, Select, message, Spin,
+            ConfigProvider, theme, Result, Drawer, Descriptions,
+            Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker
+        } = antd;
+        const {
+            DashboardOutlined,
+            HomeOutlined,
+            TeamOutlined,
+            FileTextOutlined,
+            LogoutOutlined,
+            PlusOutlined,
+            EditOutlined,
+            DeleteOutlined,
+            EnvironmentOutlined,
+            ArrowUpOutlined,
+            ArrowDownOutlined,
+            UserOutlined,
+            GlobalOutlined,
+            BankOutlined,
+            DollarOutlined,
+            SearchOutlined,
+            LockOutlined,
+            InboxOutlined,
+            WalletOutlined
+        } = icons;
+
+        const { Header, Content, Sider, Footer } = Layout;
+        const { Title, Text } = Typography;
+
+        // --- Configuration ---
+        const SUPABASE_URL = "https://hifpzldubwoetexqjnau.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_LED-vbACqUUvZ6tm1aUDtQ_I2F_iMQX";
+        const libSupabase = supabase;
+        const supabase = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const SUPER_ADMIN_EMAIL = "khalednasr007@gmail.com";
+
+        // --- Utils ---
+        const sarFormatter = (val) => {
+            return new Intl.NumberFormat('ar-SA', {
+                style: 'currency',
+                currency: 'SAR',
+            }).format(val);
+        };
+
+        const logAction = async (userId, action, details) => {
+            await supabase.from('system_logs').insert({
+                user_id: userId,
+                action,
+                details
+            });
+        };
+
+        const processUsername = (u) => {
+            if (!u) return u;
+            return u.includes('@') ? u.toLowerCase() : `${u.toLowerCase()}@portal.local`;
+        };
+
+        const displayUsername = (u) => {
+            if (!u) return u;
+            return u.endsWith('@portal.local') ? u.replace('@portal.local', '') : u;
+        };
+
+        // --- Components ---
+
+        const Login = ({ onLogin }) => {
+            const [loading, setLoading] = useState(false);
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+
+            const handleLogin = async () => {
+                setLoading(true);
+                const processedEmail = processUsername(email);
+                const { data, error } = await supabase.auth.signInWithPassword({ 
+                    email: processedEmail, 
+                    password 
+                });
+                if (error) {
+                    message.error("خطأ في تسجيل الدخول: " + error.message);
+                } else {
+                    message.success("تم تسجيل الدخول بنجاح");
+                    onLogin(data.user);
+                }
+                setLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen saudi-gradient flex items-center justify-center p-4 font-cairo">
+                    <Card className="w-full max-w-md glass-card shadow-2xl overflow-hidden">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                <BankOutlined className="text-4xl text-primary" />
+                            </div>
+                            <Title level={2} className="!m-0 !text-primary">بوابة تحصيل الإيجارات</Title>
+                            <Text type="secondary">المملكة العربية السعودية</Text>
+                        </div>
+                        <Form layout="vertical" onFinish={handleLogin}>
+                            <Form.Item label="اسم المستخدم" required>
+                                <Input
+                                    prefix={<UserOutlined />}
+                                    placeholder="مثال: khaled"
+                                    size="large"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                />
+                            </Form.Item>
+                            <Form.Item label="كلمة المرور" required>
+                                <Input.Password
+                                    placeholder="••••••••"
+                                    size="large"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                />
+                            </Form.Item>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                size="large"
+                                block
+                                loading={loading}
+                                className="bg-primary hover:bg-opacity-90 mt-4"
+                            >
+                                تسجيل الدخول
+                            </Button>
+                        </Form>
+                    </Card>
+                </div>
+            );
+        };
+
+        const Dashboard = ({ stats }) => {
+            return (
+                <div className="space-y-6">
+                    <Row gutter={[16, 16]}>
+                        <Col xs={24} md={8}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="إجمالي عدد المباني"
+                                    value={stats.totalBuildings}
+                                    prefix={<BankOutlined className="text-primary" />}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="عدد الوحدات المؤجرة"
+                                    value={stats.rentedUnits}
+                                    prefix={<HomeOutlined className="text-blue-500" />}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="عدد الوحدات الشاغرة"
+                                    value={stats.vacantUnits}
+                                    prefix={<InboxOutlined className="text-orange-500" />}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={[16, 16]}>
+                        <Col xs={24} md={8}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="إجمالي المحصل"
+                                    value={stats.totalPaid}
+                                    formatter={sarFormatter}
+                                    prefix={<DollarOutlined className="text-green-500" />}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="المحصل كاش"
+                                    value={stats.collectedCash}
+                                    formatter={sarFormatter}
+                                    prefix={<WalletOutlined className="text-emerald-500" />}
+                                />
+                            </Card>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="المحصل بتحويل بنكي"
+                                    value={stats.collectedBank}
+                                    formatter={sarFormatter}
+                                    prefix={<BankOutlined className="text-indigo-500" />}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+
+                    <Card title="ملخص المباني والوحدات" className="shadow-sm">
+                        <Table
+                            dataSource={stats.buildingSummaries}
+                            pagination={{ pageSize: 5 }}
+                            size="small"
+                            columns={[
+                                { title: 'المبنى', dataIndex: 'name', key: 'name' },
+                                { title: 'المدينة', dataIndex: 'city', key: 'city' },
+                                { title: 'عدد الوحدات', dataIndex: 'unitCount', key: 'unitCount' },
+                                { title: 'مؤجرة', dataIndex: 'rentedCount', key: 'rentedCount', render: v => <Tag color="success">{v}</Tag> },
+                                { title: 'شاغرة', dataIndex: 'vacantCount', key: 'vacantCount', render: v => <Tag color="error">{v}</Tag> },
+                                { title: 'الإيجار المتوقع', dataIndex: 'expected', key: 'expected', render: v => sarFormatter(v) },
+                                { title: 'المحصل', dataIndex: 'paid', key: 'paid', render: v => sarFormatter(v) },
+                                { title: 'المتبقى', dataIndex: 'remaining', key: 'remaining', render: v => <Text type={v > 0 ? 'danger' : 'success'}>{sarFormatter(v)}</Text> }
+                            ]}
+                        />
+                    </Card>
+                </div>
+            );
+        };
+
+
+        const BuildingManager = ({ profile, cities }) => {
+            const [buildings, setBuildings] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [selectedBuilding, setSelectedBuilding] = useState(null);
+            const [form] = Form.useForm();
+
+            const fetchBuildings = useCallback(async () => {
+                setLoading(true);
+                const { data: bData, error: bError } = await supabase
+                    .from('buildings')
+                    .select('*');
+
+                if (!bError && bData.length > 0) {
+                    const bIds = bData.map(b => b.id);
+                    const { data: uData } = await supabase
+                        .from('units')
+                        .select('building_id, monthly_rent, amount_paid, is_rented')
+                        .in('building_id', bIds);
+
+                    const buildingsWithStats = bData.map(b => {
+                        const bUnits = uData?.filter(u => u.building_id === b.id) || [];
+                        const rentedUnits = bUnits.filter(u => u.is_rented);
+                        const totalExpected = rentedUnits.reduce((acc, u) => acc + (u.monthly_rent || 0), 0);
+                        const totalPaid = rentedUnits.reduce((acc, u) => acc + (u.amount_paid || 0), 0);
+                        const rentedCount = rentedUnits.length;
+                        return {
+                            ...b,
+                            total_expected: totalExpected,
+                            total_paid: totalPaid,
+                            total_remaining: totalExpected - totalPaid,
+                            rented_count: rentedCount
+                        };
+                    });
+                    setBuildings(buildingsWithStats);
+                } else {
+                    setBuildings(bData || []);
+                }
+                setLoading(false);
+            }, []);
+
+            useEffect(() => { fetchBuildings(); }, [fetchBuildings]);
+
+            const handleSave = async (values) => {
+                const action = selectedBuilding ? 'update' : 'insert';
+                const { error } = await supabase
+                    .from('buildings')
+                [action](values)
+                    .match(selectedBuilding ? { id: selectedBuilding.id } : {});
+
+                if (error) {
+                    message.error("خطأ: " + error.message);
+                } else {
+                    message.success("تم الحفظ بنجاح");
+                    setIsModalOpen(false);
+                    fetchBuildings();
+                    // Log
+                    const user = (await supabase.auth.getUser()).data.user;
+                    logAction(user.id, `BUILDING_${action.toUpperCase()}`, values);
+                }
+            };
+
+            const handleDelete = async (id) => {
+                Modal.confirm({
+                    title: 'هل أنت متأكد من الحذف؟',
+                    content: 'سيتم حذف المبنى وجميع الوحدات المرتبطة به.',
+                    okText: 'نعم، احذف',
+                    okType: 'danger',
+                    cancelText: 'إلغاء',
+                    onOk: async () => {
+                        const { error } = await supabase.from('buildings').delete().eq('id', id);
+                        if (error) message.error(error.message);
+                        else {
+                            message.success("تم الحذف");
+                            fetchBuildings();
+                        }
+                    }
+                });
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
+                        <Space size="large">
+                            <Title level={4} className="!mb-0">إدارة العقارات</Title>
+                        </Space>
+                        {(profile?.can_add || profile?.role === 'admin') && (
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedBuilding(null); form.resetFields(); setIsModalOpen(true); }}>إضافة مبنى جديد</Button>
+                        )}
+                    </div>
+
+                    <Table
+                        dataSource={buildings}
+                        loading={loading}
+                        rowKey="id"
+                        columns={[
+                            { title: 'اسم المبنى', dataIndex: 'name', key: 'name' },
+                            { title: 'المدينة', dataIndex: 'city_id', key: 'city_id', render: (cid) => cities.find(c => c.id === cid)?.name_ar || '-' },
+                            { title: 'العنوان', dataIndex: 'address', key: 'address' },
+                            { title: 'عدد الوحدات', dataIndex: 'unit_count', key: 'unit_count' },
+                            { title: 'عدد الوحدات المؤجرة', dataIndex: 'rented_count', key: 'rented_count' },
+                            { title: 'الإيجار المتوقع', dataIndex: 'total_expected', key: 'total_expected', render: v => sarFormatter(v) },
+                            { title: 'المحصل', dataIndex: 'total_paid', key: 'total_paid', render: v => sarFormatter(v) },
+                            { title: 'المتبقى', dataIndex: 'total_remaining', key: 'total_remaining', render: v => <Text type={v > 0 ? 'danger' : 'success'}>{sarFormatter(v)}</Text> },
+                            {
+                                title: 'إجراءات',
+                                key: 'actions',
+                                render: (_, record) => (
+                                    <Space>
+                                        {(profile?.can_edit || profile?.role === 'admin') && (
+                                            <Button icon={<EditOutlined />} onClick={() => { setSelectedBuilding(record); form.setFieldsValue(record); setIsModalOpen(true); }} />
+                                        )}
+                                        <Button icon={<HomeOutlined />} onClick={() => setSelectedBuilding({ ...record, viewUnits: true })}>الوحدات</Button>
+                                        {(profile?.can_delete || profile?.role === 'admin') && (
+                                            <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
+                                        )}
+                                    </Space>
+                                )
+                            }
+                        ]}
+                    />
+
+                    <Modal
+                        title={selectedBuilding ? "تعديل مبنى" : "إضافة مبنى جديد"}
+                        open={isModalOpen}
+                        onCancel={() => setIsModalOpen(false)}
+                        onOk={() => form.submit()}
+                    >
+                        <Form form={form} layout="vertical" onFinish={handleSave}>
+                            <Form.Item name="name" label="اسم المبنى" rules={[{ required: true }]}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="address" label="العنوان">
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="unit_count" label="عدد الوحدات التقديري">
+                                <InputNumber className="w-full" min={1} />
+                            </Form.Item>
+                            <Form.Item name="city_id" label="المدينة" rules={[{ required: true }]}>
+                                <Select options={cities.map(c => ({ label: c.name_ar, value: c.id }))} />
+                            </Form.Item>
+                        </Form>
+                    </Modal>
+
+                    {selectedBuilding?.viewUnits && (
+                        <UnitLedger
+                            building={selectedBuilding}
+                            profile={profile}
+                            onBack={() => setSelectedBuilding(null)}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const UnitLedger = ({ building, onBack, profile }) => {
+            const [units, setUnits] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [selectedUnit, setSelectedUnit] = useState(null);
+            const [form] = Form.useForm();
+
+            const fetchUnits = useCallback(async () => {
+                setLoading(true);
+                const { data, error } = await supabase
+                    .from('units')
+                    .select('*')
+                    .eq('building_id', building.id)
+                    .order('unit_number');
+                if (!error) setUnits(data);
+                setLoading(false);
+            }, [building.id]);
+
+            useEffect(() => { fetchUnits(); }, [fetchUnits]);
+
+            const handleSave = async (values) => {
+                const action = selectedUnit ? 'update' : 'insert';
+                const { rent_period, ...rest } = values;
+                const dataToSave = {
+                    ...rest,
+                    building_id: building.id,
+                    period_start: rent_period ? rent_period[0].format('YYYY-MM-DD') : null,
+                    period_end: rent_period ? rent_period[1].format('YYYY-MM-DD') : null,
+                    amount_paid: values.is_rented ? values.amount_paid : 0
+                };
+
+                const { error } = await supabase
+                    .from('units')
+                [action](dataToSave)
+                    .match(selectedUnit ? { id: selectedUnit.id } : {});
+
+                if (error) message.error(error.message);
+                else {
+                    message.success("تم الحفظ");
+                    setIsModalOpen(false);
+                    fetchUnits();
+                }
+            };
+
+            const updateStatus = async (unit, status) => {
+                // Optimistic Update
+                const oldUnits = [...units];
+                setUnits(units.map(u => u.id === unit.id ? { ...u, status } : u));
+
+                const { error } = await supabase
+                    .from('units')
+                    .update({ status })
+                    .eq('id', unit.id);
+
+                if (error) {
+                    message.error(error.message);
+                    setUnits(oldUnits);
+                }
+            };
+
+            return (
+                <Drawer
+                    title={`وحدات ${building.name}`}
+                    placement="left"
+                    onClose={onBack}
+                    open={true}
+                    width="80%"
+                    extra={
+                        (profile?.can_add || profile?.role === 'admin') && (
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedUnit(null); form.resetFields(); setIsModalOpen(true); }}>إضافة وحدة</Button>
+                        )
+                    }
+                >
+                    <Table
+                        dataSource={units}
+                        loading={loading}
+                        rowKey="id"
+                        columns={[
+                            { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number' },
+                            { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name' },
+                            { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number' },
+                            { title: 'رقم الجوال', dataIndex: 'phone_number', key: 'phone_number' },
+                            { title: 'من', dataIndex: 'period_start', key: 'period_start' },
+                            { title: 'إلى', dataIndex: 'period_end', key: 'period_end' },
+                            {
+                                title: 'الحالة',
+                                dataIndex: 'is_rented',
+                                key: 'is_rented',
+                                render: (is_rented) => (
+                                    <Tag color={is_rented ? 'success' : 'error'}>
+                                        {is_rented ? 'مؤجرة' : 'شاغرة'}
+                                    </Tag>
+                                )
+                            },
+                            { title: 'الإيجار المتوقع', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => sarFormatter(v) },
+                            { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', render: (v, record) => sarFormatter(record.is_rented ? v : 0) },
+                            {
+                                title: 'المتبقى',
+                                key: 'remaining',
+                                render: (_, record) => {
+                                    if (!record.is_rented) return sarFormatter(0);
+                                    const remaining = (record.monthly_rent || 0) - (record.amount_paid || 0);
+                                    return <Text type={remaining > 0 ? 'danger' : 'success'}>{sarFormatter(remaining)}</Text>;
+                                }
+                            },
+                            {
+                                title: 'طريقة الدفع',
+                                dataIndex: 'payment_method',
+                                key: 'payment_method',
+                                render: (method) => method === 'Bank Transfer' ? 'تحويل بنكى' : 'كاش'
+                            },
+                            {
+                                title: 'إجراءات',
+                                key: 'actions',
+                                render: (_, record) => (
+                                    <Space>
+                                        {(profile?.can_delete || profile?.role === 'admin') && (
+                                            <Popconfirm
+                                                title="هل أنت متأكد من حذف هذه الوحدة؟"
+                                                onConfirm={async () => {
+                                                    const { error } = await supabase.from('units').delete().eq('id', record.id);
+                                                    if (error) message.error(error.message);
+                                                    else {
+                                                        message.success("تم الحذف");
+                                                        fetchUnits();
+                                                    }
+                                                }}
+                                                okText="نعم"
+                                                cancelText="لا"
+                                            >
+                                                <Button danger icon={<DeleteOutlined />} />
+                                            </Popconfirm>
+                                        )}
+                                        {(profile?.can_edit || profile?.role === 'admin') && (
+                                            <Button icon={<EditOutlined />} onClick={() => {
+                                                setSelectedUnit(record);
+                                                form.setFieldsValue({
+                                                    ...record,
+                                                    rent_period: record.period_start ? [dayjs(record.period_start), dayjs(record.period_end)] : null
+                                                });
+                                                setIsModalOpen(true);
+                                            }} />
+                                        )}
+                                    </Space>
+                                )
+                            }
+                        ]}
+                    />
+
+                    <Modal
+                        title={selectedUnit ? "تعديل وحدة" : "إضافة وحدة"}
+                        open={isModalOpen}
+                        onCancel={() => setIsModalOpen(false)}
+                        onOk={() => form.submit()}
+                    >
+                        <Form form={form} layout="vertical" onFinish={handleSave}>
+                            <Form.Item name="unit_number" label="رقم الوحدة" rules={[{ required: true }]}>
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="tenant_name" label="اسم المستأجر">
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="id_number" label="رقم الهوية">
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="phone_number" label="رقم الجوال">
+                                <Input />
+                            </Form.Item>
+                            <Form.Item name="monthly_rent" label="الإيجار المتوقع">
+                                <InputNumber className="w-full" />
+                            </Form.Item>
+                            <Form.Item name="amount_paid" label="المحصل">
+                                <InputNumber className="w-full" />
+                            </Form.Item>
+                            <Form.Item name="payment_method" label="طريقة الدفع" initialValue="Cash">
+                                <Select options={[
+                                    { label: 'كاش', value: 'Cash' },
+                                    { label: 'تحويل بنكى', value: 'Bank Transfer' }
+                                ]} />
+                            </Form.Item>
+                            <Form.Item name="rent_period" label="فترة الإيجار">
+                                <DatePicker.RangePicker className="w-full" />
+                            </Form.Item>
+                            <Form.Item name="is_rented" label="حالة الإيجار" valuePropName="checked">
+                                <Checkbox>مؤجرة</Checkbox>
+                            </Form.Item>
+                        </Form>
+                    </Modal>
+                </Drawer>
+            );
+        };
+
+        const AdminPanel = ({ users, onUpdateUser }) => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [form] = Form.useForm();
+
+            const handleSaveUser = async (values) => {
+                const processedEmail = processUsername(values.email);
+                if (selectedUser) {
+                    await onUpdateUser(selectedUser.id, values);
+                    setIsModalOpen(false);
+                    setSelectedUser(null);
+                    form.resetFields();
+                    return;
+                }
+                
+                try {
+                    // Check if user already exists in profiles
+                    const { data: existingUser } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('email', processedEmail)
+                        .maybeSingle();
+
+                    if (existingUser) {
+                        Modal.confirm({
+                            title: 'المستخدم موجود بالفعل',
+                            content: 'هذا المستخدم مسجل مسبقاً. هل تريد تحديث صلاحياته بالبيانات الجديدة؟',
+                            okText: 'تحديث',
+                            cancelText: 'إلغاء',
+                            onOk: async () => {
+                                await onUpdateUser(existingUser.id, {
+                                    role: values.role || 'user',
+                                    can_add: values.can_add || false,
+                                    can_edit: values.can_edit || false,
+                                    can_delete: values.can_delete || false,
+                                    can_report: values.can_report || false
+                                });
+                                setIsModalOpen(false);
+                                form.resetFields();
+                            }
+                        });
+                        return;
+                    }
+
+                    const tempClient = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                        auth: { persistSession: false }
+                    });
+
+                    const { data: authData, error: authError } = await tempClient.auth.signUp({
+                        email: processedEmail,
+                        password: values.password,
+                    });
+
+                    if (authError) throw authError;
+
+                    if (authData.user) {
+                        const { error: profileError } = await supabase
+                            .from('profiles')
+                            .upsert([{
+                                id: authData.user.id,
+                                email: processedEmail,
+                                role: values.role || 'user',
+                                can_add: values.can_add || false,
+                                can_edit: values.can_edit || false,
+                                can_delete: values.can_delete || false,
+                                can_report: values.can_report || false
+                            }], { onConflict: 'id' });
+
+                        if (profileError) throw profileError;
+
+                        message.success("تم إنشاء المستخدم وتفعيل صلاحياته بنجاح.");
+                        setIsModalOpen(false);
+                        form.resetFields();
+                    }
+                } catch (error) {
+                    if (error.message.includes('rate limit')) {
+                        message.error({
+                            content: "خطأ: تم تجاوز حد إرسال رسائل البريد الإلكتروني. يرجى تعطيل 'Confirm Email' في إعدادات Supabase (Authentication > Settings).",
+                            duration: 10
+                        });
+                    } else {
+                        message.error("خطأ في إنشاء المستخدم: " + error.message);
+                    }
+                }
+            };
+            const handleDeleteUser = async (userId) => {
+                const { error } = await supabase.rpc('admin_delete_user', { target_user_id: userId });
+                if (error) message.error("خطأ في الحذف: " + error.message);
+                else {
+                    message.success("تم حذف المستخدم بنجاح");
+                    // Data will refresh via realtime subscription in App
+                }
+            };
+
+            const handleUpdatePassword = async (userId, newPassword) => {
+                const { error } = await supabase.rpc('admin_update_user_password', {
+                    target_user_id: userId,
+                    new_password: newPassword
+                });
+                if (error) message.error("خطأ في تحديث كلمة المرور: " + error.message);
+                else message.success("تم تحديث كلمة المرور بنجاح");
+            };
+            const PermissionToggle = ({ field, record }) => (
+                <Checkbox
+                    checked={record[field]}
+                    onChange={(e) => onUpdateUser(record.id, { [field]: e.target.checked })}
+                />
+            );
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
+                        <Title level={4} className="!mb-0">إدارة المستخدمين والصلاحيات</Title>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedUser(null); form.resetFields(); setIsModalOpen(true); }}>دعوة مستخدم جديد</Button>
+                    </div>
+
+                    <Card className="shadow-sm">
+                        <Table
+                            dataSource={users}
+                            rowKey="id"
+                            scroll={{ x: 800 }}
+                            columns={[
+                                { title: 'اسم المستخدم', dataIndex: 'email', key: 'email', fixed: 'left', render: v => displayUsername(v) },
+                                {
+                                    title: 'الدور',
+                                    dataIndex: 'role',
+                                    key: 'role',
+                                    render: (role, record) => (
+                                        <Select
+                                            value={role}
+                                            onChange={(val) => onUpdateUser(record.id, { role: val })}
+                                            options={[{ label: 'مسؤول', value: 'admin' }, { label: 'مستخدم', value: 'user' }]}
+                                        />
+                                    )
+                                },
+                                { title: 'إضافة', key: 'can_add', render: (_, r) => <PermissionToggle field="can_add" record={r} /> },
+                                { title: 'تعديل', key: 'can_edit', render: (_, r) => <PermissionToggle field="can_edit" record={r} /> },
+                                { title: 'حذف', key: 'can_delete', render: (_, r) => <PermissionToggle field="can_delete" record={r} /> },
+                                { title: 'تقارير', key: 'can_report', render: (_, r) => <PermissionToggle field="can_report" record={r} /> },
+                                {
+                                    title: 'إجراءات',
+                                    key: 'actions',
+                                    fixed: 'right',
+                                    width: 150,
+                                    render: (_, record) => (
+                                        <Space>
+                                            <Button
+                                                icon={<EditOutlined />}
+                                                size="small"
+                                                onClick={() => {
+                                                    setSelectedUser(record);
+                                                    form.setFieldsValue(record);
+                                                    setIsModalOpen(true);
+                                                }}
+                                                title="تعديل المستخدم"
+                                            />
+                                            <Button
+                                                icon={<LockOutlined />}
+                                                size="small"
+                                                onClick={() => {
+                                                    const newPass = prompt("أدخل كلمة المرور الجديدة للمستخدم:");
+                                                    if (newPass && newPass.length >= 6) {
+                                                        handleUpdatePassword(record.id, newPass);
+                                                    } else if (newPass) {
+                                                        message.warning("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+                                                    }
+                                                }}
+                                                title="تغيير كلمة المرور"
+                                            />
+                                            <Popconfirm
+                                                title="حذف المستخدم؟"
+                                                description="لا يمكن التراجع عن هذا الإجراء."
+                                                onConfirm={() => handleDeleteUser(record.id)}
+                                                okText="نعم"
+                                                cancelText="لا"
+                                                okButtonProps={{ danger: true }}
+                                            >
+                                                <Button
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                    size="small"
+                                                    title="حذف المستخدم"
+                                                />
+                                            </Popconfirm>
+                                        </Space>
+                                    )
+                                }
+                            ]}
+                        />
+                    </Card>
+
+                    <Modal
+                        title={selectedUser ? "تعديل بيانات المستخدم" : "دعوة مستخدم جديد"}
+                        open={isModalOpen}
+                        onCancel={() => { setIsModalOpen(false); setSelectedUser(null); }}
+                        onOk={() => form.submit()}
+                        okText={selectedUser ? "حفظ التغييرات" : "إرسال الدعوة"}
+                        cancelText="إلغاء"
+                    >
+                        <Form form={form} layout="vertical" onFinish={async (values) => {
+                            if (selectedUser) {
+                                // If password provided, update it first
+                                if (values.new_password) {
+                                    await handleUpdatePassword(selectedUser.id, values.new_password);
+                                }
+                                // Update profile data
+                                await handleSaveUser(values);
+                            } else {
+                                await handleSaveUser(values);
+                            }
+                        }}>
+                            <Form.Item name="email" label="اسم المستخدم" rules={[{ required: true }]}>
+                                <Input placeholder="مثال: khaled" disabled={!!selectedUser} />
+                            </Form.Item>
+                            
+                            <Form.Item 
+                                name={selectedUser ? "new_password" : "password"} 
+                                label={selectedUser ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"} 
+                                rules={[{ required: !selectedUser, min: 6 }]}
+                            >
+                                <Input.Password placeholder={selectedUser ? "اتركها فارغة إذا كنت لا تريد تغييرها" : "أدخل كلمة مرور للمستخدم"} />
+                            </Form.Item>
+
+                            <Form.Item name="role" label="الدور" initialValue="user">
+                                <Select options={[{ label: 'مسؤول', value: 'admin' }, { label: 'مستخدم', value: 'user' }]} />
+                            </Form.Item>
+                            
+                            <div className="flex gap-4 mb-4">
+                                <Form.Item name="can_add" valuePropName="checked" noStyle><Checkbox>إضافة</Checkbox></Form.Item>
+                                <Form.Item name="can_edit" valuePropName="checked" noStyle><Checkbox>تعديل</Checkbox></Form.Item>
+                                <Form.Item name="can_delete" valuePropName="checked" noStyle><Checkbox>حذف</Checkbox></Form.Item>
+                                <Form.Item name="can_report" valuePropName="checked" noStyle><Checkbox>تقارير</Checkbox></Form.Item>
+                            </div>
+
+                            {selectedUser && <Text type="secondary" className="block mb-4">اسم المستخدم: {displayUsername(selectedUser.email)}</Text>}
+                            {!selectedUser && <Text type="secondary">ملاحظة: سيتم تطبيق هذه الصلاحيات فور إنشاء المستخدم لحسابه.</Text>}
+                        </Form>
+                    </Modal>
+                </div>
+            );
+        };
+
+        const Reporting = ({ profile, cities }) => {
+            const [form] = Form.useForm();
+            const [loading, setLoading] = useState(false);
+            const [buildings, setBuildings] = useState([]);
+            const [selectedCities, setSelectedCities] = useState([]);
+
+            const filteredCities = useMemo(() => {
+                if (profile?.role === 'admin') return cities;
+                return cities.filter(c => profile?.authorized_cities?.includes(c.id));
+            }, [cities, profile]);
+
+            useEffect(() => {
+                if (selectedCities.length > 0) {
+                    supabase.from('buildings')
+                        .select('*')
+                        .in('city_id', selectedCities)
+                        .then(({ data }) => setBuildings(data || []));
+                } else {
+                    setBuildings([]);
+                }
+            }, [selectedCities]);
+
+            const generateExcel = async (values) => {
+                setLoading(true);
+                try {
+                    let query = supabase.from('units').select('*, buildings(*)');
+
+                    if (values.buildings && values.buildings.length > 0) {
+                        query = query.in('building_id', values.buildings);
+                    } else if (values.cities && values.cities.length > 0) {
+                        const { data: bData } = await supabase.from('buildings').select('id').in('city_id', values.cities);
+                        const cityBuildings = bData?.map(b => b.id) || [];
+                        if (cityBuildings.length > 0) query = query.in('building_id', cityBuildings);
+                    } else {
+                        const authCities = filteredCities.map(c => c.id);
+                        const { data: bData } = await supabase.from('buildings').select('id').in('city_id', authCities);
+                        const authCityBuildings = bData?.map(b => b.id) || [];
+                        if (authCityBuildings.length > 0) query = query.in('building_id', authCityBuildings);
+                    }
+
+                    const { data, error } = await query;
+                    if (error) throw error;
+
+                    let filteredData = data;
+                    if (values.dates) {
+                        const [start, end] = values.dates;
+                        filteredData = data.filter(u => {
+                            const date = dayjs(u.updated_at);
+                            return date.isAfter(start) && date.isBefore(end);
+                        });
+                    }
+
+                    const worksheetData = filteredData.map(u => ({
+                        'المدينة': cities.find(c => c.id === u.buildings?.city_id)?.name_ar || '-',
+                        'المبنى': u.buildings?.name || '-',
+                        'رقم الوحدة': u.unit_number,
+                        'المستأجر': u.tenant_name,
+                        'الإيجار الشهري': u.monthly_rent,
+                        'المبلغ المدفوع': u.amount_paid,
+                        'الحالة': u.status,
+                        'تاريخ التحديث': dayjs(u.updated_at).format('YYYY-MM-DD')
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(worksheetData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+                    // Generate Excel file
+                    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                    // Robust download method
+                    const fileName = `Rent_Portal_Report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+                    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                        window.navigator.msSaveOrOpenBlob(blob, fileName);
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        document.body.appendChild(a);
+                        a.style = 'display: none';
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }
+
+                    message.success("تم توليد ملف Excel بنجاح");
+                } catch (error) {
+                    message.error("خطأ في توليد التقرير: " + error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (!profile?.can_report && profile?.role !== 'admin') {
+                return (
+                    <div className="flex items-center justify-center h-64">
+                        <Result status="403" title="غير مصرح" subTitle="عذراً، ليس لديك صلاحية الوصول إلى التقارير." />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <Card className="shadow-sm">
+                        <Title level={4}>محرك التقارير المتقدم</Title>
+                        <Text type="secondary" className="block mb-6">قم بتصفية البيانات المطلوبة لتوليد تقرير Excel شامل.</Text>
+
+                        <Form form={form} layout="vertical" onFinish={generateExcel}>
+                            <Row gutter={16}>
+                                <Col xs={24} md={12}>
+                                    <Form.Item name="dates" label="النطاق الزمني">
+                                        <DatePicker.RangePicker className="w-full" />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={12}>
+                                    <Form.Item name="buildings" label="المباني">
+                                        <Select mode="multiple" placeholder="اختر المباني (اختياري)" allowClear>
+                                            {buildings.map(b => <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>)}
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={24} className="flex items-end pb-6">
+                                    <Button type="primary" icon={<FileTextOutlined />} htmlType="submit" loading={loading} block size="large">
+                                        توليد تقرير Excel
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Form>
+                    </Card>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [cities, setCities] = useState([]);
+            const [selectedCity, setSelectedCity] = useState(null);
+            const [stats, setStats] = useState({ totalBuildings: 0, totalUnits: 0, totalPaid: 0, collectionRate: 0, cityStats: [] });
+            const [allUsers, setAllUsers] = useState([]);
+
+            const fetchProfile = async (u) => {
+                const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
+                setProfile(data);
+                return data;
+            };
+
+            const fetchInitialData = async (prof) => {
+                const { data: cityData } = await supabase.from('cities').select('*');
+                setCities(cityData || []);
+
+                // Set Riyadh as default if available
+                // Stats calculation
+                const { data: bData } = await supabase.from('buildings').select('*');
+                const { data: uData } = await supabase.from('units').select('*');
+
+                const totalBuildings = bData?.length || 0;
+                const totalUnits = uData?.length || 0;
+                const rentedUnitsData = uData?.filter(u => u.is_rented) || [];
+                const totalPaid = rentedUnitsData.reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
+                const totalExpected = rentedUnitsData.reduce((acc, u) => acc + (u.monthly_rent || 0), 0) || 1;
+
+                const cityStats = cityData?.map(c => {
+                    const cBuildings = bData?.filter(b => b.city_id === c.id) || [];
+                    const cUnits = uData?.filter(u => cBuildings.some(b => b.id === u.building_id)) || [];
+                    const cRentedUnits = cUnits.filter(u => u.is_rented);
+                    return {
+                        id: c.id,
+                        name: c.name_ar,
+                        buildings: cBuildings.length,
+                        paid: cRentedUnits.reduce((acc, u) => acc + (u.amount_paid || 0), 0),
+                        expected: cRentedUnits.reduce((acc, u) => acc + (u.monthly_rent || 0), 0) || 1
+                    };
+                }) || [];
+
+                const rentedUnits = rentedUnitsData.length;
+                const vacantUnits = uData?.filter(u => !u.is_rented).length || 0;
+                const collectedCash = rentedUnitsData.filter(u => u.payment_method === 'Cash').reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
+                const collectedBank = rentedUnitsData.filter(u => u.payment_method === 'Bank Transfer').reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
+
+                const buildingSummaries = bData?.map(b => {
+                    const bUnits = uData?.filter(u => u.building_id === b.id) || [];
+                    const rentedUnits = bUnits.filter(u => u.is_rented);
+                    const expected = rentedUnits.reduce((acc, u) => acc + (u.monthly_rent || 0), 0);
+                    const paid = rentedUnits.reduce((acc, u) => acc + (u.amount_paid || 0), 0);
+                    return {
+                        id: b.id,
+                        key: b.id,
+                        name: b.name,
+                        city: cityData?.find(c => c.id === b.city_id)?.name_ar || '-',
+                        unitCount: bUnits.length || b.unit_count || 0,
+                        rentedCount: rentedUnits.length,
+                        vacantCount: bUnits.filter(u => !u.is_rented).length,
+                        expected: expected,
+                        paid: paid,
+                        remaining: expected - paid
+                    };
+                }) || [];
+
+                setStats({
+                    totalBuildings,
+                    rentedUnits,
+                    vacantUnits,
+                    totalPaid,
+                    collectedCash,
+                    collectedBank,
+                    collectionRate: Math.round((totalPaid / totalExpected) * 100),
+                    cityStats,
+                    buildingSummaries
+                });
+
+                if (prof.role === 'admin') {
+                    const { data: userData } = await supabase.from('profiles').select('*');
+                    setAllUsers(userData || []);
+                }
+            };
+
+            useEffect(() => {
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                    if (session) {
+                        setUser(session.user);
+                        fetchProfile(session.user).then(prof => {
+                            if (prof) {
+                                fetchInitialData(prof);
+                                // Realtime Subscriptions
+                                const channel = supabase.channel('schema-db-changes')
+                                    .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, () => fetchProfile(session.user).then(p => fetchInitialData(p)))
+                                    .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, () => fetchProfile(session.user).then(p => fetchInitialData(p)))
+                                    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchProfile(session.user).then(p => fetchInitialData(p)))
+                                    .subscribe();
+                            }
+                        });
+                    } else {
+                        setUser(null);
+                        setProfile(null);
+                        setLoading(false);
+                    }
+                });
+
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (session) {
+                        setUser(session.user);
+                        fetchProfile(session.user).then(prof => {
+                            if (prof) fetchInitialData(prof);
+                        });
+                    }
+                    setLoading(false);
+                });
+
+                return () => subscription.unsubscribe();
+            }, []);
+
+            const handleLogout = async () => {
+                await supabase.auth.signOut();
+                window.location.href = window.location.origin + window.location.pathname;
+            };
+
+            const handleUpdateUser = async (userId, updates) => {
+                const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+                if (error) message.error(error.message);
+                else {
+                    message.success("تم تحديث بيانات المستخدم");
+                    const { data: userData } = await supabase.from('profiles').select('*');
+                    setAllUsers(userData || []);
+                }
+            };
+
+            if (loading) return <div className="h-screen flex items-center justify-center saudi-gradient"><Spin size="large" tip="جاري التحميل..." /></div>;
+            if (!user) return <Login onLogin={(u) => { setUser(u); fetchProfile(u).then(prof => fetchInitialData(prof)); }} />;
+
+            return (
+                <ConfigProvider direction="rtl" locale={dayjs.locale('ar')} theme={{ token: { fontFamily: 'Cairo', colorPrimary: '#006B3F' } }}>
+                    <Layout className="min-h-screen">
+                        <Sider
+                            breakpoint="lg"
+                            collapsedWidth="0"
+                            className="!bg-white shadow-lg z-10"
+                        >
+                            <div className="p-6 text-center border-b border-gray-100">
+                                <Avatar size={64} icon={<UserOutlined />} className="bg-primary mb-2" />
+                                <div className="font-bold text-primary truncate">{displayUsername(profile?.email)}</div>
+                                <Tag color="gold" className="mt-1">{profile?.role === 'admin' ? 'مدير نظام' : 'مدير عقارات'}</Tag>
+                            </div>
+                            <Menu
+                                mode="inline"
+                                selectedKeys={[activeTab]}
+                                onClick={({ key }) => {
+                                    if (key === 'logout') {
+                                        handleLogout();
+                                    } else {
+                                        setActiveTab(key);
+                                    }
+                                }}
+                                className="border-none mt-4"
+                                items={[
+                                    { key: 'dashboard', icon: <DashboardOutlined />, label: 'لوحة المعلومات' },
+                                    { key: 'properties', icon: <BankOutlined />, label: 'إدارة العقارات' },
+                                    profile?.can_report || profile?.role === 'admin' ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
+                                    profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
+                                    { key: 'logout', icon: <LogoutOutlined />, label: 'تسجيل الخروج', danger: true }
+                                ]}
+                            />
+                        </Sider>
+                        <Layout>
+                            <Header className="bg-white px-6 flex items-center justify-between shadow-sm border-b border-gray-100">
+                                <Title level={4} className="!m-0 text-primary">بوابة تحصيل الإيجارات</Title>
+                                <Space>
+                                    <Text type="secondary">{dayjs().format('DD MMMM YYYY')}</Text>
+                                </Space>
+                            </Header>
+                            <Content className="p-6 overflow-auto">
+                                {activeTab === 'dashboard' && <Dashboard stats={stats} />}
+                                {activeTab === 'properties' && (
+                                    <BuildingManager
+                                        cities={cities}
+                                        profile={profile}
+                                    />
+                                )}
+                                {activeTab === 'reports' && <Reporting profile={profile} cities={cities} />}
+                                {activeTab === 'admin' && profile?.role === 'admin' && (
+                                    <AdminPanel
+                                        users={allUsers}
+                                        onUpdateUser={handleUpdateUser}
+                                    />
+                                )}
+                            </Content>
+                            <Footer className="text-center text-gray-400 text-xs">
+                                جميع الحقوق محفوظة © {new Date().getFullYear()} بوابة تحصيل الإيجارات - المملكة العربية السعودية
+                            </Footer>
+                        </Layout>
+                    </Layout>
+                </ConfigProvider>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
