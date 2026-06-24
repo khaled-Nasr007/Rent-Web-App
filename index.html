@@ -181,9 +181,57 @@
             body * {
                 visibility: hidden;
             }
-            .print-receipt-section, .print-receipt-section * {
-                visibility: visible;
+            
+            /* Hide the main app and other page layouts entirely */
+            #root,
+            .ant-modal-mask,
+            .ant-modal-close,
+            .ant-modal-header,
+            .ant-modal-footer,
+            .no-print {
+                display: none !important;
             }
+            
+            /* Override visibility for the modal content path */
+            .ant-modal-root,
+            .ant-modal-wrap,
+            .ant-modal,
+            .ant-modal-content,
+            .ant-modal-body,
+            .print-receipt-section,
+            .print-receipt-section * {
+                visibility: visible !important;
+            }
+            
+            /* Reset modal wrapping layout */
+            .ant-modal-wrap {
+                position: static !important;
+                overflow: visible !important;
+                display: block !important;
+            }
+            
+            .ant-modal {
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                top: 0 !important;
+                box-shadow: none !important;
+                background: transparent !important;
+            }
+            
+            .ant-modal-content {
+                background: transparent !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+            
+            .ant-modal-body {
+                padding: 0 !important;
+            }
+
             .print-receipt-section {
                 position: absolute;
                 left: 0;
@@ -194,8 +242,11 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            .no-print {
-                display: none !important;
+            
+            body {
+                background-color: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
         }
     </style>
@@ -230,7 +281,7 @@
             Typography, Statistic, Row, Col, Modal, Form,
             Input, InputNumber, Select, message, Spin,
             ConfigProvider, theme, Result, Drawer, Descriptions,
-            Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker
+            Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker, Radio
         } = antd;
 
         // Safe icon loader - creates a placeholder if an icon doesn't exist
@@ -485,7 +536,6 @@
                         <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-primary hover:bg-opacity-90 no-print">طباعة السند / حفظ PDF</Button>
                     ]}
                     width={750}
-                    className="no-print"
                     bodyStyle={{ padding: 0 }}
                 >
                     <div className="print-receipt-section p-6">
@@ -626,7 +676,6 @@
                         <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-red-600 hover:bg-opacity-90 no-print border-red-600">طباعة السند / حفظ PDF</Button>
                     ]}
                     width={750}
-                    className="no-print"
                     bodyStyle={{ padding: 0 }}
                 >
                     <div className="print-receipt-section p-6">
@@ -2742,6 +2791,520 @@
             );
         };
 
+        const VouchersLedger = ({ profile, cities }) => {
+            const [receipts, setReceipts] = useState([]);
+            const [expenses, setExpenses] = useState([]);
+            const [buildings, setBuildings] = useState([]);
+            const [units, setUnits] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            // Filter states
+            const [selectedCity, setSelectedCity] = useState(null);
+            const [selectedBuilding, setSelectedBuilding] = useState(null);
+            const [selectedUnit, setSelectedUnit] = useState(null);
+            const [voucherType, setVoucherType] = useState('all');
+            const [searchText, setSearchText] = useState('');
+
+            // Date filtering states
+            const [calendarMode, setCalendarMode] = useState('Gregorian'); // Gregorian or Hijri
+            const [gregorianRange, setGregorianRange] = useState(null);
+            const [hijriYear, setHijriYear] = useState(null);
+            const [hijriMonth, setHijriMonth] = useState('all');
+
+            // Modal states for details & printing
+            const [activeReceipt, setActiveReceipt] = useState(null);
+            const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+            const [activeExpense, setActiveExpense] = useState(null);
+            const [expensePreviewVisible, setExpensePreviewVisible] = useState(false);
+            const [printOnLoad, setPrintOnLoad] = useState(false);
+
+            const fetchData = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const [rRes, eRes, bRes, uRes] = await Promise.all([
+                        supabase.from('receipts').select('*').order('created_at', { ascending: false }),
+                        supabase.from('vouchers_expense').select('*').order('created_at', { ascending: false }),
+                        supabase.from('buildings').select('*'),
+                        supabase.from('units').select('*')
+                    ]);
+                    
+                    if (rRes.error) throw rRes.error;
+                    if (eRes.error) throw eRes.error;
+                    if (bRes.error) throw bRes.error;
+                    if (uRes.error) throw uRes.error;
+
+                    setReceipts(rRes.data || []);
+                    setExpenses(eRes.data || []);
+                    setBuildings(bRes.data || []);
+                    setUnits(uRes.data || []);
+                } catch (err) {
+                    message.error("خطأ في تحميل بيانات السندات: " + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                fetchData();
+                const channel = supabase.channel('vouchers-ledger-changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, fetchData)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers_expense' }, fetchData)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, fetchData)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, fetchData)
+                    .subscribe();
+                return () => {
+                    channel.unsubscribe();
+                };
+            }, [fetchData]);
+
+            // Automatically print once modal is rendered
+            useEffect(() => {
+                if (printOnLoad && (receiptModalVisible || expensePreviewVisible)) {
+                    setPrintOnLoad(false);
+                    setTimeout(() => {
+                        window.print();
+                    }, 350);
+                }
+            }, [printOnLoad, receiptModalVisible, expensePreviewVisible]);
+
+            // Reset dependent cascading filters
+            const handleCityChange = (val) => {
+                setSelectedCity(val);
+                setSelectedBuilding(null);
+                setSelectedUnit(null);
+            };
+
+            const handleBuildingChange = (val) => {
+                setSelectedBuilding(val);
+                setSelectedUnit(null);
+            };
+
+            // Options for cascading filters
+            const filteredBuildingsOptions = useMemo(() => {
+                if (!selectedCity) return buildings;
+                return buildings.filter(b => b.city_id === selectedCity);
+            }, [buildings, selectedCity]);
+
+            const filteredUnitsOptions = useMemo(() => {
+                if (!selectedBuilding) return [];
+                return units.filter(u => u.building_id === selectedBuilding);
+            }, [units, selectedBuilding]);
+
+            // Merge receipts & expenses into a unified chronological stream
+            const mergedStream = useMemo(() => {
+                const stream = [];
+
+                receipts.forEach(r => {
+                    const b = buildings.find(b => b.id === r.building_id);
+                    const u = units.find(u => u.id === r.unit_id);
+                    stream.push({
+                        id: `receipt-${r.id}`,
+                        date: r.created_at,
+                        type: 'receipt',
+                        refNumber: r.receipt_number,
+                        buildingId: r.building_id,
+                        buildingName: b ? b.name : (r.building_name || '-'),
+                        cityId: b ? b.city_id : null,
+                        unitId: r.unit_id,
+                        unitNumber: u ? u.unit_number : (r.unit_number || '-'),
+                        amount: r.amount_received || 0,
+                        paymentMethod: r.payment_method,
+                        category: 'إيراد إيجار',
+                        description: `دفعة إيجار - المستأجر: ${r.tenant_name || '-'}`,
+                        approvalStatus: 'approved',
+                        rawItem: r
+                    });
+                });
+
+                expenses.forEach(e => {
+                    const b = buildings.find(b => b.id === e.building_id);
+                    const u = units.find(u => u.id === e.unit_id);
+                    const catAr = e.category === 'Maintenance' ? 'صيانة' : e.category === 'Utilities' ? 'خدمات' : e.category === 'General' ? 'أخرى' : e.category;
+                    stream.push({
+                        id: `expense-${e.id}`,
+                        date: e.created_at,
+                        type: 'expense',
+                        refNumber: e.voucher_number,
+                        buildingId: e.building_id,
+                        buildingName: b ? b.name : '-',
+                        cityId: b ? b.city_id : null,
+                        unitId: e.unit_id,
+                        unitNumber: u ? u.unit_number : 'عام للمبنى',
+                        amount: e.amount || 0,
+                        paymentMethod: e.payment_method,
+                        category: `مصروف (${catAr})`,
+                        description: e.description || '-',
+                        approvalStatus: e.approval_status || 'pending',
+                        rawItem: e
+                    });
+                });
+
+                return stream.sort((a, b) => new Date(b.date) - new Date(a.date));
+            }, [receipts, expenses, buildings, units]);
+
+            // Filter stream based on active selections
+            const filteredStream = useMemo(() => {
+                return mergedStream.filter(item => {
+                    if (selectedCity && item.cityId !== selectedCity) return false;
+                    if (selectedBuilding && item.buildingId !== selectedBuilding) return false;
+                    if (selectedUnit && item.unitId !== selectedUnit) return false;
+                    if (voucherType !== 'all' && item.type !== voucherType) return false;
+
+                    // Date Filters
+                    if (calendarMode === 'Gregorian' && gregorianRange && gregorianRange.length === 2) {
+                        const start = gregorianRange[0].startOf('day');
+                        const end = gregorianRange[1].endOf('day');
+                        const itemDate = dayjs(item.date);
+                        if (itemDate.isBefore(start) || itemDate.isAfter(end)) return false;
+                    }
+
+                    if (calendarMode === 'Hijri' && hijriYear) {
+                        const { startDate, endDate } = getGregorianRangeForHijriMonth(
+                            hijriYear,
+                            hijriMonth === 'all' ? null : parseInt(hijriMonth, 10)
+                        );
+                        if (startDate && endDate) {
+                            const itemDate = new Date(item.date);
+                            if (itemDate < startDate || itemDate > endDate) return false;
+                        }
+                    }
+
+                    // Text Search
+                    if (searchText) {
+                        const s = searchText.toLowerCase();
+                        const refMatch = item.refNumber?.toLowerCase().includes(s);
+                        const descMatch = item.description?.toLowerCase().includes(s);
+                        const bMatch = item.buildingName?.toLowerCase().includes(s);
+                        const uMatch = item.unitNumber?.toLowerCase().includes(s);
+                        if (!refMatch && !descMatch && !bMatch && !uMatch) return false;
+                    }
+
+                    return true;
+                });
+            }, [mergedStream, selectedCity, selectedBuilding, selectedUnit, voucherType, calendarMode, gregorianRange, hijriYear, hijriMonth, searchText]);
+
+            // Calculate KPI aggregates (only count approved expenses for totals)
+            const kpis = useMemo(() => {
+                let totalReceipts = 0;
+                let totalExpenses = 0;
+
+                filteredStream.forEach(item => {
+                    if (item.type === 'receipt') {
+                        totalReceipts += item.amount;
+                    } else if (item.type === 'expense' && item.approvalStatus === 'approved') {
+                        totalExpenses += item.amount;
+                    }
+                });
+
+                return {
+                    totalReceipts,
+                    totalExpenses,
+                    netCash: totalReceipts - totalExpenses
+                };
+            }, [filteredStream]);
+
+            // Open popup detail view modal
+            const handleViewRow = (item) => {
+                if (item.type === 'receipt') {
+                    setActiveReceipt(item.rawItem);
+                    setReceiptModalVisible(true);
+                } else {
+                    const b = buildings.find(b => b.id === item.rawItem.building_id);
+                    const u = units.find(u => u.id === item.rawItem.unit_id);
+                    setActiveExpense({
+                        ...item.rawItem,
+                        building_name: b ? b.name : '-',
+                        unit_number: u ? u.unit_number : 'عام للمبنى',
+                        created_by_email: item.rawItem.created_by_email || ''
+                    });
+                    setExpensePreviewVisible(true);
+                }
+            };
+
+            // Print voucher directly from row
+            const handlePrintRow = (item, e) => {
+                if (e) e.stopPropagation();
+                setPrintOnLoad(true);
+                handleViewRow(item);
+            };
+
+            return (
+                <div className="space-y-6">
+                    {/* Filter Panel Card */}
+                    <Card className="shadow-sm border-gray-100" title={<div className="flex items-center gap-2 font-bold text-primary"><span>🔍</span> تصفية وبحث السندات الموحدة</div>}>
+                        <div className="space-y-4">
+                            {/* Row 1: City -> Building -> Unit */}
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">المدينة (City)</div>
+                                    <Select
+                                        className="w-full"
+                                        placeholder="كل المدن"
+                                        allowClear
+                                        value={selectedCity}
+                                        onChange={handleCityChange}
+                                        options={cities.map(c => ({ label: c.name_ar, value: c.id }))}
+                                    />
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">العمارة (Building)</div>
+                                    <Select
+                                        className="w-full"
+                                        placeholder="كل العمارات"
+                                        allowClear
+                                        value={selectedBuilding}
+                                        onChange={handleBuildingChange}
+                                        options={filteredBuildingsOptions.map(b => ({ label: b.name, value: b.id }))}
+                                    />
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">الوحدة (Unit)</div>
+                                    <Select
+                                        className="w-full"
+                                        placeholder="كل الوحدات"
+                                        allowClear
+                                        disabled={!selectedBuilding}
+                                        value={selectedUnit}
+                                        onChange={setSelectedUnit}
+                                        options={filteredUnitsOptions.map(u => ({ label: `وحدة ${u.unit_number}`, value: u.id }))}
+                                    />
+                                </Col>
+                            </Row>
+
+                            {/* Row 2: Voucher Type, Date Calendars, Search */}
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={6}>
+                                    <div className="text-xs text-gray-500 mb-1">نوع السند (Voucher Type)</div>
+                                    <Select
+                                        className="w-full"
+                                        value={voucherType}
+                                        onChange={setVoucherType}
+                                        options={[
+                                            { label: 'الكل (All)', value: 'all' },
+                                            { label: 'سند قبض (Receipt)', value: 'receipt' },
+                                            { label: 'سند صرف (Expense)', value: 'expense' }
+                                        ]}
+                                    />
+                                </Col>
+
+                                <Col xs={24} sm={10}>
+                                    <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
+                                    <div className="flex gap-2 items-center">
+                                        <Radio.Group 
+                                            value={calendarMode} 
+                                            onChange={e => setCalendarMode(e.target.value)}
+                                            size="middle"
+                                            className="flex-shrink-0"
+                                        >
+                                            <Radio.Button value="Gregorian">ميلادي</Radio.Button>
+                                            <Radio.Button value="Hijri">هجري</Radio.Button>
+                                        </Radio.Group>
+                                        {calendarMode === 'Gregorian' ? (
+                                            <DatePicker.RangePicker 
+                                                className="w-full"
+                                                value={gregorianRange}
+                                                onChange={setGregorianRange}
+                                                placeholder={['من تاريخ', 'إلى تاريخ']}
+                                            />
+                                        ) : (
+                                            <div className="flex gap-1 w-full">
+                                                <Select 
+                                                    className="w-1/2"
+                                                    placeholder="السنة"
+                                                    value={hijriYear}
+                                                    onChange={setHijriYear}
+                                                    allowClear
+                                                    options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
+                                                />
+                                                <Select 
+                                                    className="w-1/2"
+                                                    value={hijriMonth}
+                                                    onChange={setHijriMonth}
+                                                    options={[
+                                                        { value: 'all', label: 'كل الأشهر' },
+                                                        { value: 1, label: '1 - محرم' },
+                                                        { value: 2, label: '2 - صفر' },
+                                                        { value: 3, label: '3 - ربيع الأول' },
+                                                        { value: 4, label: '4 - ربيع الثاني' },
+                                                        { value: 5, label: '5 - جمادى الأولى' },
+                                                        { value: 6, label: '6 - جمادى الآخرة' },
+                                                        { value: 7, label: '7 - رجب' },
+                                                        { value: 8, label: '8 - شعبان' },
+                                                        { value: 9, label: '9 - رمضان' },
+                                                        { value: 10, label: '10 - شوال' },
+                                                        { value: 11, label: '11 - ذو القعدة' },
+                                                        { value: 12, label: '12 - ذو الحجة' }
+                                                    ]}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </Col>
+
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">بحث نصي ديناميكي (البحث)</div>
+                                    <Input
+                                        placeholder="ابحث بالرقم، اسم المستأجر أو البيان..."
+                                        value={searchText}
+                                        onChange={e => setSearchText(e.target.value)}
+                                        prefix={<SearchOutlined className="text-gray-400" />}
+                                        allowClear
+                                    />
+                                </Col>
+                            </Row>
+                        </div>
+                    </Card>
+
+                    {/* KPI metrics bar banner */}
+                    <div className="p-4 bg-slate-50 rounded-xl border border-gray-100 shadow-sm">
+                        <Row gutter={[16, 16]}>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-emerald-100 hover:shadow-md transition-shadow">
+                                    <Statistic
+                                        title="إجمالي المقبوضات (سندات القبض)"
+                                        value={kpis.totalReceipts}
+                                        formatter={sarFormatter}
+                                        valueStyle={{ color: '#006B3F', fontWeight: 'bold' }}
+                                        prefix={<ArrowDownOutlined className="text-emerald-600" />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-red-100 hover:shadow-md transition-shadow">
+                                    <Statistic
+                                        title="إجمالي المدفوعات (سندات الصرف)"
+                                        value={kpis.totalExpenses}
+                                        formatter={sarFormatter}
+                                        valueStyle={{ color: '#cf222e', fontWeight: 'bold' }}
+                                        prefix={<ArrowUpOutlined className="text-red-600" />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-amber-100 hover:shadow-md transition-shadow">
+                                    <Statistic
+                                        title="إجمالي الكاش المتوفر (Net Cash)"
+                                        value={kpis.netCash}
+                                        formatter={sarFormatter}
+                                        valueStyle={{ color: kpis.netCash >= 0 ? '#b58d1b' : '#cf222e', fontWeight: 'bold' }}
+                                        prefix={<WalletOutlined className="text-amber-600" />}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+                    </div>
+
+                    {/* Master Ledger Data Table */}
+                    <Card className="shadow-sm border-gray-100" bodyStyle={{ padding: 0 }}>
+                        <Table
+                            dataSource={filteredStream}
+                            loading={loading}
+                            rowKey="id"
+                            onRow={(record) => ({
+                                onClick: () => handleViewRow(record),
+                                className: "cursor-pointer hover:bg-slate-50 transition-colors"
+                            })}
+                            columns={[
+                                {
+                                    title: 'التاريخ (Date)',
+                                    dataIndex: 'date',
+                                    key: 'date',
+                                    render: (date) => (
+                                        <div>
+                                            <div>{dayjs(date).format('YYYY-MM-DD م')}</div>
+                                            <div className="text-[10px] text-gray-400 font-semibold">{toHijri(date)} هـ</div>
+                                        </div>
+                                    )
+                                },
+                                { title: 'رقم السند (Ref)', dataIndex: 'refNumber', key: 'refNumber', className: 'font-semibold' },
+                                {
+                                    title: 'النوع (Type)',
+                                    dataIndex: 'type',
+                                    key: 'type',
+                                    render: (type) => (
+                                        <Tag color={type === 'receipt' ? 'success' : 'error'}>
+                                            {type === 'receipt' ? 'سند قبض' : 'سند صرف'}
+                                        </Tag>
+                                    )
+                                },
+                                { title: 'العقار (Building)', dataIndex: 'buildingName', key: 'buildingName' },
+                                { title: 'الوحدة (Unit)', dataIndex: 'unitNumber', key: 'unitNumber' },
+                                {
+                                    title: 'المبلغ (Amount)',
+                                    dataIndex: 'amount',
+                                    key: 'amount',
+                                    render: (val, record) => (
+                                        <span className={`font-bold ${record.type === 'receipt' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            {record.type === 'receipt' ? '+' : '-'}{sarFormatter(val)}
+                                        </span>
+                                    )
+                                },
+                                {
+                                    title: 'طريقة الدفع (Payment)',
+                                    dataIndex: 'paymentMethod',
+                                    key: 'paymentMethod',
+                                    render: (method) => method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'
+                                },
+                                { title: 'البيان والتفاصيل (Details)', dataIndex: 'description', key: 'description', className: 'text-gray-500 max-w-[200px] truncate' },
+                                {
+                                    title: 'حالة الاعتماد (Status)',
+                                    key: 'status',
+                                    render: (_, record) => {
+                                        if (record.type === 'receipt') {
+                                            return <Tag color="green">معتمد تلقائياً</Tag>;
+                                        }
+                                        const status = record.approvalStatus;
+                                        let color = 'gold';
+                                        let text = 'قيد المراجعة';
+                                        if (status === 'approved') {
+                                            color = 'green';
+                                            text = 'معتمد';
+                                        } else if (status === 'rejected') {
+                                            color = 'red';
+                                            text = 'مرفوض';
+                                        }
+                                        return <Tag color={color}>{text}</Tag>;
+                                    }
+                                },
+                                {
+                                    title: 'إجراءات (Actions)',
+                                    key: 'actions',
+                                    render: (_, record) => (
+                                        <Space onClick={e => e.stopPropagation()}>
+                                            <Button size="small" type="link" onClick={() => handleViewRow(record)}>تصفح</Button>
+                                            <Button 
+                                                size="small" 
+                                                type="primary" 
+                                                ghost 
+                                                className="border-primary text-primary"
+                                                icon={<span>🖨️</span>} 
+                                                onClick={(e) => handlePrintRow(record, e)}
+                                            >
+                                                طباعة
+                                            </Button>
+                                        </Space>
+                                    )
+                                }
+                            ]}
+                        />
+                    </Card>
+
+                    {/* Popups & Modals */}
+                    <ReceiptModal
+                        receipt={activeReceipt}
+                        visible={receiptModalVisible}
+                        onClose={() => { setReceiptModalVisible(false); setActiveReceipt(null); }}
+                    />
+
+                    <ExpenseVoucherModal
+                        voucher={activeExpense}
+                        visible={expensePreviewVisible}
+                        onClose={() => { setExpensePreviewVisible(false); setActiveExpense(null); }}
+                    />
+                </div>
+            );
+        };
+
         // --- Main App ---
 
         const App = () => {
@@ -2923,6 +3486,7 @@
                                 items={[
                                     { key: 'dashboard', icon: <DashboardOutlined />, label: 'لوحة المعلومات' },
                                     { key: 'properties', icon: <BankOutlined />, label: 'إدارة العقارات' },
+                                    { key: 'vouchers', icon: <WalletOutlined />, label: 'السندات' },
                                     (profile?.can_report || profile?.role === 'admin') ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
                                     (profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL) ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
                                     { key: 'logout', icon: <LogoutOutlined />, label: 'تسجيل الخروج', danger: true }
@@ -2940,6 +3504,12 @@
                                 {activeTab === 'dashboard' && <Dashboard stats={stats} />}
                                 {activeTab === 'properties' && (
                                     <BuildingManager
+                                        cities={cities}
+                                        profile={profile}
+                                    />
+                                )}
+                                {activeTab === 'vouchers' && (
+                                    <VouchersLedger
                                         cities={cities}
                                         profile={profile}
                                     />
