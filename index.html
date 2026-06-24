@@ -33,16 +33,17 @@
     <!-- React & Dependencies -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/regenerator-runtime@0.14.1/runtime.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
 
     <!-- Supabase -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <!-- Ant Design -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/locale/ar.min.js"></script>
-    <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
-    <script src="https://unpkg.com/@ant-design/icons/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/antd@5/dist/antd-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ant-design/icons@5/dist/index.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -71,14 +72,159 @@
         .ant-menu-rtl {
             text-align: right;
         }
+
+        /* Premium Receipt Styles */
+        .receipt-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .receipt-border-accent {
+            border: 1px solid #D4AF37;
+        }
+
+        .receipt-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(0, 107, 63, 0.04);
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+        }
+
+        .receipt-header-band {
+            background: linear-gradient(135deg, #006B3F 0%, #004D2E 100%);
+            color: #ffffff;
+            padding: 24px;
+            position: relative;
+            border-bottom: 4px solid #D4AF37;
+        }
+
+        .receipt-badge-gold {
+            border: 1px solid #D4AF37;
+            background-color: rgba(212, 175, 55, 0.1);
+            color: #b58d1b;
+            font-weight: bold;
+        }
+
+        .hijri-hint {
+            font-size: 11px;
+            color: #006B3F;
+            margin-top: 4px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .expense-hijri-hint {
+            font-size: 11px;
+            color: #991b1b;
+            margin-top: 4px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .receipt-table-summary {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        /* Premium Expense Voucher Styles */
+        .voucher-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .voucher-border-accent {
+            border: 1px solid #D4AF37;
+        }
+
+        .voucher-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(153, 27, 27, 0.04);
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+        }
+
+        .voucher-header-band {
+            background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+            color: #ffffff;
+            padding: 24px;
+            position: relative;
+            border-bottom: 4px solid #D4AF37;
+        }
+
+
+        /* Print styling */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-receipt-section, .print-receipt-section * {
+                visibility: visible;
+            }
+            .print-receipt-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div id="root"></div>
+    <div id="error-display" style="display:none;direction:rtl;font-family:Cairo,sans-serif;padding:40px;text-align:center;">
+        <h2 style="color:#c00;">⚠️ حدث خطأ في تحميل التطبيق</h2>
+        <pre id="error-details" style="background:#fff3f3;padding:20px;border-radius:8px;text-align:left;direction:ltr;overflow:auto;max-height:300px;"></pre>
+        <p>يرجى تحديث الصفحة أو التواصل مع الدعم الفني.</p>
+    </div>
 
-    <script type="text/babel">
+    <script>
+        // Global error handler - show errors visually instead of blank page
+        window.onerror = function(msg, src, line, col, err) {
+            var el = document.getElementById('error-display');
+            var det = document.getElementById('error-details');
+            if (el && det) {
+                el.style.display = 'block';
+                det.textContent = 'Error: ' + msg + '\nSource: ' + src + '\nLine: ' + line + '\n' + (err && err.stack ? err.stack : '');
+            }
+            console.error('Global error:', msg, src, line, col, err);
+        };
+    </script>
+
+    <script type="text/babel" data-presets="env,react">
         const { useState, useEffect, useMemo, useCallback } = React;
+        dayjs.locale('ar');
         const {
             Layout, Menu, Button, Card, Table, Tag, Space,
             Typography, Statistic, Row, Col, Modal, Form,
@@ -86,36 +232,78 @@
             ConfigProvider, theme, Result, Drawer, Descriptions,
             Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker
         } = antd;
-        const {
-            DashboardOutlined,
-            HomeOutlined,
-            TeamOutlined,
-            FileTextOutlined,
-            LogoutOutlined,
-            PlusOutlined,
-            EditOutlined,
-            DeleteOutlined,
-            EnvironmentOutlined,
-            ArrowUpOutlined,
-            ArrowDownOutlined,
-            UserOutlined,
-            GlobalOutlined,
-            BankOutlined,
-            DollarOutlined,
-            SearchOutlined,
-            LockOutlined,
-            InboxOutlined,
-            WalletOutlined
-        } = icons;
+
+        // Safe icon loader - creates a placeholder if an icon doesn't exist
+        const _icons = window.icons || window.AntDesignIcons || {};
+        const safeIcon = (name) => _icons[name] || (() => React.createElement('span', { role: 'img', 'aria-label': name, style: { display: 'inline-block', width: '1em', height: '1em' } }, '●'));
+        const DashboardOutlined = safeIcon('DashboardOutlined');
+        const HomeOutlined = safeIcon('HomeOutlined');
+        const TeamOutlined = safeIcon('TeamOutlined');
+        const FileTextOutlined = safeIcon('FileTextOutlined');
+        const LogoutOutlined = safeIcon('LogoutOutlined');
+        const PlusOutlined = safeIcon('PlusOutlined');
+        const EditOutlined = safeIcon('EditOutlined');
+        const DeleteOutlined = safeIcon('DeleteOutlined');
+        const EnvironmentOutlined = safeIcon('EnvironmentOutlined');
+        const ArrowUpOutlined = safeIcon('ArrowUpOutlined');
+        const ArrowDownOutlined = safeIcon('ArrowDownOutlined');
+        const UserOutlined = safeIcon('UserOutlined');
+        const GlobalOutlined = safeIcon('GlobalOutlined');
+        const BankOutlined = safeIcon('BankOutlined');
+        const DollarOutlined = safeIcon('DollarOutlined');
+        const SearchOutlined = safeIcon('SearchOutlined');
+        const LockOutlined = safeIcon('LockOutlined');
+        const InboxOutlined = safeIcon('InboxOutlined');
+        const WalletOutlined = safeIcon('WalletOutlined');
 
         const { Header, Content, Sider, Footer } = Layout;
         const { Title, Text } = Typography;
 
+        // Error Boundary to catch render errors
+        class ErrorBoundary extends React.Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            componentDidCatch(error, info) { console.error('React Error Boundary:', error, info); }
+            render() {
+                if (this.state.hasError) {
+                    return React.createElement('div', { style: { padding: 40, textAlign: 'center', fontFamily: 'Cairo, sans-serif', direction: 'rtl' } },
+                        React.createElement('h2', { style: { color: '#c00' } }, '⚠️ حدث خطأ في التطبيق'),
+                        React.createElement('pre', { style: { background: '#fff3f3', padding: 20, borderRadius: 8, textAlign: 'left', direction: 'ltr', overflow: 'auto' } }, this.state.error?.toString()),
+                        React.createElement('button', { onClick: () => window.location.reload(), style: { padding: '10px 20px', fontSize: 16, cursor: 'pointer', marginTop: 20 } }, 'إعادة تحميل الصفحة')
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         // --- Configuration ---
         const SUPABASE_URL = "https://hifpzldubwoetexqjnau.supabase.co";
         const SUPABASE_KEY = "sb_publishable_LED-vbACqUUvZ6tm1aUDtQ_I2F_iMQX";
-        const libSupabase = supabase;
-        const supabase = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const libSupabase = window.supabase;
+        
+        // Safe storage check to support local file:// protocol
+        const getSafeStorage = () => {
+            try {
+                const testKey = '__storage_test__';
+                window.localStorage.setItem(testKey, testKey);
+                window.localStorage.removeItem(testKey);
+                return window.localStorage;
+            } catch (e) {
+                const memStorage = {};
+                return {
+                    getItem: (key) => memStorage[key] || null,
+                    setItem: (key, value) => { memStorage[key] = String(value); },
+                    removeItem: (key) => { delete memStorage[key]; }
+                };
+            }
+        };
+
+        const supabase = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: {
+                storage: getSafeStorage(),
+                persistSession: true
+            }
+        });
 
         const SUPER_ADMIN_EMAIL = "khalednasr007@gmail.com";
 
@@ -145,7 +333,427 @@
             return u.endsWith('@portal.local') ? u.replace('@portal.local', '') : u;
         };
 
+        // Hijri Utilities
+        const toHijri = (dateVal) => {
+            if (!dateVal) return '';
+            const d = new Date(dateVal);
+            if (isNaN(d.getTime())) return '';
+            try {
+                return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                }).format(d);
+            } catch (e) {
+                return '';
+            }
+        };
+
+        const toHijriShort = (dateVal) => {
+            if (!dateVal) return '';
+            const d = new Date(dateVal);
+            if (isNaN(d.getTime())) return '';
+            try {
+                return new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).format(d);
+            } catch (e) {
+                return '';
+            }
+        };
+
+        const getHijriYear = (dateVal = new Date()) => {
+            const d = new Date(dateVal);
+            try {
+                const formatted = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { year: 'numeric' }).format(d);
+                const match = formatted.match(/(\d+)/);
+                return match ? parseInt(match[1], 10) : 1447;
+            } catch (e) {
+                return 1447;
+            }
+        };
+
+        const getGregorianRangeForHijriMonth = (year, monthIndex) => {
+            let startDate = null;
+            let endDate = null;
+            const refHijri = 1447;
+            const refGregorian = new Date(2025, 5, 26); // June 26, 2025 is 1 Muharram 1447
+            const daysOffset = (year - refHijri) * 354.367;
+            const approxStart = new Date(refGregorian.getTime() + daysOffset * 24 * 60 * 60 * 1000);
+            const searchStart = new Date(approxStart.getTime() - 60 * 24 * 60 * 60 * 1000);
+            
+            for (let d = 0; d < 450; d++) {
+                const currentDate = new Date(searchStart.getTime() + d * 24 * 60 * 60 * 1000);
+                try {
+                    const parts = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+                        day: 'numeric',
+                        month: 'numeric',
+                        year: 'numeric'
+                    }).format(currentDate);
+                    const [m, day, y] = parts.split('/');
+                    const curY = parseInt(y, 10);
+                    const curM = parseInt(m, 10);
+                    
+                    if (curY === year) {
+                        if (monthIndex === null || monthIndex === undefined || curM === monthIndex) {
+                            if (!startDate) {
+                                startDate = new Date(currentDate);
+                            }
+                            endDate = new Date(currentDate);
+                        }
+                    }
+                } catch (e) {}
+            }
+            if (startDate) startDate.setHours(0, 0, 0, 0);
+            if (endDate) endDate.setHours(23, 59, 59, 999);
+            return { startDate, endDate };
+        };
+
+        const generateReceiptNumber = async () => {
+            const currentHijriYear = getHijriYear(new Date());
+            const { data, error } = await supabase
+                .from('receipts')
+                .select('receipt_number')
+                .like('receipt_number', `${currentHijriYear}-%`)
+                .order('receipt_number', { ascending: false })
+                .limit(1);
+
+            if (error) {
+                console.error("Error generating receipt number:", error);
+                return `${currentHijriYear}-${String(Date.now()).slice(-5)}`;
+            }
+
+            let nextNum = 1;
+            if (data && data.length > 0) {
+                const lastNumStr = data[0].receipt_number.split('-')[1];
+                const lastNum = parseInt(lastNumStr, 10);
+                if (!isNaN(lastNum)) {
+                    nextNum = lastNum + 1;
+                }
+            }
+
+            const paddedNum = String(nextNum).padStart(5, '0');
+            return `${currentHijriYear}-${paddedNum}`;
+        };
+
+        const generateExpenseVoucherNumber = async () => {
+            const currentHijriYear = getHijriYear(new Date());
+            const { data, error } = await supabase
+                .from('vouchers_expense')
+                .select('voucher_number')
+                .like('voucher_number', `EXP-${currentHijriYear}-%`)
+                .order('voucher_number', { ascending: false })
+                .limit(1);
+
+            if (error) {
+                console.error("Error generating expense voucher number:", error);
+                return `EXP-${currentHijriYear}-${String(Date.now()).slice(-5)}`;
+            }
+
+            let nextNum = 1;
+            if (data && data.length > 0) {
+                const lastNumStr = data[0].voucher_number.split('-')[2];
+                const lastNum = parseInt(lastNumStr, 10);
+                if (!isNaN(lastNum)) {
+                    nextNum = lastNum + 1;
+                }
+            }
+
+            const paddedNum = String(nextNum).padStart(5, '0');
+            return `EXP-${currentHijriYear}-${paddedNum}`;
+        };
+
+
+
         // --- Components ---
+
+        const ReceiptModal = ({ receipt, visible, onClose }) => {
+            if (!receipt) return null;
+
+            const handlePrint = () => {
+                window.print();
+            };
+
+            return (
+                <Modal
+                    open={visible}
+                    onCancel={onClose}
+                    footer={[
+                        <Button key="close" onClick={onClose} className="no-print">إغلاق</Button>,
+                        <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-primary hover:bg-opacity-90 no-print">طباعة السند / حفظ PDF</Button>
+                    ]}
+                    width={750}
+                    className="no-print"
+                    bodyStyle={{ padding: 0 }}
+                >
+                    <div className="print-receipt-section p-6">
+                        <div className="receipt-card receipt-border-accent">
+                            <div className="receipt-watermark">سند قبض</div>
+                            
+                            {/* Header Band */}
+                            <div className="receipt-header-band flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-white text-2xl font-bold m-0 flex items-center gap-2">
+                                        <BankOutlined /> سند قبض إلكتروني
+                                    </h2>
+                                    <p className="text-emerald-100 text-xs mt-1 mb-0">بوابة تحصيل الإيجارات السعودية</p>
+                                </div>
+                                <div className="text-left" style={{ textAlign: 'left' }}>
+                                    <div className="text-sm font-bold">رقم السند: {receipt.receipt_number}</div>
+                                    <div className="text-xs text-emerald-100 mt-1">
+                                        التاريخ: {receipt.created_at ? dayjs(receipt.created_at).format('YYYY-MM-DD م') : ''}
+                                        {receipt.created_at ? ` | ${toHijriShort(receipt.created_at)} هـ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="p-6 space-y-6 relative z-10">
+                                {/* Row 1: Tenant & Property */}
+                                <Row gutter={[24, 16]}>
+                                    <Col span={12}>
+                                        <Card size="small" title="بيانات المستأجر" bordered={false} className="bg-slate-50">
+                                            <Descriptions column={1} size="small">
+                                                <Descriptions.Item label="الاسم">{receipt.tenant_name || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="رقم الهوية">{receipt.id_number || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="رقم الجوال">{receipt.phone_number || '-'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Card>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Card size="small" title="بيانات العقار والعقد" bordered={false} className="bg-slate-50">
+                                            <Descriptions column={1} size="small">
+                                                <Descriptions.Item label="العقار">{receipt.building_name || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="رقم الوحدة">{receipt.unit_number || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="رقم العقد">{receipt.contract_number || '-'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Card>
+                                    </Col>
+                                </Row>
+
+                                {/* Row 2: Contract dates */}
+                                <Card size="small" title="فترة الإيجار المغطاة بالعقد" bordered={false} className="bg-slate-50">
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Descriptions column={1} size="small">
+                                                <Descriptions.Item label="بداية العقد">{receipt.period_start || '-'} م</Descriptions.Item>
+                                                <Descriptions.Item label="بداية العقد (هجري)">{receipt.period_start_hijri || '-'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Descriptions column={1} size="small">
+                                                <Descriptions.Item label="نهاية العقد">{receipt.period_end || '-'} م</Descriptions.Item>
+                                                <Descriptions.Item label="نهاية العقد (هجري)">{receipt.period_end_hijri || '-'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Col>
+                                    </Row>
+                                </Card>
+
+                                {/* Row 3: Payment details */}
+                                <div className="receipt-table-summary">
+                                    <Row gutter={16} align="middle">
+                                        <Col span={16}>
+                                            <div className="text-xs text-gray-500">المبلغ المستلم (ر.س)</div>
+                                            <div className="text-3xl font-extrabold text-primary mt-1">
+                                                {sarFormatter(receipt.amount_received || 0)}
+                                            </div>
+                                            <div className="text-xs text-gray-400 mt-1">
+                                                المبلغ رقماً وكتابةً: {receipt.amount_received ? receipt.amount_received : 0} ريال سعودي فقط لا غير.
+                                            </div>
+                                        </Col>
+                                        <Col span={8} className="text-left" style={{ textAlign: 'left' }}>
+                                            <Tag color="success" className="text-sm px-3 py-1 receipt-badge-gold">
+                                                {receipt.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'نقدي / كاش'}
+                                            </Tag>
+                                        </Col>
+                                    </Row>
+                                    <Divider className="my-3" />
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Text type="secondary">الإيجار السنوي المتوقع: </Text>
+                                            <Text className="font-bold">{sarFormatter(receipt.monthly_rent || 0)}</Text>
+                                        </Col>
+                                        <Col span={12} className="text-left" style={{ textAlign: 'left' }}>
+                                            <Text type="secondary">المتبقي من العقد: </Text>
+                                            <Text className="font-bold text-red-500">{sarFormatter(receipt.remaining_balance || 0)}</Text>
+                                        </Col>
+                                    </Row>
+                                </div>
+
+                                {/* Footer & Authentication Badge */}
+                                <div className="flex justify-between items-center text-xs text-gray-400 pt-2">
+                                    <div>
+                                        <span>سند معتمد رقمياً وبشكل رسمي</span>
+                                        <div className="mt-1">بواسطة: {displayUsername(receipt.created_by_email)}</div>
+                                    </div>
+                                    <div className="text-left" style={{ textAlign: 'left' }}>
+                                        <span>تاريخ الإصدار: </span>
+                                        <span>{receipt.created_at ? dayjs(receipt.created_at).format('YYYY-MM-DD HH:mm:ss') : ''}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
+        const ExpenseVoucherModal = ({ voucher, visible, onClose }) => {
+            if (!voucher) return null;
+
+            const handlePrint = () => {
+                window.print();
+            };
+
+            const translateCategory = (cat) => {
+                if (!cat) return '-';
+                switch(cat) {
+                    case 'Maintenance': return 'صيانة';
+                    case 'Utilities': return 'خدمات';
+                    case 'General': return 'أخرى';
+                    default: return cat; // Custom categories stored directly
+                }
+            };
+
+            return (
+                <Modal
+                    open={visible}
+                    onCancel={onClose}
+                    footer={[
+                        <Button key="close" onClick={onClose} className="no-print">إغلاق</Button>,
+                        <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-red-600 hover:bg-opacity-90 no-print border-red-600">طباعة السند / حفظ PDF</Button>
+                    ]}
+                    width={750}
+                    className="no-print"
+                    bodyStyle={{ padding: 0 }}
+                >
+                    <div className="print-receipt-section p-6">
+                        <div className="voucher-card voucher-border-accent">
+                            {/* Status Banner */}
+                            {voucher.approval_status === 'pending' && (
+                                <div className="bg-amber-500 text-white text-center py-2 font-bold text-sm border-b border-amber-600">
+                                    ⚠️ هذا السند قيد المراجعة والاعتماد ولم يتم ترحيله للحسابات بعد
+                                </div>
+                            )}
+                            {voucher.approval_status === 'rejected' && (
+                                <div className="bg-red-600 text-white text-center py-2 font-bold text-sm border-b border-red-700">
+                                    ❌ هذا السند مرفوض وغير معتمد ماليّاً
+                                </div>
+                            )}
+                            <div className="voucher-watermark">سند صرف</div>
+                            
+                            {/* Header Band */}
+                            <div className="voucher-header-band flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-white text-2xl font-bold m-0 flex items-center gap-2">
+                                        <ArrowUpOutlined /> سند صرف إلكتروني
+                                    </h2>
+                                    <p className="text-red-100 text-xs mt-1 mb-0">بوابة تحصيل الإيجارات السعودية</p>
+                                </div>
+                                <div className="text-left" style={{ textAlign: 'left' }}>
+                                    <div className="text-sm font-bold">رقم السند: {voucher.voucher_number}</div>
+                                    <div className="text-xs text-red-100 mt-1">
+                                        التاريخ: {voucher.created_at ? dayjs(voucher.created_at).format('YYYY-MM-DD م') : ''}
+                                        {voucher.created_at ? ` | ${toHijriShort(voucher.created_at)} هـ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="p-6 space-y-6 relative z-10">
+                                {/* Row 1: Property and Unit */}
+                                <Row gutter={[24, 16]}>
+                                    <Col span={12}>
+                                        <Card size="small" title="تفاصيل العقار والوحدة" bordered={false} className="bg-slate-50">
+                                            <Descriptions column={1} size="small">
+                                                <Descriptions.Item label="العقار">{voucher.building_name || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="رقم الوحدة">{voucher.unit_number || '-'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Card>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Card size="small" title="تفاصيل التصنيف والعملية" bordered={false} className="bg-slate-50">
+                                            <Descriptions column={1} size="small">
+                                                <Descriptions.Item label="بند المصروف">{translateCategory(voucher.category)}</Descriptions.Item>
+                                                <Descriptions.Item label="طريقة الدفع">{voucher.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'نقدي / كاش'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Card>
+                                    </Col>
+                                </Row>
+
+                                {/* Row 2: Description */}
+                                <Card size="small" title="البيان والتفاصيل" bordered={false} className="bg-slate-50">
+                                    <div className="text-sm text-gray-700 min-h-[60px]">
+                                        {voucher.description || '-'}
+                                    </div>
+                                </Card>
+
+                                {/* Row 3: Amount details */}
+                                <div className="receipt-table-summary border-red-200">
+                                    <Row gutter={16} align="middle">
+                                        <Col span={24}>
+                                            <div className="text-xs text-gray-500">المبلغ المنصرف (ر.س)</div>
+                                            <div className="text-3xl font-extrabold text-red-700 mt-1">
+                                                {sarFormatter(voucher.amount || 0)}
+                                            </div>
+                                            <div className="text-xs text-gray-400 mt-1">
+                                                المبلغ رقماً وكتابةً: {voucher.amount ? voucher.amount : 0} ريال سعودي فقط لا غير.
+                                            </div>
+                                        </Col>
+                                    </Row>
+                                </div>
+
+                                {/* Row 4: Manager Approval Stamp */}
+                                {voucher.approved_by && (
+                                    <div className="mt-4 p-3 rounded-lg border-2 border-amber-400 bg-amber-50 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white text-lg flex-shrink-0">🔏</div>
+                                        <div>
+                                            <div className="text-[10px] text-amber-700 font-bold uppercase tracking-widest">اعتماد رسمي — معتمد من المسؤول</div>
+                                            <div className="text-sm font-bold text-amber-900 mt-0.5">{voucher.approved_by}</div>
+                                            <div className="text-[10px] text-amber-600 mt-0.5">وافق وأعتمد صرف هذا المبلغ بتاريخ {voucher.created_at ? dayjs(voucher.created_at).format('YYYY-MM-DD HH:mm') : ''}</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Row 5: Signature Lines */}
+                                <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
+                                    <Row gutter={24} className="text-center">
+                                        <Col span={8}>
+                                            <div className="text-xs text-gray-400 mb-10">المستلم / المستفيد</div>
+                                            <div className="border-t border-gray-300 w-3/4 mx-auto pt-1 text-xs text-gray-500">التوقيع والاسم</div>
+                                        </Col>
+                                        <Col span={8}>
+                                            <div className="text-xs text-gray-400 mb-10">المحاسب</div>
+                                            <div className="border-t border-gray-300 w-3/4 mx-auto pt-1 text-xs text-gray-500">التوقيع والاسم</div>
+                                        </Col>
+                                        <Col span={8}>
+                                            <div className="text-[10px] text-amber-700 font-bold mb-1">🔏 المسؤول المعتمِد</div>
+                                            <div className="text-xs text-amber-900 font-semibold mb-8">{voucher.approved_by || 'مدير العقار / المالك'}</div>
+                                            <div className="border-t-2 border-amber-400 w-3/4 mx-auto pt-1 text-xs text-amber-700">الاعتماد والتوقيع الرسمي</div>
+                                        </Col>
+                                    </Row>
+                                </div>
+
+                                {/* Footer & Authentication Badge */}
+                                <div className="flex justify-between items-center text-xs text-gray-400 pt-2 border-t border-gray-100">
+                                    <div>
+                                        <span>سند صرف معتمد رقمياً وبشكل رسمي</span>
+                                        <div className="mt-1">بواسطة: {displayUsername(voucher.created_by_email)}</div>
+                                    </div>
+                                    <div className="text-left" style={{ textAlign: 'left' }}>
+                                        <span>تاريخ الإصدار: </span>
+                                        <span>{voucher.created_at ? dayjs(voucher.created_at).format('YYYY-MM-DD HH:mm:ss') : ''}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
 
         const Login = ({ onLogin }) => {
             const [loading, setLoading] = useState(false);
@@ -328,6 +936,7 @@
                         const rentedCount = rentedUnits.length;
                         return {
                             ...b,
+                            unit_count: bUnits.length || b.unit_count || 0,
                             total_expected: totalExpected,
                             total_paid: totalPaid,
                             total_remaining: totalExpected - totalPaid,
@@ -344,11 +953,53 @@
             useEffect(() => { fetchBuildings(); }, [fetchBuildings]);
 
             const handleSave = async (values) => {
-                const action = selectedBuilding ? 'update' : 'insert';
-                const { error } = await supabase
-                    .from('buildings')
-                [action](values)
-                    .match(selectedBuilding ? { id: selectedBuilding.id } : {});
+                let cityId = values.city_id;
+                if (cityId === 'ADD_NEW_CITY') {
+                    const trimmedName = (values.new_city_name || '').trim();
+                    // Check if a city with the same name already exists
+                    const { data: existingCities } = await supabase
+                        .from('cities')
+                        .select('id, name_ar')
+                        .eq('name_ar', trimmedName)
+                        .limit(1);
+
+                    if (existingCities && existingCities.length > 0) {
+                        // City already exists — reuse its id
+                        cityId = existingCities[0].id;
+                        message.info(`المدينة "${trimmedName}" موجودة بالفعل وسيتم استخدامها.`);
+                    } else {
+                        const newCityId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+                            ? crypto.randomUUID() 
+                            : 'c-' + Date.now();
+                        const newCityData = {
+                            id: newCityId,
+                            name_ar: trimmedName,
+                            country: 'السعودية',
+                            flag: '🇸🇦',
+                            icon: '🏙️'
+                        };
+                        const { error: cityError } = await supabase.from('cities').insert([newCityData]);
+                        if (cityError) {
+                            message.error("خطأ في إضافة المدينة: " + cityError.message);
+                            return;
+                        }
+                        cityId = newCityId;
+                    }
+                }
+
+                const { new_city_name, ...buildingValues } = values;
+                buildingValues.city_id = cityId;
+
+                let query = supabase.from('buildings');
+                if (selectedBuilding) {
+                    query = query.update(buildingValues).eq('id', selectedBuilding.id);
+                } else {
+                    const newBuildingId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : 'b-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                    query = query.insert([{ id: newBuildingId, ...buildingValues }]);
+                }
+                const { error } = await query;
 
                 if (error) {
                     message.error("خطأ: " + error.message);
@@ -357,8 +1008,9 @@
                     setIsModalOpen(false);
                     fetchBuildings();
                     // Log
+                    const actionName = selectedBuilding ? 'UPDATE' : 'INSERT';
                     const user = (await supabase.auth.getUser()).data.user;
-                    logAction(user.id, `BUILDING_${action.toUpperCase()}`, values);
+                    logAction(user.id, `BUILDING_${actionName}`, buildingValues);
                 }
             };
 
@@ -399,6 +1051,7 @@
                             { title: 'اسم المبنى', dataIndex: 'name', key: 'name' },
                             { title: 'المدينة', dataIndex: 'city_id', key: 'city_id', render: (cid) => cities.find(c => c.id === cid)?.name_ar || '-' },
                             { title: 'العنوان', dataIndex: 'address', key: 'address' },
+                            { title: 'المسؤول عن المبنى', dataIndex: 'manager_name', key: 'manager_name' },
                             { title: 'عدد الوحدات', dataIndex: 'unit_count', key: 'unit_count' },
                             { title: 'عدد الوحدات المؤجرة', dataIndex: 'rented_count', key: 'rented_count' },
                             { title: 'الإيجار المتوقع', dataIndex: 'total_expected', key: 'total_expected', render: v => sarFormatter(v) },
@@ -435,11 +1088,34 @@
                             <Form.Item name="address" label="العنوان">
                                 <Input />
                             </Form.Item>
+                            <Form.Item name="manager_name" label="الشخص المسؤول عن إدارة المبنى" rules={[{ required: true, message: 'الرجاء إدخال اسم الشخص المسؤول' }]}>
+                                <Input />
+                            </Form.Item>
                             <Form.Item name="unit_count" label="عدد الوحدات التقديري">
                                 <InputNumber className="w-full" min={1} />
                             </Form.Item>
                             <Form.Item name="city_id" label="المدينة" rules={[{ required: true }]}>
-                                <Select options={cities.map(c => ({ label: c.name_ar, value: c.id }))} />
+                                <Select 
+                                    showSearch
+                                    placeholder="اختر المدينة أو اختر إضافة مدينة جديدة"
+                                    optionFilterProp="children"
+                                    options={[
+                                        ...cities.map(c => ({ label: c.name_ar, value: c.id })),
+                                        { label: '➕ إضافة مدينة جديدة...', value: 'ADD_NEW_CITY' }
+                                    ]} 
+                                />
+                            </Form.Item>
+                            
+                            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.city_id !== curr.city_id}>
+                                {({ getFieldValue }) => getFieldValue('city_id') === 'ADD_NEW_CITY' && (
+                                    <Form.Item 
+                                        name="new_city_name" 
+                                        label="اسم المدينة الجديدة" 
+                                        rules={[{ required: true, message: 'الرجاء إدخال اسم المدينة الجديدة' }]}
+                                    >
+                                        <Input placeholder="مثال: مكة المكرمة" />
+                                    </Form.Item>
+                                )}
                             </Form.Item>
                         </Form>
                     </Modal>
@@ -448,19 +1124,62 @@
                         <UnitLedger
                             building={selectedBuilding}
                             profile={profile}
-                            onBack={() => setSelectedBuilding(null)}
+                            cities={cities}
+                            onBack={() => {
+                                setSelectedBuilding(null);
+                                fetchBuildings();
+                            }}
                         />
                     )}
                 </div>
             );
         };
 
-        const UnitLedger = ({ building, onBack, profile }) => {
+        const UnitLedger = ({ building, onBack, profile, cities }) => {
             const [units, setUnits] = useState([]);
             const [loading, setLoading] = useState(true);
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [selectedUnit, setSelectedUnit] = useState(null);
             const [form] = Form.useForm();
+
+            // Receipt States
+            const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
+            const [selectedUnitReceipts, setSelectedUnitReceipts] = useState([]);
+            const [activeReceipt, setActiveReceipt] = useState(null);
+            const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+
+            // Live Date States for Form
+            const [liveStartDate, setLiveStartDate] = useState(null);
+            const [liveEndDate, setLiveEndDate] = useState(null);
+
+            // Expense States
+            const [receipts, setReceipts] = useState([]);
+            const [expenses, setExpenses] = useState([]);
+            const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+            const [activeExpense, setActiveExpense] = useState(null);
+            const [expensePreviewVisible, setExpensePreviewVisible] = useState(false);
+            const [activeTabKey, setActiveTabKey] = useState('1');
+            const [expenseForm] = Form.useForm();
+            const [generatedVoucherNum, setGeneratedVoucherNum] = useState('');
+            const [showCustomCategory, setShowCustomCategory] = useState(false);
+            const [balanceWarning, setBalanceWarning] = useState('');
+            const [expensePaymentMethod, setExpensePaymentMethod] = useState('Cash');
+
+            const fetchFinancialData = useCallback(async () => {
+                const { data: rData, error: rError } = await supabase
+                    .from('receipts')
+                    .select('*')
+                    .eq('building_id', building.id);
+                
+                const { data: eData, error: eError } = await supabase
+                    .from('vouchers_expense')
+                    .select('*')
+                    .eq('building_id', building.id)
+                    .order('created_at', { ascending: false });
+
+                if (!rError) setReceipts(rData || []);
+                if (!eError) setExpenses(eData || []);
+            }, [building.id]);
 
             const fetchUnits = useCallback(async () => {
                 setLoading(true);
@@ -470,182 +1189,1105 @@
                     .eq('building_id', building.id)
                     .order('unit_number');
                 if (!error) setUnits(data);
+                await fetchFinancialData();
                 setLoading(false);
-            }, [building.id]);
+            }, [building.id, fetchFinancialData]);
 
             useEffect(() => { fetchUnits(); }, [fetchUnits]);
 
+            const onFormValuesChange = (changedValues) => {
+                if (changedValues.rent_period) {
+                    const [start, end] = changedValues.rent_period || [null, null];
+                    setLiveStartDate(start ? start.toDate() : null);
+                    setLiveEndDate(end ? end.toDate() : null);
+                }
+            };
+
+            const handleOpenExpenseModal = async (unit) => {
+                setSelectedUnit(unit);
+                expenseForm.resetFields();
+                expenseForm.setFieldsValue({ payment_method: 'Cash' });
+                setShowCustomCategory(false);
+                setBalanceWarning('');
+                setExpensePaymentMethod('Cash');
+                const num = await generateExpenseVoucherNumber();
+                setGeneratedVoucherNum(num);
+                setExpenseModalOpen(true);
+            };
+
+            // Compute current cash balance for real-time validation (only count approved expenses)
+            const getCurrentCashBalance = () => {
+                const cashIn = receipts.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0);
+                const cashOut = expenses.filter(e => e.payment_method === 'Cash' && e.approval_status === 'approved').reduce((acc, e) => acc + (e.amount || 0), 0);
+                return cashIn - cashOut;
+            };
+
+            const handleExpenseFormValuesChange = (changedValues, allValues) => {
+                const payMethod = allValues.payment_method || expensePaymentMethod;
+                if (changedValues.payment_method) setExpensePaymentMethod(changedValues.payment_method);
+                if (changedValues.category !== undefined) {
+                    setShowCustomCategory(changedValues.category === 'Custom');
+                }
+                // Live balance check
+                const amount = allValues.amount || 0;
+                if ((payMethod === 'Cash') && amount > 0) {
+                    const balance = getCurrentCashBalance();
+                    if (amount > balance) {
+                        setBalanceWarning(`تنبيه: رصيد الكاش الحالي في العمارة (${sarFormatter(balance)}) غير كافي لتغطية هذا المبلغ. يرجى تعديل قيمة المصروف أو تغيير طريقة الدفع.`);
+                    } else {
+                        setBalanceWarning('');
+                    }
+                } else {
+                    setBalanceWarning('');
+                }
+            };
+
+            const handleSaveExpense = async (values) => {
+                try {
+                    // Balance guard — block cash overdraft
+                    if (values.payment_method === 'Cash') {
+                        const balance = getCurrentCashBalance();
+                        if (values.amount > balance) {
+                            setBalanceWarning(`تنبيه: رصيد الكاش الحالي في العمارة (${sarFormatter(balance)}) غير كافي لتغطية هذا المبلغ. يرجى تعديل قيمة المصروف أو تغيير طريقة الدفع.`);
+                            return;
+                        }
+                    }
+                    
+                    const isAdmin = profile?.role === 'admin';
+                    
+                    // Approval confirmation guard (only for admin)
+                    if (isAdmin && !values.approval_confirmed) {
+                        message.error('يجب تأكيد الاعتماد من المسؤول قبل الحفظ.');
+                        return;
+                    }
+
+                    const finalCategory = values.category === 'Custom'
+                        ? (values.custom_category_label || 'أخرى')
+                        : values.category;
+
+                    const currentUser = (await supabase.auth.getUser()).data.user;
+                    const expenseData = {
+                        voucher_number: generatedVoucherNum,
+                        unit_id: selectedUnit ? selectedUnit.id : null,
+                        building_id: building.id,
+                        user_id: currentUser ? currentUser.id : null,
+                        category: finalCategory,
+                        amount: values.amount,
+                        payment_method: values.payment_method,
+                        description: values.description,
+                        approval_status: isAdmin ? 'approved' : 'pending',
+                        approved_by: isAdmin ? (values.approved_by || profile?.name || profile?.email || 'مدير العقار') : '',
+                        approval_date: isAdmin ? new Date().toISOString() : null
+                    };
+
+                    const { data: insertedVoucher, error } = await supabase
+                        .from('vouchers_expense')
+                        .insert([expenseData])
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    message.success("تم تسجيل سند الصرف بنجاح");
+                    setExpenseModalOpen(false);
+                    
+                    const voucherForPrint = {
+                        ...insertedVoucher,
+                        building_name: building.name,
+                        unit_number: selectedUnit ? selectedUnit.unit_number : 'عام للمبنى',
+                        created_by_email: currentUser ? currentUser.email : ''
+                    };
+
+                    setActiveExpense(voucherForPrint);
+                    setExpensePreviewVisible(true);
+                    fetchUnits();
+                } catch (e) {
+                    message.error("خطأ أثناء حفظ سند الصرف: " + e.message);
+                }
+            };
+
+            const handleDeleteExpense = async (voucher) => {
+                Modal.confirm({
+                    title: 'تأكيد حذف سند الصرف',
+                    content: `هل أنت متأكد من حذف سند الصرف رقم ${voucher.voucher_number} بقيمة ${sarFormatter(voucher.amount)}؟ لا يمكن التراجع عن هذا الإجراء.`,
+                    okText: 'نعم، احذف',
+                    cancelText: 'إلغاء',
+                    okType: 'danger',
+                    onOk: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('vouchers_expense')
+                                .delete()
+                                .eq('id', voucher.id);
+                            if (error) throw error;
+                            message.success("تم حذف سند الصرف بنجاح");
+                            fetchUnits();
+                        } catch (e) {
+                            message.error("فشل حذف سند الصرف: " + e.message);
+                        }
+                    }
+                });
+            };
+
+            const handleApproveExpense = async (voucher) => {
+                Modal.confirm({
+                    title: 'تأكيد اعتماد سند الصرف',
+                    content: `هل أنت متأكد من اعتماد سند الصرف رقم ${voucher.voucher_number} بقيمة ${sarFormatter(voucher.amount)}؟ سيتم خصم هذا المبلغ من كشف حساب العمارة.`,
+                    okText: 'نعم، اعتمد',
+                    cancelText: 'إلغاء',
+                    onOk: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('vouchers_expense')
+                                .update({
+                                    approval_status: 'approved',
+                                    approved_by: profile?.name || profile?.email || 'مدير العقار',
+                                    approval_date: new Date().toISOString()
+                                })
+                                .eq('id', voucher.id);
+                            if (error) throw error;
+                            message.success("تم اعتماد سند الصرف بنجاح");
+                            fetchUnits();
+                        } catch (e) {
+                            message.error("فشل اعتماد سند الصرف: " + e.message);
+                        }
+                    }
+                });
+            };
+
+            const handleRejectExpense = async (voucher) => {
+                Modal.confirm({
+                    title: 'تأكيد رفض سند الصرف',
+                    content: `هل أنت متأكد من رفض سند الصرف رقم ${voucher.voucher_number} بقيمة ${sarFormatter(voucher.amount)}؟ لن يتم خصم هذا المبلغ من كشف حساب العمارة.`,
+                    okText: 'نعم، ارفض',
+                    cancelText: 'إلغاء',
+                    okType: 'danger',
+                    onOk: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('vouchers_expense')
+                                .update({
+                                    approval_status: 'rejected',
+                                    approved_by: profile?.name || profile?.email || 'مدير العقار',
+                                    approval_date: new Date().toISOString()
+                                })
+                                .eq('id', voucher.id);
+                            if (error) throw error;
+                            message.success("تم رفض سند الصرف بنجاح");
+                            fetchUnits();
+                        } catch (e) {
+                            message.error("فشل رفض سند الصرف: " + e.message);
+                        }
+                    }
+                });
+            };
+
+
             const handleSave = async (values) => {
-                const action = selectedUnit ? 'update' : 'insert';
-                const { rent_period, ...rest } = values;
-                const dataToSave = {
+                const { rent_period, amount_received, ...rest } = values;
+                const prevPaid = selectedUnit ? (selectedUnit.amount_paid || 0) : 0;
+                const expectedRent = values.monthly_rent || 0;
+                const remainingBefore = Math.max(0, expectedRent - prevPaid);
+                let finalReceived = amount_received || 0;
+
+                if (finalReceived > remainingBefore) {
+                    finalReceived = remainingBefore;
+                    message.warning(`تم تقليص المبلغ المستلم تلقائياً إلى ${sarFormatter(finalReceived)} ليغطي المتبقي فقط.`);
+                }
+
+                const newPaidTotal = prevPaid + finalReceived;
+
+                const unitData = {
                     ...rest,
                     building_id: building.id,
-                    period_start: rent_period ? rent_period[0].format('YYYY-MM-DD') : null,
-                    period_end: rent_period ? rent_period[1].format('YYYY-MM-DD') : null,
-                    amount_paid: values.is_rented ? values.amount_paid : 0
+                    period_start: rent_period && rent_period[0] ? rent_period[0].format('YYYY-MM-DD') : null,
+                    period_end: rent_period && rent_period[1] ? rent_period[1].format('YYYY-MM-DD') : null,
+                    amount_paid: values.is_rented ? newPaidTotal : 0,
+                    contract_number: values.contract_number
                 };
 
-                const { error } = await supabase
-                    .from('units')
-                [action](dataToSave)
-                    .match(selectedUnit ? { id: selectedUnit.id } : {});
+                let unitId = selectedUnit ? selectedUnit.id : null;
+                try {
+                    if (selectedUnit) {
+                        const { error } = await supabase.from('units').update(unitData).eq('id', selectedUnit.id);
+                        if (error) throw error;
+                    } else {
+                        // Generate a UUID client-side since the units table id has no DEFAULT
+                        const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                            ? crypto.randomUUID()
+                            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                                const r = Math.random() * 16 | 0;
+                                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                              });
+                        const { data, error } = await supabase.from('units').insert([{ id: newId, ...unitData }]).select().single();
+                        if (error) throw error;
+                        unitId = data.id;
+                    }
 
-                if (error) message.error(error.message);
-                else {
-                    message.success("تم الحفظ");
+                    // If a payment was made, generate a receipt
+                    if (values.is_rented && finalReceived > 0) {
+                        const receiptNum = await generateReceiptNumber();
+                        const currentUser = (await supabase.auth.getUser()).data.user;
+                        const receiptData = {
+                            receipt_number: receiptNum,
+                            unit_id: unitId,
+                            building_id: building.id,
+                            user_id: currentUser ? currentUser.id : null,
+                            tenant_name: values.tenant_name,
+                            id_number: values.id_number,
+                            phone_number: values.phone_number,
+                            contract_number: values.contract_number,
+                            unit_number: values.unit_number,
+                            building_name: building.name,
+                            city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
+                            amount_received: finalReceived,
+                            payment_method: values.payment_method,
+                            period_start: rent_period && rent_period[0] ? rent_period[0].format('YYYY-MM-DD') : null,
+                            period_end: rent_period && rent_period[1] ? rent_period[1].format('YYYY-MM-DD') : null,
+                            period_start_hijri: rent_period && rent_period[0] ? toHijri(rent_period[0].toDate()) : null,
+                            period_end_hijri: rent_period && rent_period[1] ? toHijri(rent_period[1].toDate()) : null,
+                            monthly_rent: expectedRent,
+                            remaining_balance: expectedRent - newPaidTotal,
+                            created_by_email: currentUser ? currentUser.email : ''
+                        };
+
+                        const { data: insertedReceipt, error: recError } = await supabase.from('receipts').insert([receiptData]).select().single();
+                        if (recError) throw recError;
+
+                        message.success("تم حفظ الوحدة وإصدار السند بنجاح");
+                        if (insertedReceipt) {
+                            setActiveReceipt(insertedReceipt);
+                            setReceiptModalVisible(true);
+                        }
+                    } else {
+                        message.success("تم حفظ البيانات بنجاح");
+                    }
+
                     setIsModalOpen(false);
                     fetchUnits();
+                } catch (error) {
+                    message.error("خطأ أثناء الحفظ: " + error.message);
                 }
             };
 
-            const updateStatus = async (unit, status) => {
-                // Optimistic Update
-                const oldUnits = [...units];
-                setUnits(units.map(u => u.id === unit.id ? { ...u, status } : u));
+            const showReceiptHistory = async (unit) => {
+                setLoading(true);
+                const { data, error } = await supabase
+                    .from('receipts')
+                    .select('*')
+                    .eq('unit_id', unit.id)
+                    .order('created_at', { ascending: false });
+                if (!error) {
+                    setSelectedUnitReceipts(data || []);
+                    setSelectedUnit(unit);
+                    setReceiptHistoryOpen(true);
+                } else {
+                    message.error("خطأ في تحميل سجل السندات: " + error.message);
+                }
+                setLoading(false);
+            };
 
-                const { error } = await supabase
-                    .from('units')
-                    .update({ status })
-                    .eq('id', unit.id);
+            const handleDeleteReceipt = async (receipt) => {
+                Modal.confirm({
+                    title: 'تأكيد حذف السند',
+                    content: `هل أنت متأكد من حذف السند رقم ${receipt.receipt_number}؟ سيتم خصم مبلغ ${sarFormatter(receipt.amount_received)} من إجمالي المحصل للوحدة.`,
+                    okText: 'نعم، احذف',
+                    cancelText: 'إلغاء',
+                    okType: 'danger',
+                    onOk: async () => {
+                        try {
+                            const { data: curUnit, error: fetchErr } = await supabase
+                                .from('units')
+                                .select('amount_paid')
+                                .eq('id', receipt.unit_id)
+                                .single();
+                            if (fetchErr) throw fetchErr;
 
-                if (error) {
-                    message.error(error.message);
-                    setUnits(oldUnits);
+                            const curPaid = curUnit.amount_paid || 0;
+                            const newPaid = Math.max(0, curPaid - (receipt.amount_received || 0));
+
+                            const { error: updateErr } = await supabase
+                                .from('units')
+                                .update({ amount_paid: newPaid })
+                                .eq('id', receipt.unit_id);
+                            if (updateErr) throw updateErr;
+
+                            const { error: delErr } = await supabase
+                                .from('receipts')
+                                .delete()
+                                .eq('id', receipt.id);
+                            if (delErr) throw delErr;
+
+                            message.success("تم حذف السند وتحديث المحصل للوحدة بنجاح");
+                            fetchUnits();
+                            showReceiptHistory(selectedUnit || { id: receipt.unit_id });
+                            if (selectedUnit) {
+                                setSelectedUnit(prev => ({ ...prev, amount_paid: newPaid }));
+                            }
+                        } catch (e) {
+                            message.error("فشل حذف السند: " + e.message);
+                        }
+                    }
+                });
+            };
+
+            const handleEditReceiptAmount = async (receipt) => {
+                const newAmountStr = prompt(`تعديل مبلغ السند ${receipt.receipt_number}:`, receipt.amount_received);
+                if (newAmountStr === null) return;
+                const newAmount = parseFloat(newAmountStr);
+                if (isNaN(newAmount) || newAmount < 0) {
+                    message.error("الرجاء إدخال مبلغ صحيح");
+                    return;
+                }
+
+                try {
+                    const { data: curUnit, error: fetchErr } = await supabase
+                        .from('units')
+                        .select('amount_paid')
+                        .eq('id', receipt.unit_id)
+                        .single();
+                    if (fetchErr) throw fetchErr;
+
+                    const oldAmount = receipt.amount_received || 0;
+                    const curPaid = curUnit.amount_paid || 0;
+                    const diff = newAmount - oldAmount;
+                    const newPaid = Math.max(0, curPaid + diff);
+
+                    const { error: updateUnitErr } = await supabase
+                        .from('units')
+                        .update({ amount_paid: newPaid })
+                        .eq('id', receipt.unit_id);
+                    if (updateUnitErr) throw updateUnitErr;
+
+                    const { error: updateReceiptErr } = await supabase
+                        .from('receipts')
+                        .update({ amount_received: newAmount })
+                        .eq('id', receipt.id);
+                    if (updateReceiptErr) throw updateReceiptErr;
+
+                    message.success('تم تعديل مبلغ السند وتحديث المحصل بنجاح');
+                    fetchUnits();
+                    showReceiptHistory(selectedUnit || { id: receipt.unit_id });
+                    if (selectedUnit) {
+                        setSelectedUnit(prev => ({ ...prev, amount_paid: newPaid }));
+                    }
+                } catch (e) {
+                    message.error('فشل تعديل السند: ' + e.message);
                 }
             };
+
+            // Calculate financial aggregates (only count approved expenses)
+            const totalCollected = receipts.reduce((acc, r) => acc + (r.amount_received || 0), 0);
+            const totalSpent = expenses.filter(e => e.approval_status === 'approved').reduce((acc, e) => acc + (e.amount || 0), 0);
+
+            const cashCollected = receipts.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0);
+            const cashSpent = expenses.filter(e => e.payment_method === 'Cash' && e.approval_status === 'approved').reduce((acc, e) => acc + (e.amount || 0), 0);
+            const netCashBalance = cashCollected - cashSpent;
+
+            const computedLedger = useMemo(() => {
+                const ledgerItems = [
+                    ...receipts.map(r => ({
+                        id: r.id,
+                        date: r.created_at,
+                        type: 'receipt',
+                        refNumber: r.receipt_number,
+                        category: 'إيراد إيجار',
+                        description: `دفعة إيجار - الوحدة ${r.unit_number} - المستأجر: ${r.tenant_name || '-'}`,
+                        income: r.amount_received || 0,
+                        expense: 0,
+                        paymentMethod: r.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                        rawItem: r
+                    })),
+                    ...expenses.filter(e => e.approval_status === 'approved').map(e => {
+                        const catAr = e.category === 'Maintenance' ? 'صيانة' : e.category === 'Utilities' ? 'خدمات' : 'أخرى';
+                        const relatedUnit = units.find(u => u.id === e.unit_id);
+                        return {
+                            id: e.id,
+                            date: e.created_at,
+                            type: 'expense',
+                            refNumber: e.voucher_number,
+                            category: `مصروف (${catAr})`,
+                            description: `${e.description || '-'} (الوحدة: ${relatedUnit ? relatedUnit.unit_number : 'عام للمبنى'})`,
+                            income: 0,
+                            expense: e.amount || 0,
+                            paymentMethod: e.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                            rawItem: e
+                        };
+                    })
+                ];
+
+                ledgerItems.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                let balance = 0;
+                const ledgerWithBalance = ledgerItems.map(item => {
+                    balance += (item.income - item.expense);
+                    return {
+                        ...item,
+                        balance
+                    };
+                });
+
+                return ledgerWithBalance.sort((a, b) => new Date(b.date) - new Date(a.date));
+            }, [receipts, expenses, units]);
 
             return (
                 <Drawer
-                    title={`وحدات ${building.name}`}
+                    title={`إدارة شؤون وحسابات عقار: ${building.name}`}
                     placement="left"
                     onClose={onBack}
                     open={true}
-                    width="80%"
+                    width="90%"
                     extra={
-                        (profile?.can_add || profile?.role === 'admin') && (
-                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedUnit(null); form.resetFields(); setIsModalOpen(true); }}>إضافة وحدة</Button>
-                        )
+                        <Space>
+                            {(profile?.can_add || profile?.role === 'admin') && (
+                                <Button type="primary" icon={<PlusOutlined />} onClick={() => { 
+                                    setSelectedUnit(null); 
+                                    setLiveStartDate(null);
+                                    setLiveEndDate(null);
+                                    form.resetFields(); 
+                                    setIsModalOpen(true); 
+                                }}>إضافة وحدة جديدة</Button>
+                            )}
+                        </Space>
                     }
                 >
-                    <Table
-                        dataSource={units}
-                        loading={loading}
-                        rowKey="id"
-                        columns={[
-                            { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number' },
-                            { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name' },
-                            { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number' },
-                            { title: 'رقم الجوال', dataIndex: 'phone_number', key: 'phone_number' },
-                            { title: 'من', dataIndex: 'period_start', key: 'period_start' },
-                            { title: 'إلى', dataIndex: 'period_end', key: 'period_end' },
-                            {
-                                title: 'الحالة',
-                                dataIndex: 'is_rented',
-                                key: 'is_rented',
-                                render: (is_rented) => (
-                                    <Tag color={is_rented ? 'success' : 'error'}>
-                                        {is_rented ? 'مؤجرة' : 'شاغرة'}
-                                    </Tag>
-                                )
-                            },
-                            { title: 'الإيجار المتوقع', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => sarFormatter(v) },
-                            { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', render: (v, record) => sarFormatter(record.is_rented ? v : 0) },
-                            {
-                                title: 'المتبقى',
-                                key: 'remaining',
-                                render: (_, record) => {
-                                    if (!record.is_rented) return sarFormatter(0);
-                                    const remaining = (record.monthly_rent || 0) - (record.amount_paid || 0);
-                                    return <Text type={remaining > 0 ? 'danger' : 'success'}>{sarFormatter(remaining)}</Text>;
-                                }
-                            },
-                            {
-                                title: 'طريقة الدفع',
-                                dataIndex: 'payment_method',
-                                key: 'payment_method',
-                                render: (method) => method === 'Bank Transfer' ? 'تحويل بنكى' : 'كاش'
-                            },
-                            {
-                                title: 'إجراءات',
-                                key: 'actions',
-                                render: (_, record) => (
-                                    <Space>
-                                        {(profile?.can_delete || profile?.role === 'admin') && (
-                                            <Popconfirm
-                                                title="هل أنت متأكد من حذف هذه الوحدة؟"
-                                                onConfirm={async () => {
-                                                    const { error } = await supabase.from('units').delete().eq('id', record.id);
-                                                    if (error) message.error(error.message);
-                                                    else {
-                                                        message.success("تم الحذف");
-                                                        fetchUnits();
-                                                    }
-                                                }}
-                                                okText="نعم"
-                                                cancelText="لا"
-                                            >
-                                                <Button danger icon={<DeleteOutlined />} />
-                                            </Popconfirm>
-                                        )}
-                                        {(profile?.can_edit || profile?.role === 'admin') && (
-                                            <Button icon={<EditOutlined />} onClick={() => {
-                                                setSelectedUnit(record);
-                                                form.setFieldsValue({
-                                                    ...record,
-                                                    rent_period: record.period_start ? [dayjs(record.period_start), dayjs(record.period_end)] : null
-                                                });
-                                                setIsModalOpen(true);
-                                            }} />
-                                        )}
-                                    </Space>
-                                )
-                            }
-                        ]}
-                    />
+                    {/* Financial Summary Dashboard */}
+                    <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-gray-100">
+                        <Row gutter={[16, 16]}>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-emerald-100 hover:shadow-md transition-shadow">
+                                    <Statistic
+                                        title="إجمالي المقبوضات (المحصل)"
+                                        value={totalCollected}
+                                        formatter={sarFormatter}
+                                        valueStyle={{ color: '#006B3F', fontWeight: 'bold' }}
+                                        prefix={<ArrowDownOutlined className="text-emerald-600" />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-red-100 hover:shadow-md transition-shadow">
+                                    <Statistic
+                                        title="إجمالي المدفوعات (المنصرف)"
+                                        value={totalSpent}
+                                        formatter={sarFormatter}
+                                        valueStyle={{ color: '#cf222e', fontWeight: 'bold' }}
+                                        prefix={<ArrowUpOutlined className="text-red-600" />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-amber-100 hover:shadow-md transition-shadow">
+                                    <Statistic
+                                        title="رصيد الكاش المتوفر بالعمارة"
+                                        value={netCashBalance}
+                                        formatter={sarFormatter}
+                                        valueStyle={{ color: netCashBalance >= 0 ? '#b58d1b' : '#cf222e', fontWeight: 'bold' }}
+                                        prefix={<WalletOutlined className="text-amber-600" />}
+                                    />
+                                    <div className="text-[10px] text-gray-400 mt-1">حساب نقدي فقط: المحصل نقدي - المنصرف نقدي</div>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </div>
 
+                    <antd.Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={[
+                        {
+                            key: '1',
+                            label: 'جدول الوحدات والتحصيل',
+                            children: (
+                                <Table
+                                    dataSource={units}
+                                    loading={loading}
+                                    rowKey="id"
+                                    columns={[
+                                        { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number' },
+                                        { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number' },
+                                        { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name' },
+                                        { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number' },
+                                        { title: 'رقم الجوال', dataIndex: 'phone_number', key: 'phone_number' },
+                                        { 
+                                            title: 'بداية العقد', 
+                                            key: 'period_start_full',
+                                            render: (_, record) => record.period_start ? (
+                                                <div>
+                                                    <div>{record.period_start} م</div>
+                                                    <div className="text-xs text-gray-400">{toHijri(record.period_start)} هـ</div>
+                                                </div>
+                                            ) : '-'
+                                        },
+                                        { 
+                                            title: 'نهاية العقد', 
+                                            key: 'period_end_full',
+                                            render: (_, record) => record.period_end ? (
+                                                <div>
+                                                    <div>{record.period_end} م</div>
+                                                    <div className="text-xs text-gray-400">{toHijri(record.period_end)} هـ</div>
+                                                </div>
+                                            ) : '-'
+                                        },
+                                        {
+                                            title: 'الحالة',
+                                            dataIndex: 'is_rented',
+                                            key: 'is_rented',
+                                            render: (is_rented) => (
+                                                <Tag color={is_rented ? 'success' : 'error'}>
+                                                    {is_rented ? 'مؤجرة' : 'شاغرة'}
+                                                </Tag>
+                                            )
+                                        },
+                                        { title: 'قيمة العقد المتوقعة', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => sarFormatter(v) },
+                                        { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', render: (v, record) => sarFormatter(record.is_rented ? v : 0) },
+                                        {
+                                            title: 'المتبقى',
+                                            key: 'remaining',
+                                            render: (_, record) => {
+                                                if (!record.is_rented) return sarFormatter(0);
+                                                const remaining = (record.monthly_rent || 0) - (record.amount_paid || 0);
+                                                return <Text type={remaining > 0 ? 'danger' : 'success'}>{sarFormatter(remaining)}</Text>;
+                                            }
+                                        },
+                                        {
+                                            title: 'طريقة الدفع',
+                                            dataIndex: 'payment_method',
+                                            key: 'payment_method',
+                                            render: (method) => method === 'Bank Transfer' ? 'تحويل بنكى' : 'كاش'
+                                        },
+                                        {
+                                            title: 'إجراءات',
+                                            key: 'actions',
+                                            render: (_, record) => (
+                                                <Space>
+                                                    {(profile?.can_delete || profile?.role === 'admin') && (
+                                                        <Popconfirm
+                                                            title="هل أنت متأكد من حذف هذه الوحدة؟"
+                                                            onConfirm={async () => {
+                                                                const { error } = await supabase.from('units').delete().eq('id', record.id);
+                                                                if (error) message.error(error.message);
+                                                                else {
+                                                                    message.success("تم الحذف");
+                                                                    fetchUnits();
+                                                                }
+                                                            }}
+                                                            okText="نعم"
+                                                            cancelText="لا"
+                                                        >
+                                                            <Button danger icon={<DeleteOutlined />} />
+                                                        </Popconfirm>
+                                                    )}
+                                                    {(profile?.can_edit || profile?.role === 'admin') && (
+                                                        <Button icon={<EditOutlined />} onClick={() => {
+                                                            setSelectedUnit(record);
+                                                            setLiveStartDate(record.period_start ? new Date(record.period_start) : null);
+                                                            setLiveEndDate(record.period_end ? new Date(record.period_end) : null);
+                                                            form.setFieldsValue({
+                                                                ...record,
+                                                                rent_period: record.period_start ? [dayjs(record.period_start), dayjs(record.period_end)] : null,
+                                                                amount_received: 0
+                                                            });
+                                                            setIsModalOpen(true);
+                                                        }} />
+                                                    )}
+                                                    {(profile?.can_edit || profile?.role === 'admin') && (
+                                                        <Tooltip title="إصدار سند صرف مصروفات">
+                                                            <Button 
+                                                                className="border-red-200 hover:border-red-500 hover:text-red-500"
+                                                                icon={<ArrowUpOutlined className="text-red-500" />} 
+                                                                onClick={() => handleOpenExpenseModal(record)}
+                                                            >
+                                                                سند صرف
+                                                            </Button>
+                                                        </Tooltip>
+                                                    )}
+                                                    {record.is_rented && (
+                                                        <Button icon={<FileTextOutlined />} onClick={() => showReceiptHistory(record)}>سجل السندات</Button>
+                                                    )}
+                                                </Space>
+                                            )
+                                        }
+                                    ]}
+                                />
+                            )
+                        },
+                        {
+                            key: '2',
+                            label: 'كشف حساب العمارة (دفتر الأستاذ)',
+                            children: (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100">
+                                        <Text strong className="text-lg text-primary">دفتر الحسابات الجاري الموحد للمبنى</Text>
+                                        <Text type="secondary">يتضمن المقبوضات والمصروفات حسب التسلسل التاريخي</Text>
+                                    </div>
+                                    <Table
+                                        dataSource={computedLedger}
+                                        rowKey={(record) => `${record.type}-${record.id}`}
+                                        columns={[
+                                            { 
+                                                title: 'التاريخ', 
+                                                dataIndex: 'date', 
+                                                key: 'date',
+                                                render: (d) => (
+                                                    <div>
+                                                        <div>{dayjs(d).format('YYYY-MM-DD م')}</div>
+                                                        <div className="text-[10px] text-gray-400">{toHijri(d)} هـ</div>
+                                                    </div>
+                                                )
+                                            },
+                                            { title: 'رقم المستند / السند', dataIndex: 'refNumber', key: 'refNumber' },
+                                            { 
+                                                title: 'النوع', 
+                                                dataIndex: 'type', 
+                                                key: 'type',
+                                                render: (type) => (
+                                                    <Tag color={type === 'receipt' ? 'success' : 'error'}>
+                                                        {type === 'receipt' ? 'سند قبض' : 'سند صرف'}
+                                                    </Tag>
+                                                )
+                                            },
+                                            { title: 'التصنيف', dataIndex: 'category', key: 'category' },
+                                            { title: 'طريقة الدفع', dataIndex: 'paymentMethod', key: 'paymentMethod' },
+                                            { title: 'البيان والتفاصيل', dataIndex: 'description', key: 'description' },
+                                            { 
+                                                title: 'مقبوضات / إيرادات (+)', 
+                                                dataIndex: 'income', 
+                                                key: 'income',
+                                                render: (v) => v > 0 ? <span className="text-emerald-600 font-bold">+{sarFormatter(v)}</span> : '-'
+                                            },
+                                            { 
+                                                title: 'مدفوعات / مصروفات (-)', 
+                                                dataIndex: 'expense', 
+                                                key: 'expense',
+                                                render: (v) => v > 0 ? <span className="text-red-600 font-bold">-{sarFormatter(v)}</span> : '-'
+                                            },
+                                            { 
+                                                title: 'الرصيد الجاري للعمليات', 
+                                                dataIndex: 'balance', 
+                                                key: 'balance',
+                                                render: (v) => <span className={`font-bold ${v >= 0 ? 'text-primary' : 'text-red-700'}`}>{sarFormatter(v)}</span>
+                                            },
+                                            {
+                                                title: 'إجراءات',
+                                                key: 'action',
+                                                render: (_, record) => (
+                                                    <Button 
+                                                        size="small"
+                                                        type="link" 
+                                                        onClick={() => {
+                                                            if (record.type === 'receipt') {
+                                                                setActiveReceipt(record.rawItem);
+                                                                setReceiptModalVisible(true);
+                                                            } else {
+                                                                const relatedUnit = units.find(u => u.id === record.rawItem.unit_id);
+                                                                setActiveExpense({
+                                                                    ...record.rawItem,
+                                                                    building_name: building.name,
+                                                                    unit_number: relatedUnit ? relatedUnit.unit_number : 'عام للمبنى',
+                                                                    created_by_email: record.rawItem.created_by_email || ''
+                                                                });
+                                                                setExpensePreviewVisible(true);
+                                                            }
+                                                        }}
+                                                    >
+                                                        عرض السند
+                                                    </Button>
+                                                )
+                                            }
+                                        ]}
+                                    />
+                                </div>
+                            )
+                        },
+                        {
+                            key: '3',
+                            label: 'سندات الصرف المصدرة (المصروفات)',
+                            children: (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100">
+                                        <Text strong className="text-lg text-red-700">سجل سندات صرف المصروفات</Text>
+                                        <Button 
+                                            type="primary" 
+                                            danger
+                                            icon={<PlusOutlined />}
+                                            onClick={() => handleOpenExpenseModal(null)}
+                                        >
+                                            إصدار سند صرف عام للمبنى
+                                        </Button>
+                                    </div>
+                                    <Table
+                                        dataSource={expenses}
+                                        rowKey="id"
+                                        columns={[
+                                            { title: 'رقم السند', dataIndex: 'voucher_number', key: 'voucher_number' },
+                                            { 
+                                                title: 'الوحدة المرتبطة', 
+                                                dataIndex: 'unit_id', 
+                                                key: 'unit_id',
+                                                render: (uid) => units.find(u => u.id === uid)?.unit_number || 'عام للمبنى'
+                                            },
+                                            { 
+                                                title: 'بند المصروف', 
+                                                dataIndex: 'category', 
+                                                key: 'category',
+                                                render: (cat) => cat === 'Maintenance' ? 'صيانة' : cat === 'Utilities' ? 'خدمات' : 'أخرى'
+                                            },
+                                            { title: 'المبلغ المنصرف', dataIndex: 'amount', key: 'amount', render: v => sarFormatter(v) },
+                                            { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
+                                            { title: 'تاريخ الصرف', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD HH:mm') },
+                                            { title: 'البيان', dataIndex: 'description', key: 'description' },
+                                            {
+                                                title: 'حالة الاعتماد',
+                                                dataIndex: 'approval_status',
+                                                key: 'approval_status',
+                                                render: (status, record) => {
+                                                    let color = 'gold';
+                                                    let text = 'في انتظار الاعتماد';
+                                                    if (status === 'approved') {
+                                                        color = 'green';
+                                                        text = 'معتمد';
+                                                    } else if (status === 'rejected') {
+                                                        color = 'red';
+                                                        text = 'مرفوض';
+                                                    }
+                                                    return (
+                                                        <Space direction="vertical" size={0}>
+                                                            <Tag color={color}>{text}</Tag>
+                                                            {record.approved_by && (
+                                                                <Text type="secondary" style={{ fontSize: '10px' }}>
+                                                                    بواسطة: {record.approved_by}
+                                                                </Text>
+                                                            )}
+                                                        </Space>
+                                                    );
+                                                }
+                                            },
+                                            {
+                                                title: 'إجراءات',
+                                                key: 'actions',
+                                                render: (_, record) => (
+                                                    <Space>
+                                                        <Button size="small" type="link" onClick={() => {
+                                                            const relatedUnit = units.find(u => u.id === record.unit_id);
+                                                            setActiveExpense({
+                                                                ...record,
+                                                                building_name: building.name,
+                                                                unit_number: relatedUnit ? relatedUnit.unit_number : 'عام للمبنى',
+                                                                created_by_email: record.created_by_email || ''
+                                                            });
+                                                            setExpensePreviewVisible(true);
+                                                        }}>عرض وطباعة</Button>
+                                                        {(profile?.role === 'admin' && (!record.approval_status || record.approval_status === 'pending')) && (
+                                                            <>
+                                                                <Button size="small" type="text" className="text-emerald-600 hover:text-emerald-700 font-semibold" onClick={() => handleApproveExpense(record)}>اعتماد</Button>
+                                                                <Button size="small" type="text" danger className="font-semibold" onClick={() => handleRejectExpense(record)}>رفض</Button>
+                                                            </>
+                                                        )}
+                                                        {(profile?.role === 'admin') && (
+                                                            <Button size="small" danger type="text" onClick={() => handleDeleteExpense(record)}>حذف</Button>
+                                                        )}
+                                                    </Space>
+                                                )
+                                            }
+                                        ]}
+                                    />
+                                </div>
+                            )
+                        }
+                    ]} />
+
+                    {/* Unit Form Modal */}
                     <Modal
-                        title={selectedUnit ? "تعديل وحدة" : "إضافة وحدة"}
+                        title={selectedUnit ? `تعديل وحدة: ${selectedUnit.unit_number}` : "إضافة وحدة"}
                         open={isModalOpen}
                         onCancel={() => setIsModalOpen(false)}
                         onOk={() => form.submit()}
+                        width={720}
                     >
-                        <Form form={form} layout="vertical" onFinish={handleSave}>
-                            <Form.Item name="unit_number" label="رقم الوحدة" rules={[{ required: true }]}>
-                                <Input />
-                            </Form.Item>
-                            <Form.Item name="tenant_name" label="اسم المستأجر">
-                                <Input />
-                            </Form.Item>
-                            <Form.Item name="id_number" label="رقم الهوية">
-                                <Input />
-                            </Form.Item>
-                            <Form.Item name="phone_number" label="رقم الجوال">
-                                <Input />
-                            </Form.Item>
-                            <Form.Item name="monthly_rent" label="الإيجار المتوقع">
-                                <InputNumber className="w-full" />
-                            </Form.Item>
-                            <Form.Item name="amount_paid" label="المحصل">
-                                <InputNumber className="w-full" />
-                            </Form.Item>
-                            <Form.Item name="payment_method" label="طريقة الدفع" initialValue="Cash">
-                                <Select options={[
-                                    { label: 'كاش', value: 'Cash' },
-                                    { label: 'تحويل بنكى', value: 'Bank Transfer' }
-                                ]} />
-                            </Form.Item>
-                            <Form.Item name="rent_period" label="فترة الإيجار">
-                                <DatePicker.RangePicker className="w-full" />
-                            </Form.Item>
-                            <Form.Item name="is_rented" label="حالة الإيجار" valuePropName="checked">
-                                <Checkbox>مؤجرة</Checkbox>
+                        <Form form={form} layout="vertical" onFinish={handleSave} onValuesChange={onFormValuesChange}>
+                            <Divider orientation="right">بيانات الوحدة والمستأجر</Divider>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="unit_number" label="رقم الوحدة" rules={[{ required: true }]}>
+                                        <Input />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="is_rented" label="حالة الإيجار" valuePropName="checked">
+                                        <Checkbox>مؤجرة</Checkbox>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
+                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.is_rented !== currentValues.is_rented}>
+                                {({ getFieldValue }) => getFieldValue('is_rented') && (
+                                    <>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="tenant_name" label="اسم المستأجر" rules={[{ required: true }]}>
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="id_number" label="رقم الهوية" rules={[{ required: true }]}>
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="phone_number" label="رقم الجوال">
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="contract_number" label="رقم العقد" rules={[{ required: true }]}>
+                                                    <Input />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+
+                                        <Divider orientation="right">فترة العقد وقيمته</Divider>
+                                        <Row gutter={16}>
+                                            <Col span={24}>
+                                                <Form.Item name="rent_period" label="فترة العقد" rules={[{ required: true }]}>
+                                                    <DatePicker.RangePicker className="w-full" />
+                                                </Form.Item>
+                                                <div className="mb-4">
+                                                    {liveStartDate && <span className="hijri-hint">بداية العقد بالهجري: {toHijri(liveStartDate)}</span>}
+                                                    {liveEndDate && <span className="hijri-hint">نهاية العقد بالهجري: {toHijri(liveEndDate)}</span>}
+                                                </div>
+                                            </Col>
+                                        </Row>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="monthly_rent" label="قيمة العقد الإجمالية المتوقعة" rules={[{ required: true }]}>
+                                                    <InputNumber className="w-full" min={0} />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                {selectedUnit && (
+                                                    <div className="bg-slate-50 p-3 rounded-lg border border-gray-100 mt-6">
+                                                        <Row size="small">
+                                                            <Col span={12}>
+                                                                <div className="text-xs text-gray-500">المحصل سابقاً</div>
+                                                                {profile?.role === 'admin' ? (
+                                                                    <Button 
+                                                                        type="link" 
+                                                                        className="p-0 font-bold text-emerald-600 hover:text-emerald-700 underline"
+                                                                        onClick={() => showReceiptHistory(selectedUnit)}
+                                                                    >
+                                                                        {sarFormatter(selectedUnit.amount_paid || 0)}
+                                                                    </Button>
+                                                                ) : (
+                                                                    <div className="font-bold text-emerald-600">{sarFormatter(selectedUnit.amount_paid || 0)}</div>
+                                                                )}
+                                                            </Col>
+                                                            <Col span={12}>
+                                                                <div className="text-xs text-gray-500">المتبقي من العقد</div>
+                                                                <div className="font-bold text-red-500">
+                                                                    {sarFormatter(Math.max(0, (getFieldValue('monthly_rent') || 0) - (selectedUnit.amount_paid || 0)))}
+                                                                </div>
+                                                            </Col>
+                                                        </Row>
+                                                    </div>
+                                                )}
+                                            </Col>
+                                        </Row>
+
+                                        <Divider orientation="right">عملية تحصيل الدفعة</Divider>
+                                        <Row gutter={16}>
+                                            <Col span={12}>
+                                                <Form.Item name="amount_received" label="المبلغ المستلم في هذه الدفعة (ر.س)" initialValue={0}>
+                                                    <InputNumber className="w-full" min={0} />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="payment_method" label="طريقة الدفع" initialValue="Cash" rules={[{ required: true }]}>
+                                                    <Select options={[
+                                                        { label: 'كاش / نقدي', value: 'Cash' },
+                                                        { label: 'تحويل بنكى', value: 'Bank Transfer' }
+                                                    ]} />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                    </>
+                                )}
                             </Form.Item>
                         </Form>
                     </Modal>
+
+                    {/* Issue Expense Voucher Modal */}
+                    <Modal
+                        title={
+                            <div className="flex items-center gap-2">
+                                <ArrowUpOutlined className="text-red-600" />
+                                <span>{selectedUnit ? `إصدار سند صرف للوحدة: ${selectedUnit.unit_number}` : 'إصدار سند صرف عام للمبنى'}</span>
+                            </div>
+                        }
+                        open={expenseModalOpen}
+                        onCancel={() => { setExpenseModalOpen(false); setBalanceWarning(''); setShowCustomCategory(false); }}
+                        onOk={() => expenseForm.submit()}
+                        width={680}
+                        okText="حفظ السند واعتماده"
+                        okButtonProps={{ danger: true, disabled: !!balanceWarning }}
+                        cancelText="إلغاء"
+                    >
+                        <Form
+                            form={expenseForm}
+                            layout="vertical"
+                            onFinish={handleSaveExpense}
+                            onValuesChange={handleExpenseFormValuesChange}
+                            initialValues={{ payment_method: 'Cash' }}
+                        >
+                            {/* Voucher Number + Category */}
+                            <Row gutter={16}>
+                                <Col span={10}>
+                                    <Form.Item label="رقم السند الصادر">
+                                        <Input value={generatedVoucherNum} disabled className="font-bold text-red-700" />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={14}>
+                                    <Form.Item name="category" label="بند المصروف" rules={[{ required: true, message: 'الرجاء اختيار بند المصروف' }]}>
+                                        <Select
+                                            placeholder="اختر بند المصروف"
+                                            options={[
+                                                { label: '🔧 صيانة (Maintenance)', value: 'Maintenance' },
+                                                { label: '💡 خدمات كهرباء ومياه (Utilities)', value: 'Utilities' },
+                                                { label: '📋 أخرى (General)', value: 'General' },
+                                                { label: '✏️ أخرى / إضافة يدوية...', value: 'Custom' }
+                                            ]}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
+                            {/* Custom Category Text Input */}
+                            {showCustomCategory && (
+                                <Form.Item
+                                    name="custom_category_label"
+                                    label="اكتب وصف بند المصروف المخصص"
+                                    rules={[{ required: true, message: 'الرجاء كتابة وصف البند' }]}
+                                >
+                                    <Input placeholder="مثال: تنظيف الخزان / صيانة المصعد..." className="border-amber-400 focus:border-amber-500" />
+                                </Form.Item>
+                            )}
+
+                            {/* Amount + Payment Method */}
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="amount" label="المبلغ المنصرف (ر.س)" rules={[{ required: true, message: 'الرجاء إدخال المبلغ' }]}>
+                                        <InputNumber className="w-full" min={0.01} precision={2} />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="payment_method" label="طريقة الدفع" rules={[{ required: true }]}>
+                                        <Select options={[
+                                            { label: '🏦 كاش العمارة (Cash)', value: 'Cash' },
+                                            { label: '🏧 تحويل بنكي (Bank Transfer)', value: 'Bank Transfer' }
+                                        ]} />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
+                            {/* Balance Warning */}
+                            {balanceWarning && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2">
+                                    <span className="text-red-600 text-lg mt-0.5">⚠️</span>
+                                    <p className="text-red-700 text-sm font-medium m-0">{balanceWarning}</p>
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            <Form.Item name="description" label="البيان والتفاصيل (العمل المنجز)" rules={[{ required: true, message: 'الرجاء إدخال البيان' }]}>
+                                <Input.TextArea rows={3} placeholder="اكتب تفاصيل الصيانة أو المصروف المنجز..." />
+                            </Form.Item>
+
+                            {/* Manager Approval Section (Only for Admin) */}
+                            {profile?.role === 'admin' && (
+                                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mt-2">
+                                    <div className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
+                                        <span>🔏</span> اعتماد المسؤول عن الصرف
+                                    </div>
+                                    <Form.Item
+                                        name="approved_by"
+                                        label="اسم وصفة المسؤول المعتمِد"
+                                        rules={[{ required: true, message: 'الرجاء إدخال اسم المسؤول المعتمد' }]}
+                                    >
+                                        <Input
+                                            prefix={<UserOutlined className="text-amber-600" />}
+                                            placeholder="مثال: خالد العتيبي — مدير العقار"
+                                            className="border-amber-300 focus:border-amber-500"
+                                        />
+                                    </Form.Item>
+                                    <Form.Item
+                                        name="approval_confirmed"
+                                        valuePropName="checked"
+                                        rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject('يجب تأكيد الاعتماد') }]}
+                                    >
+                                        <Checkbox className="font-semibold text-amber-900">
+                                            أوافق وأعتمد صرف هذا المبلغ وأتحمل مسؤوليته كاملاً
+                                        </Checkbox>
+                                    </Form.Item>
+                                </div>
+                            )}
+                        </Form>
+                    </Modal>
+
+                    {/* Receipt History Drawer */}
+                    <Drawer
+                        title={`سجل سندات القبض للوحدة: ${selectedUnit?.unit_number}`}
+                        placement="right"
+                        onClose={() => setReceiptHistoryOpen(false)}
+                        open={receiptHistoryOpen}
+                        width="50%"
+                    >
+                        <Table
+                            dataSource={selectedUnitReceipts}
+                            rowKey="id"
+                            size="small"
+                            columns={[
+                                { title: 'رقم السند', dataIndex: 'receipt_number', key: 'receipt_number' },
+                                { title: 'المبلغ المستلم', dataIndex: 'amount_received', key: 'amount_received', render: v => sarFormatter(v) },
+                                { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
+                                { title: 'تاريخ التحصيل', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD') },
+                                {
+                                    title: 'إجراءات',
+                                    key: 'actions',
+                                    render: (_, record) => (
+                                        <Space>
+                                            <Button size="small" type="link" onClick={() => {
+                                                setActiveReceipt(record);
+                                                setReceiptModalVisible(true);
+                                            }}>عرض السند</Button>
+                                            {profile?.role === 'admin' && (
+                                                <>
+                                                    <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
+                                                    <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
+                                                </>
+                                            )}
+                                        </Space>
+                                    )
+                                }
+                            ]}
+                        />
+                    </Drawer>
+
+                    {/* Global Receipt Modal */}
+                    <ReceiptModal
+                        receipt={activeReceipt}
+                        visible={receiptModalVisible}
+                        onClose={() => setReceiptModalVisible(false)}
+                    />
+
+                    {/* Global Expense Voucher Modal */}
+                    <ExpenseVoucherModal
+                        voucher={activeExpense}
+                        visible={expensePreviewVisible}
+                        onClose={() => setExpensePreviewVisible(false)}
+                    />
                 </Drawer>
             );
         };
+
 
         const AdminPanel = ({ users, onUpdateUser }) => {
             const [isModalOpen, setIsModalOpen] = useState(false);
@@ -655,7 +2297,9 @@
             const handleSaveUser = async (values) => {
                 const processedEmail = processUsername(values.email);
                 if (selectedUser) {
-                    await onUpdateUser(selectedUser.id, values);
+                    // Strip out non-profile fields before sending to DB
+                    const { new_password, password, email, ...profileUpdates } = values;
+                    await onUpdateUser(selectedUser.id, profileUpdates);
                     setIsModalOpen(false);
                     setSelectedUser(null);
                     form.resetFields();
@@ -893,7 +2537,7 @@
             const [form] = Form.useForm();
             const [loading, setLoading] = useState(false);
             const [buildings, setBuildings] = useState([]);
-            const [selectedCities, setSelectedCities] = useState([]);
+            const [calendarMode, setCalendarMode] = useState('Gregorian'); // Gregorian or Hijri
 
             const filteredCities = useMemo(() => {
                 if (profile?.role === 'admin') return cities;
@@ -901,15 +2545,20 @@
             }, [cities, profile]);
 
             useEffect(() => {
-                if (selectedCities.length > 0) {
-                    supabase.from('buildings')
-                        .select('*')
-                        .in('city_id', selectedCities)
-                        .then(({ data }) => setBuildings(data || []));
-                } else {
-                    setBuildings([]);
-                }
-            }, [selectedCities]);
+                const fetchBuildingsForCities = async () => {
+                    if (filteredCities.length > 0) {
+                        const cityIds = filteredCities.map(c => c.id);
+                        const { data } = await supabase
+                            .from('buildings')
+                            .select('*')
+                            .in('city_id', cityIds);
+                        setBuildings(data || []);
+                    } else {
+                        setBuildings([]);
+                    }
+                };
+                fetchBuildingsForCities();
+            }, [filteredCities]);
 
             const generateExcel = async (values) => {
                 setLoading(true);
@@ -933,28 +2582,44 @@
                     if (error) throw error;
 
                     let filteredData = data;
-                    if (values.dates) {
+                    if (calendarMode === 'Gregorian' && values.dates) {
                         const [start, end] = values.dates;
                         filteredData = data.filter(u => {
                             const date = dayjs(u.updated_at);
                             return date.isAfter(start) && date.isBefore(end);
                         });
+                    } else if (calendarMode === 'Hijri' && values.hijri_year) {
+                        const { startDate, endDate } = getGregorianRangeForHijriMonth(
+                            values.hijri_year, 
+                            values.hijri_month === 'all' ? null : parseInt(values.hijri_month, 10)
+                        );
+                        if (startDate && endDate) {
+                            filteredData = data.filter(u => {
+                                const date = new Date(u.updated_at);
+                                return date >= startDate && date <= endDate;
+                            });
+                        }
                     }
 
                     const worksheetData = filteredData.map(u => ({
                         'المدينة': cities.find(c => c.id === u.buildings?.city_id)?.name_ar || '-',
                         'المبنى': u.buildings?.name || '-',
                         'رقم الوحدة': u.unit_number,
-                        'المستأجر': u.tenant_name,
-                        'الإيجار الشهري': u.monthly_rent,
+                        'رقم العقد': u.contract_number || '-',
+                        'المستأجر': u.tenant_name || '-',
+                        'رقم الهوية': u.id_number || '-',
+                        'قيمة العقد المتوقعة': u.monthly_rent,
                         'المبلغ المدفوع': u.amount_paid,
-                        'الحالة': u.status,
-                        'تاريخ التحديث': dayjs(u.updated_at).format('YYYY-MM-DD')
+                        'المتبقى': (u.monthly_rent || 0) - (u.amount_paid || 0),
+                        'طريقة الدفع': u.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                        'الحالة': u.is_rented ? 'مؤجرة' : 'شاغرة',
+                        'تاريخ التحديث': dayjs(u.updated_at).format('YYYY-MM-DD'),
+                        'تاريخ التحديث (هجري)': toHijri(u.updated_at)
                     }));
 
                     const ws = XLSX.utils.json_to_sheet(worksheetData);
                     const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Data");
+                    XLSX.utils.book_append_sheet(wb, ws, "تقرير تحصيل الإيجارات");
 
                     // Generate Excel file
                     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -995,16 +2660,69 @@
             return (
                 <div className="space-y-6">
                     <Card className="shadow-sm">
-                        <Title level={4}>محرك التقارير المتقدم</Title>
-                        <Text type="secondary" className="block mb-6">قم بتصفية البيانات المطلوبة لتوليد تقرير Excel شامل.</Text>
+                        <Title level={4}>محرك التقارير والبحث المتقدم</Title>
+                        <Text type="secondary" className="block mb-6">قم بتصفية البيانات المطلوبة بناءً على التاريخ الهجري أو الميلادي وتوليد تقرير Excel شامل.</Text>
 
-                        <Form form={form} layout="vertical" onFinish={generateExcel}>
+                        <Form form={form} layout="vertical" onFinish={generateExcel} initialValues={{ hijri_month: 'all' }}>
                             <Row gutter={16}>
-                                <Col xs={24} md={12}>
-                                    <Form.Item name="dates" label="النطاق الزمني">
-                                        <DatePicker.RangePicker className="w-full" />
+                                <Col xs={24} md={8}>
+                                    <Form.Item label="نظام التقويم">
+                                        <antd.Radio.Group 
+                                            value={calendarMode} 
+                                            onChange={e => setCalendarMode(e.target.value)}
+                                            className="w-full"
+                                        >
+                                            <antd.Radio.Button value="Gregorian" className="w-1/2 text-center">ميلادي (Gregorian)</antd.Radio.Button>
+                                            <antd.Radio.Button value="Hijri" className="w-1/2 text-center">هجري (Hijri)</antd.Radio.Button>
+                                        </antd.Radio.Group>
                                     </Form.Item>
                                 </Col>
+                                
+                                {calendarMode === 'Gregorian' ? (
+                                    <Col xs={24} md={16}>
+                                        <Form.Item name="dates" label="النطاق الزمني">
+                                            <DatePicker.RangePicker className="w-full" />
+                                        </Form.Item>
+                                    </Col>
+                                ) : (
+                                    <>
+                                        <Col xs={24} md={8}>
+                                            <Form.Item name="hijri_year" label="السنة الهجرية" rules={[{ required: true, message: 'الرجاء اختيار السنة الهجرية' }]}>
+                                                <Select placeholder="اختر السنة الهجرية">
+                                                    {[1445, 1446, 1447, 1448, 1449, 1450].map(y => (
+                                                        <Select.Option key={y} value={y}>{y} هـ</Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={8}>
+                                            <Form.Item name="hijri_month" label="الشهر الهجري">
+                                                <Select>
+                                                    <Select.Option value="all">كل الأشهر</Select.Option>
+                                                    {[
+                                                        { val: 1, label: '1 - محرم' },
+                                                        { val: 2, label: '2 - صفر' },
+                                                        { val: 3, label: '3 - ربيع الأول' },
+                                                        { val: 4, label: '4 - ربيع الثاني' },
+                                                        { val: 5, label: '5 - جمادى الأولى' },
+                                                        { val: 6, label: '6 - جمادى الآخرة' },
+                                                        { val: 7, label: '7 - رجب' },
+                                                        { val: 8, label: '8 - شعبان' },
+                                                        { val: 9, label: '9 - رمضان' },
+                                                        { val: 10, label: '10 - شوال' },
+                                                        { val: 11, label: '11 - ذو القعدة' },
+                                                        { val: 12, label: '12 - ذو الحجة' }
+                                                    ].map(m => (
+                                                        <Select.Option key={m.val} value={m.val}>{m.label}</Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </>
+                                )}
+                            </Row>
+                            
+                            <Row gutter={16}>
                                 <Col xs={24} md={12}>
                                     <Form.Item name="buildings" label="المباني">
                                         <Select mode="multiple" placeholder="اختر المباني (اختياري)" allowClear>
@@ -1012,7 +2730,7 @@
                                         </Select>
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} md={24} className="flex items-end pb-6">
+                                <Col xs={24} md={12} className="flex items-end pb-6">
                                     <Button type="primary" icon={<FileTextOutlined />} htmlType="submit" loading={loading} block size="large">
                                         توليد تقرير Excel
                                     </Button>
@@ -1043,8 +2761,15 @@
             };
 
             const fetchInitialData = async (prof) => {
-                const { data: cityData } = await supabase.from('cities').select('*');
-                setCities(cityData || []);
+                const { data: cityData } = await supabase.from('cities').select('*').order('created_at', { ascending: true });
+                // Deduplicate by name_ar — keep the first (oldest) occurrence of each city name
+                const seenNames = new Set();
+                const uniqueCities = (cityData || []).filter(c => {
+                    if (seenNames.has(c.name_ar)) return false;
+                    seenNames.add(c.name_ar);
+                    return true;
+                });
+                setCities(uniqueCities);
 
                 // Set Riyadh as default if available
                 // Stats calculation
@@ -1072,8 +2797,9 @@
 
                 const rentedUnits = rentedUnitsData.length;
                 const vacantUnits = uData?.filter(u => !u.is_rented).length || 0;
-                const collectedCash = rentedUnitsData.filter(u => u.payment_method === 'Cash').reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
-                const collectedBank = rentedUnitsData.filter(u => u.payment_method === 'Bank Transfer').reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
+                const { data: rData } = await supabase.from('receipts').select('amount_received, payment_method');
+                const collectedCash = rData?.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0) || 0;
+                const collectedBank = rData?.filter(r => r.payment_method === 'Bank Transfer').reduce((acc, r) => acc + (r.amount_received || 0), 0) || 0;
 
                 const buildingSummaries = bData?.map(b => {
                     const bUnits = uData?.filter(u => u.building_id === b.id) || [];
@@ -1106,27 +2832,29 @@
                     buildingSummaries
                 });
 
-                if (prof.role === 'admin') {
+                if (prof && prof.role === 'admin') {
                     const { data: userData } = await supabase.from('profiles').select('*');
                     setAllUsers(userData || []);
                 }
             };
 
             useEffect(() => {
-                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
                     if (session) {
                         setUser(session.user);
-                        fetchProfile(session.user).then(prof => {
-                            if (prof) {
-                                fetchInitialData(prof);
-                                // Realtime Subscriptions
-                                const channel = supabase.channel('schema-db-changes')
-                                    .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, () => fetchProfile(session.user).then(p => fetchInitialData(p)))
-                                    .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, () => fetchProfile(session.user).then(p => fetchInitialData(p)))
-                                    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchProfile(session.user).then(p => fetchInitialData(p)))
-                                    .subscribe();
-                            }
-                        });
+                        const prof = await fetchProfile(session.user);
+                        if (prof) {
+                            await fetchInitialData(prof);
+                            // Realtime Subscriptions
+                            const channel = supabase.channel('schema-db-changes')
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers_expense' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .subscribe();
+                        }
                     } else {
                         setUser(null);
                         setProfile(null);
@@ -1134,13 +2862,16 @@
                     }
                 });
 
-                supabase.auth.getSession().then(({ data: { session } }) => {
+                supabase.auth.getSession().then(async ({ data: { session } }) => {
                     if (session) {
                         setUser(session.user);
-                        fetchProfile(session.user).then(prof => {
-                            if (prof) fetchInitialData(prof);
-                        });
+                        const prof = await fetchProfile(session.user);
+                        if (prof) await fetchInitialData(prof);
                     }
+                }).catch(err => {
+                    console.error("Auth session error:", err);
+                    message.error("خطأ في الاتصال بقاعدة البيانات: " + err.message);
+                }).finally(() => {
                     setLoading(false);
                 });
 
@@ -1166,7 +2897,7 @@
             if (!user) return <Login onLogin={(u) => { setUser(u); fetchProfile(u).then(prof => fetchInitialData(prof)); }} />;
 
             return (
-                <ConfigProvider direction="rtl" locale={dayjs.locale('ar')} theme={{ token: { fontFamily: 'Cairo', colorPrimary: '#006B3F' } }}>
+                <ConfigProvider direction="rtl" locale={antd.locales?.ar_EG} theme={{ token: { fontFamily: 'Cairo', colorPrimary: '#006B3F' } }}>
                     <Layout className="min-h-screen">
                         <Sider
                             breakpoint="lg"
@@ -1192,10 +2923,10 @@
                                 items={[
                                     { key: 'dashboard', icon: <DashboardOutlined />, label: 'لوحة المعلومات' },
                                     { key: 'properties', icon: <BankOutlined />, label: 'إدارة العقارات' },
-                                    profile?.can_report || profile?.role === 'admin' ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
-                                    profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
+                                    (profile?.can_report || profile?.role === 'admin') ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
+                                    (profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL) ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
                                     { key: 'logout', icon: <LogoutOutlined />, label: 'تسجيل الخروج', danger: true }
-                                ]}
+                                ].filter(Boolean)}
                             />
                         </Sider>
                         <Layout>

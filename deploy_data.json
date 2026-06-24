@@ -1,1 +1,5 @@
-{" "draft:false,include_upload_url:false,deploy_source:cli}  
+{
+  "draft": false,
+  "include_upload_url": false,
+  "deploy_source": "cli"
+}
