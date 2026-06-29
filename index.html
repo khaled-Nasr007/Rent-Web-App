@@ -249,6 +249,22 @@
                 margin: 0 !important;
             }
         }
+
+        @keyframes borderPulse {
+            0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .animate-overdraft-pulse {
+            animation: borderPulse 2s infinite ease-in-out;
+        }
+        .row-lease-expired {
+            background-color: rgba(254, 243, 199, 0.45) !important; /* amber-50 */
+            border-right: 4px solid #d97706 !important;
+        }
+        .row-lease-expired:hover > td {
+            background-color: rgba(254, 243, 199, 0.7) !important;
+        }
     </style>
 </head>
 
@@ -280,7 +296,7 @@
             Layout, Menu, Button, Card, Table, Tag, Space,
             Typography, Statistic, Row, Col, Modal, Form,
             Input, InputNumber, Select, message, Spin,
-            ConfigProvider, theme, Result, Drawer, Descriptions,
+            ConfigProvider, theme, Result, Drawer, Descriptions, Collapse,
             Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker, Radio
         } = antd;
 
@@ -1191,6 +1207,24 @@
             const [selectedUnit, setSelectedUnit] = useState(null);
             const [form] = Form.useForm();
 
+            // Expiration Checker
+            const isLeaseExpired = (periodEnd) => {
+                if (!periodEnd) return false;
+                const today = dayjs().startOf('day');
+                const end = dayjs(periodEnd).startOf('day');
+                return end.isBefore(today);
+            };
+
+            // Unit Profile & Lifecycle States
+            const [unitProfileOpen, setUnitProfileOpen] = useState(false);
+            const [archivedContracts, setArchivedContracts] = useState([]);
+            const [renewalModalOpen, setRenewalModalOpen] = useState(false);
+            const [renewalForm] = Form.useForm();
+            const [renewalLiveStartDate, setRenewalLiveStartDate] = useState(null);
+            const [renewalLiveEndDate, setRenewalLiveEndDate] = useState(null);
+            const [settlementAction, setSettlementAction] = useState(null);
+            const [newRentValue, setNewRentValue] = useState(0);
+
             // Receipt States
             const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
             const [selectedUnitReceipts, setSelectedUnitReceipts] = useState([]);
@@ -1536,6 +1570,282 @@
                 setLoading(false);
             };
 
+            const showUnitProfile = async (unit) => {
+                setLoading(true);
+                try {
+                    setSelectedUnit(unit);
+                    
+                    // Fetch receipts
+                    const { data: recs, error: recsErr } = await supabase
+                        .from('receipts')
+                        .select('*')
+                        .eq('unit_id', unit.id)
+                        .order('created_at', { ascending: false });
+                    if (recsErr) throw recsErr;
+                    setSelectedUnitReceipts(recs || []);
+
+                    // Fetch history archive (with fallback to log warning but allow normal UI)
+                    let archs = [];
+                    try {
+                        const { data, error } = await supabase
+                            .from('expired_contracts_archive')
+                            .select('*')
+                            .eq('unit_id', unit.id)
+                            .order('archived_at', { ascending: false });
+                        if (error) {
+                            console.warn("Table expired_contracts_archive might not exist: ", error.message);
+                        } else {
+                            archs = data || [];
+                        }
+                    } catch (e) {
+                        console.warn("Error fetching expired_contracts_archive: ", e);
+                    }
+                    setArchivedContracts(archs);
+
+                    setUnitProfileOpen(true);
+                } catch (err) {
+                    message.error("خطأ في تحميل تفاصيل ملف الوحدة: " + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleTerminateContract = async (unit) => {
+                const remaining = (unit.monthly_rent || 0) - (unit.amount_paid || 0);
+                
+                const performTermination = async () => {
+                    setLoading(true);
+                    try {
+                        // 1. Archive the contract (with warning fallback if table doesn't exist)
+                        if (unit.contract_number && unit.tenant_name) {
+                            try {
+                                const archiveData = {
+                                    unit_id: unit.id,
+                                    building_id: unit.building_id,
+                                    tenant_name: unit.tenant_name,
+                                    id_number: unit.id_number || '',
+                                    phone_number: unit.phone_number || '',
+                                    contract_number: unit.contract_number,
+                                    monthly_rent: unit.monthly_rent || 0,
+                                    amount_paid: unit.amount_paid || 0,
+                                    payment_method: unit.payment_method || 'Cash',
+                                    period_start: unit.period_start,
+                                    period_end: unit.period_end
+                                };
+                                const { error: archErr } = await supabase.from('expired_contracts_archive').insert([archiveData]);
+                                if (archErr) {
+                                    console.warn("Could not archive terminated lease: ", archErr.message);
+                                }
+                            } catch (e) {
+                                console.warn("Failed to archive terminated lease: ", e);
+                            }
+                        }
+
+                        // 2. Clear unit details to make it vacant
+                        const { error: updateErr } = await supabase.from('units').update({
+                            is_rented: false,
+                            tenant_name: null,
+                            id_number: null,
+                            phone_number: null,
+                            contract_number: null,
+                            period_start: null,
+                            period_end: null,
+                            amount_paid: 0
+                        }).eq('id', unit.id);
+
+                        if (updateErr) throw updateErr;
+
+                        message.success("تم إنهاء العقد وتفريغ الوحدة بنجاح");
+                        setUnitProfileOpen(false);
+                        fetchUnits();
+                    } catch (err) {
+                        message.error("خطأ أثناء إنهاء العقد: " + err.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                Modal.confirm({
+                    title: 'تأكيد إنهاء العقد',
+                    content: remaining > 0 
+                        ? `تنبيه: يوجد مبلغ متبقي غير محصل بقيمة ${sarFormatter(remaining)}. هل أنت متأكد من إنهاء العقد وإسقاط هذا المبلغ وتفريغ الوحدة؟`
+                        : 'هل أنت متأكد من إنهاء عقد هذه الوحدة وتفريغها لاستقبال عقد جديد؟',
+                    okText: 'نعم، أنهِ العقد',
+                    cancelText: 'إلغاء',
+                    okType: 'danger',
+                    onOk: performTermination
+                });
+            };
+
+            const handleRenewContract = async (values) => {
+                setLoading(true);
+                try {
+                    const [start, end] = values.rent_period || [null, null];
+                    const startDateStr = start ? start.format('YYYY-MM-DD') : null;
+                    const endDateStr = end ? end.format('YYYY-MM-DD') : null;
+                    
+                    const oldRemaining = (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0);
+                    const isDebt = oldRemaining > 0;
+                    
+                    let settlementStatus = null;
+                    let finalCarriedDebtAmount = 0;
+                    let oldContractFinalAmountPaid = selectedUnit.amount_paid || 0;
+                    
+                    // Option A: Cash Settlement
+                    if (isDebt && values.settlement_action === 'settle') {
+                        settlementStatus = 'Settled';
+                        finalCarriedDebtAmount = 0;
+                        const settledAmount = values.settled_amount || oldRemaining;
+                        oldContractFinalAmountPaid += settledAmount;
+                        
+                        // Issue a final Receipt linked to the old contract number to bring its remaining balance to exactly zero
+                        const settlementReceiptNum = await generateReceiptNumber();
+                        const currentUser = (await supabase.auth.getUser()).data.user;
+                        
+                        const settlementReceiptData = {
+                            receipt_number: settlementReceiptNum,
+                            unit_id: selectedUnit.id,
+                            building_id: selectedUnit.building_id,
+                            user_id: currentUser ? currentUser.id : null,
+                            tenant_name: selectedUnit.tenant_name,
+                            id_number: selectedUnit.id_number || '',
+                            phone_number: selectedUnit.phone_number || '',
+                            contract_number: selectedUnit.contract_number, // Old contract
+                            unit_number: selectedUnit.unit_number,
+                            building_name: building.name,
+                            city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
+                            amount_received: settledAmount,
+                            payment_method: values.settled_payment_method || 'Cash',
+                            period_start: selectedUnit.period_start,
+                            period_end: selectedUnit.period_end,
+                            period_start_hijri: selectedUnit.period_start ? toHijri(selectedUnit.period_start) : null,
+                            period_end_hijri: selectedUnit.period_end ? toHijri(selectedUnit.period_end) : null,
+                            monthly_rent: selectedUnit.monthly_rent,
+                            remaining_balance: Math.max(0, oldRemaining - settledAmount),
+                            created_by_email: currentUser ? currentUser.email : ''
+                        };
+
+                        const { error: setRecError } = await supabase
+                            .from('receipts')
+                            .insert([settlementReceiptData]);
+                        
+                        if (setRecError) throw setRecError;
+                    }
+                    
+                    // Option B: Balance Rollover
+                    if (isDebt && values.settlement_action === 'rollover') {
+                        settlementStatus = 'Rolled_Over';
+                        finalCarriedDebtAmount = oldRemaining;
+                    }
+
+                    // 1. Archive the old contract details
+                    try {
+                        const archiveData = {
+                            unit_id: selectedUnit.id,
+                            building_id: selectedUnit.building_id,
+                            tenant_name: selectedUnit.tenant_name,
+                            id_number: selectedUnit.id_number || '',
+                            phone_number: selectedUnit.phone_number || '',
+                            contract_number: selectedUnit.contract_number,
+                            monthly_rent: selectedUnit.monthly_rent || 0,
+                            amount_paid: oldContractFinalAmountPaid,
+                            payment_method: selectedUnit.payment_method || 'Cash',
+                            period_start: selectedUnit.period_start,
+                            period_end: selectedUnit.period_end,
+                            settlement_status: settlementStatus,
+                            final_carried_debt_amount: finalCarriedDebtAmount
+                        };
+                        
+                        const { error: archErr } = await supabase
+                            .from('expired_contracts_archive')
+                            .insert([archiveData]);
+                        
+                        if (archErr) {
+                            console.warn("Could not archive renewed lease: ", archErr.message);
+                        }
+                    } catch (e) {
+                        console.warn("Failed to archive renewed lease: ", e);
+                    }
+
+                    // 2. Update units table row with new contract parameters
+                    // New Target Total = New Lease Base Rent + Rolled-forward Balance (if rollover)
+                    const targetTotalRent = values.new_rent_value + (values.settlement_action === 'rollover' ? oldRemaining : 0);
+                    
+                    const updatedUnitData = {
+                        is_rented: true,
+                        tenant_name: values.tenant_name || selectedUnit.tenant_name,
+                        id_number: values.id_number || selectedUnit.id_number,
+                        phone_number: values.phone_number || selectedUnit.phone_number,
+                        contract_number: values.new_contract_number,
+                        monthly_rent: targetTotalRent,
+                        period_start: startDateStr,
+                        period_end: endDateStr,
+                        amount_paid: values.amount_received || 0,
+                        payment_method: values.payment_method
+                    };
+
+                    const { error: updateErr } = await supabase
+                        .from('units')
+                        .update(updatedUnitData)
+                        .eq('id', selectedUnit.id);
+                    
+                    if (updateErr) throw updateErr;
+
+                    // 3. Issue new receipt if amount_received > 0
+                    if (values.amount_received > 0) {
+                        const receiptNum = await generateReceiptNumber();
+                        const currentUser = (await supabase.auth.getUser()).data.user;
+                        const receiptData = {
+                            receipt_number: receiptNum,
+                            unit_id: selectedUnit.id,
+                            building_id: selectedUnit.building_id,
+                            user_id: currentUser ? currentUser.id : null,
+                            tenant_name: values.tenant_name || selectedUnit.tenant_name,
+                            id_number: values.id_number || selectedUnit.id_number,
+                            phone_number: values.phone_number || selectedUnit.phone_number,
+                            contract_number: values.new_contract_number,
+                            unit_number: selectedUnit.unit_number,
+                            building_name: building.name,
+                            city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
+                            amount_received: values.amount_received,
+                            payment_method: values.payment_method,
+                            period_start: startDateStr,
+                            period_end: endDateStr,
+                            period_start_hijri: start ? toHijri(start.toDate()) : null,
+                            period_end_hijri: end ? toHijri(end.toDate()) : null,
+                            monthly_rent: targetTotalRent,
+                            remaining_balance: targetTotalRent - (values.amount_received || 0),
+                            created_by_email: currentUser ? currentUser.email : ''
+                        };
+
+                        const { data: insertedReceipt, error: recError } = await supabase
+                            .from('receipts')
+                            .insert([receiptData])
+                            .select()
+                            .single();
+                        
+                        if (recError) throw recError;
+
+                        message.success("تم تجديد العقد بنجاح وتوثيق التسوية/الترحيل المالي");
+                        
+                        if (insertedReceipt) {
+                            setActiveReceipt(insertedReceipt);
+                            setReceiptModalVisible(true);
+                        }
+                    } else {
+                        message.success("تم تجديد العقد بنجاح وتوثيق التسوية/الترحيل المالي");
+                    }
+
+                    setRenewalModalOpen(false);
+                    setUnitProfileOpen(false);
+                    fetchUnits();
+                } catch (err) {
+                    message.error("خطأ أثناء تجديد العقد: " + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
             const handleDeleteReceipt = async (receipt) => {
                 Modal.confirm({
                     title: 'تأكيد حذف السند',
@@ -1749,6 +2059,12 @@
                                     dataSource={units}
                                     loading={loading}
                                     rowKey="id"
+                                    rowClassName={(record) => {
+                                        if (record.is_rented && isLeaseExpired(record.period_end)) {
+                                            return 'row-lease-expired';
+                                        }
+                                        return '';
+                                    }}
                                     columns={[
                                         { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number' },
                                         { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number' },
@@ -1777,13 +2093,16 @@
                                         },
                                         {
                                             title: 'الحالة',
-                                            dataIndex: 'is_rented',
-                                            key: 'is_rented',
-                                            render: (is_rented) => (
-                                                <Tag color={is_rented ? 'success' : 'error'}>
-                                                    {is_rented ? 'مؤجرة' : 'شاغرة'}
-                                                </Tag>
-                                            )
+                                            key: 'lease_status',
+                                            render: (_, record) => {
+                                                if (!record.is_rented) {
+                                                    return <Tag color="error">شاغرة</Tag>;
+                                                }
+                                                if (isLeaseExpired(record.period_end)) {
+                                                    return <Tag color="warning" className="animate-pulse">منتهي الصلاحية</Tag>;
+                                                }
+                                                return <Tag color="success">مؤجرة</Tag>;
+                                            }
                                         },
                                         { title: 'قيمة العقد المتوقعة', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => sarFormatter(v) },
                                         { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', render: (v, record) => sarFormatter(record.is_rented ? v : 0) },
@@ -1848,9 +2167,7 @@
                                                             </Button>
                                                         </Tooltip>
                                                     )}
-                                                    {record.is_rented && (
-                                                        <Button icon={<FileTextOutlined />} onClick={() => showReceiptHistory(record)}>سجل السندات</Button>
-                                                    )}
+                                                    <Button type="primary" ghost icon={<FileTextOutlined />} onClick={() => showUnitProfile(record)}>ملف الوحدة</Button>
                                                 </Space>
                                             )
                                         }
@@ -2281,44 +2598,322 @@
                         </Form>
                     </Modal>
 
-                    {/* Receipt History Drawer */}
+                    {/* Unit Profile & Detail Drawer */}
                     <Drawer
-                        title={`سجل سندات القبض للوحدة: ${selectedUnit?.unit_number}`}
+                        title={`ملف وتفاصيل الوحدة: ${selectedUnit?.unit_number}`}
                         placement="right"
-                        onClose={() => setReceiptHistoryOpen(false)}
-                        open={receiptHistoryOpen}
-                        width="50%"
+                        onClose={() => setUnitProfileOpen(false)}
+                        open={unitProfileOpen}
+                        width="60%"
                     >
-                        <Table
-                            dataSource={selectedUnitReceipts}
-                            rowKey="id"
-                            size="small"
-                            columns={[
-                                { title: 'رقم السند', dataIndex: 'receipt_number', key: 'receipt_number' },
-                                { title: 'المبلغ المستلم', dataIndex: 'amount_received', key: 'amount_received', render: v => sarFormatter(v) },
-                                { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
-                                { title: 'تاريخ التحصيل', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD') },
-                                {
-                                    title: 'إجراءات',
-                                    key: 'actions',
-                                    render: (_, record) => (
-                                        <Space>
-                                            <Button size="small" type="link" onClick={() => {
-                                                setActiveReceipt(record);
-                                                setReceiptModalVisible(true);
-                                            }}>عرض السند</Button>
-                                            {profile?.role === 'admin' && (
-                                                <>
-                                                    <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
-                                                    <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
-                                                </>
-                                            )}
-                                        </Space>
-                                    )
-                                }
-                            ]}
-                        />
+                        <div className="space-y-6">
+                            {/* Current Lease Details */}
+                            {selectedUnit?.is_rented ? (
+                                <Card title="العقد والمستأجر الحالي" className="shadow-sm border-emerald-100" headStyle={{ borderBottom: '1px solid #f0f2f5', fontWeight: 'bold' }}>
+                                    <Descriptions bordered column={2} size="small">
+                                        <Descriptions.Item label="المستأجر" span={2}>{selectedUnit.tenant_name}</Descriptions.Item>
+                                        <Descriptions.Item label="رقم الهوية">{selectedUnit.id_number}</Descriptions.Item>
+                                        <Descriptions.Item label="رقم الجوال">{selectedUnit.phone_number || '-'}</Descriptions.Item>
+                                        <Descriptions.Item label="رقم العقد" span={2}>{selectedUnit.contract_number}</Descriptions.Item>
+                                        <Descriptions.Item label="بداية العقد">
+                                            <div>{selectedUnit.period_start} م</div>
+                                            <div className="text-[10px] text-gray-400">{toHijri(selectedUnit.period_start)} هـ</div>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="نهاية العقد">
+                                            <div>{selectedUnit.period_end} م</div>
+                                            <div className="text-[10px] text-gray-400">{toHijri(selectedUnit.period_end)} هـ</div>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="قيمة العقد">{sarFormatter(selectedUnit.monthly_rent || 0)}</Descriptions.Item>
+                                        <Descriptions.Item label="المحصل">{sarFormatter(selectedUnit.amount_paid || 0)}</Descriptions.Item>
+                                        <Descriptions.Item label="المتبقي">
+                                            <span className={(selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0) > 0 ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}>
+                                                {sarFormatter(Math.max(0, (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0)))}
+                                            </span>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="طريقة الدفع">{selectedUnit.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</Descriptions.Item>
+                                    </Descriptions>
+                                </Card>
+                            ) : (
+                                <Card className="shadow-sm border-gray-200 bg-gray-50/50 text-center py-4">
+                                    <Empty description="الوحدة شاغرة حالياً وجاهزة للتأجير" />
+                                </Card>
+                            )}
+
+                            {/* Lifecycle Expiration Actions Banner */}
+                            {selectedUnit?.is_rented && isLeaseExpired(selectedUnit?.period_end) && (
+                                <div className="bg-amber-50 border-r-4 border-r-amber-500 border border-amber-200 p-4 rounded-xl text-amber-850">
+                                    <div className="font-bold text-base mb-1 text-amber-900">⚠️ العقد الحالي منتهي الصلاحية</div>
+                                    <div className="text-xs mb-3 text-amber-800">انتهت فترة عقد الإيجار لهذه الوحدة بتاريخ {selectedUnit?.period_end} م. يرجى اتخاذ قرار بالتجديد أو إنهاء العقد وتفريغ الوحدة.</div>
+                                    <Space>
+                                        <Button type="primary" className="bg-amber-600 hover:bg-amber-700 border-amber-600 font-semibold" onClick={() => {
+                                            renewalForm.resetFields();
+                                            renewalForm.setFieldsValue({
+                                                tenant_name: selectedUnit?.tenant_name,
+                                                id_number: selectedUnit?.id_number,
+                                                phone_number: selectedUnit?.phone_number,
+                                                payment_method: 'Cash',
+                                                amount_received: 0,
+                                                new_rent_value: selectedUnit?.monthly_rent
+                                            });
+                                            setRenewalLiveStartDate(null);
+                                            setRenewalLiveEndDate(null);
+                                            setSettlementAction(null);
+                                            setNewRentValue(selectedUnit?.monthly_rent || 0);
+                                            setRenewalModalOpen(true);
+                                        }}>تجديد العقد (Renew)</Button>
+                                        <Button danger type="primary" className="font-semibold" onClick={() => handleTerminateContract(selectedUnit)}>إنهاء العقد (Terminate)</Button>
+                                    </Space>
+                                </div>
+                            )}
+
+                            {/* Accordion / Collapse for Lease History Archive & Receipts */}
+                            <Collapse defaultActiveKey={['1']} className="bg-white">
+                                <Collapse.Panel header={<span className="font-bold text-primary">📜 سجل العقود والأرشيف (Lease History Archive)</span>} key="1">
+                                    <Table
+                                        dataSource={archivedContracts}
+                                        rowKey="id"
+                                        size="small"
+                                        columns={[
+                                            { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number' },
+                                            { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name' },
+                                            { 
+                                                title: 'الفترة', 
+                                                key: 'period', 
+                                                render: (_, r) => (
+                                                    <div className="text-xs">
+                                                        <div>من: {r.period_start}</div>
+                                                        <div>إلى: {r.period_end}</div>
+                                                    </div>
+                                                )
+                                            },
+                                            { title: 'القيمة', dataIndex: 'monthly_rent', render: v => sarFormatter(v) },
+                                            { title: 'المحصل', dataIndex: 'amount_paid', render: v => sarFormatter(v) },
+                                            { 
+                                                title: 'حالة التسوية', 
+                                                dataIndex: 'settlement_status', 
+                                                key: 'settlement_status',
+                                                render: (status) => {
+                                                    if (status === 'Settled') return <Tag color="success">تسوية كاش</Tag>;
+                                                    if (status === 'Rolled_Over') return <Tag color="warning">ترحيل دين</Tag>;
+                                                    return '-';
+                                                }
+                                            },
+                                            { 
+                                                title: 'الدين المرحّل', 
+                                                dataIndex: 'final_carried_debt_amount', 
+                                                render: v => v ? sarFormatter(v) : '-' 
+                                            },
+                                            { title: 'تاريخ الأرشفة', dataIndex: 'archived_at', render: v => dayjs(v).format('YYYY-MM-DD') }
+                                        ]}
+                                    />
+                                </Collapse.Panel>
+                                {selectedUnit?.is_rented && (
+                                    <Collapse.Panel header={<span className="font-bold text-primary">💵 سجل سندات القبض للوحدة</span>} key="2">
+                                        <Table
+                                            dataSource={selectedUnitReceipts}
+                                            rowKey="id"
+                                            size="small"
+                                            columns={[
+                                                { title: 'رقم السند', dataIndex: 'receipt_number', key: 'receipt_number' },
+                                                { title: 'المبلغ المستلم', dataIndex: 'amount_received', key: 'amount_received', render: v => sarFormatter(v) },
+                                                { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
+                                                { title: 'تاريخ التحصيل', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD') },
+                                                {
+                                                    title: 'إجراءات',
+                                                    key: 'actions',
+                                                    render: (_, record) => (
+                                                        <Space>
+                                                            <Button size="small" type="link" onClick={() => {
+                                                                setActiveReceipt(record);
+                                                                setReceiptModalVisible(true);
+                                                            }}>عرض السند</Button>
+                                                            {profile?.role === 'admin' && (
+                                                                <>
+                                                                    <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
+                                                                    <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
+                                                                </>
+                                                            )}
+                                                        </Space>
+                                                    )
+                                                }
+                                            ]}
+                                        />
+                                    </Collapse.Panel>
+                                )}
+                            </Collapse>
+                        </div>
                     </Drawer>
+
+                    {/* Contract Renewal Modal */}
+                    <Modal
+                        title={`تجديد عقد الإيجار للوحدة: ${selectedUnit?.unit_number}`}
+                        open={renewalModalOpen}
+                        onCancel={() => setRenewalModalOpen(false)}
+                        onOk={() => renewalForm.submit()}
+                        width={720}
+                    >
+                        <Form 
+                            form={renewalForm} 
+                            layout="vertical" 
+                            onFinish={handleRenewContract}
+                            onValuesChange={(changedValues, allValues) => {
+                                if (changedValues.rent_period) {
+                                    const [start, end] = changedValues.rent_period || [null, null];
+                                    setRenewalLiveStartDate(start ? start.toDate() : null);
+                                    setRenewalLiveEndDate(end ? end.toDate() : null);
+                                }
+                                if (changedValues.settlement_action !== undefined) {
+                                    setSettlementAction(changedValues.settlement_action);
+                                }
+                                if (changedValues.new_rent_value !== undefined) {
+                                    setNewRentValue(changedValues.new_rent_value || 0);
+                                }
+                            }}
+                        >
+                            {(() => {
+                                const oldRemaining = selectedUnit ? (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0) : 0;
+                                return oldRemaining > 0 ? (
+                                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4 text-amber-800">
+                                        <div className="font-bold text-sm mb-3">
+                                            تنبيه: يوجد مبلّغ متبقي غير محصل من العقد القديم بقيمة: {sarFormatter(oldRemaining)} ر.س. يرجى اختيار الإجراء المالي المناسب لإتمام التجديد.
+                                        </div>
+                                        <Form.Item 
+                                            name="settlement_action" 
+                                            label={<span className="font-semibold">الإجراء المالي للمتبقي من العقد القديم</span>} 
+                                            rules={[{ required: true, message: 'يرجى اختيار الإجراء المالي للمتابعة' }]}
+                                        >
+                                            <Radio.Group className="flex flex-col gap-2">
+                                                <Radio value="settle" className="text-xs">
+                                                    <strong>تسوية المبلغ (Cash Settlement)</strong> - سداد وإغلاق المتبقي من العقد القديم كدفعة نهائية.
+                                                </Radio>
+                                                <Radio value="rollover" className="text-xs">
+                                                    <strong>ترحيل وإضافة على العقد الجديد (Balance Rollover)</strong> - ترحيل المتبقي وإضافته لمديونية العقد الجديد.
+                                                </Radio>
+                                            </Radio.Group>
+                                        </Form.Item>
+
+                                        {/* Option A: Cash Settlement Fields */}
+                                        {settlementAction === 'settle' && (
+                                            <div className="mt-4 p-3 bg-white border border-gray-100 rounded-lg">
+                                                <Row gutter={16}>
+                                                    <Col span={12}>
+                                                        <Form.Item 
+                                                            name="settled_amount" 
+                                                            label="المبلغ المسدد للتسوية (ر.س)" 
+                                                            initialValue={oldRemaining}
+                                                            rules={[
+                                                                { required: true, message: 'يرجى إدخال مبلغ التسوية' },
+                                                                { type: 'number', max: oldRemaining, message: `مبلغ التسوية لا يمكن أن يتجاوز المتبقي وهو ${oldRemaining} ر.س` }
+                                                            ]}
+                                                        >
+                                                            <InputNumber className="w-full" min={0} />
+                                                        </Form.Item>
+                                                    </Col>
+                                                    <Col span={12}>
+                                                        <Form.Item 
+                                                            name="settled_payment_method" 
+                                                            label="طريقة دفع التسوية" 
+                                                            initialValue="Cash"
+                                                            rules={[{ required: true }]}
+                                                        >
+                                                            <Select options={[
+                                                                { label: 'كاش (Cash)', value: 'Cash' },
+                                                                { label: 'تحويل بنكي (Bank Transfer)', value: 'Bank Transfer' }
+                                                            ]} />
+                                                        </Form.Item>
+                                                    </Col>
+                                                </Row>
+                                            </div>
+                                        )}
+
+                                        {/* Option B: Rollover Financial Card */}
+                                        {settlementAction === 'rollover' && (
+                                            <Card size="small" className="bg-amber-100/50 border-amber-300 mt-4">
+                                                <div className="space-y-1 text-xs text-amber-900">
+                                                    <div className="flex justify-between">
+                                                        <span>قيمة الإيجار الأساسية للعقد الجديد:</span>
+                                                        <strong>{sarFormatter(newRentValue || 0)}</strong>
+                                                    </div>
+                                                    <div className="flex justify-between text-red-600">
+                                                        <span>المتأخرات المرحّلة من العقد القديم (+):</span>
+                                                        <strong>{sarFormatter(oldRemaining)}</strong>
+                                                    </div>
+                                                    <Divider className="my-1 border-amber-200" />
+                                                    <div className="flex justify-between text-sm font-bold text-amber-900">
+                                                        <span>إجمالي القيمة المستهدفة الجديدة:</span>
+                                                        <span>{sarFormatter((newRentValue || 0) + oldRemaining)}</span>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        )}
+                                    </div>
+                                ) : null;
+                            })()}
+
+                            <Divider orientation="right">بيانات المستأجر</Divider>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="tenant_name" label="اسم المستأجر" rules={[{ required: true }]}>
+                                        <Input />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="id_number" label="رقم الهوية" rules={[{ required: true }]}>
+                                        <Input />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Form.Item name="phone_number" label="رقم الجوال">
+                                        <Input />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
+                            <Divider orientation="right">العقد الجديد والقيمة</Divider>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="new_contract_number" label="رقم العقد الجديد" rules={[{ required: true }]}>
+                                        <Input />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="new_rent_value" label="قيمة العقد الإجمالية المتوقعة" rules={[{ required: true }]}>
+                                        <InputNumber className="w-full" min={0} />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Form.Item name="rent_period" label="فترة العقد الجديد" rules={[{ required: true }]}>
+                                        <DatePicker.RangePicker className="w-full" />
+                                    </Form.Item>
+                                    <div className="mb-4">
+                                        {renewalLiveStartDate && <span className="hijri-hint block">بداية العقد الجديد بالهجري: {toHijri(renewalLiveStartDate)} هـ</span>}
+                                        {renewalLiveEndDate && <span className="hijri-hint block">نهاية العقد الجديد بالهجري: {toHijri(renewalLiveEndDate)} هـ</span>}
+                                    </div>
+                                </Col>
+                            </Row>
+
+                            <Divider orientation="right">تحصيل الدفعة الأولى للتجديد</Divider>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="amount_received" label="المبلغ المستلم كدفعة أولى (ر.س)" initialValue={0}>
+                                        <InputNumber className="w-full" min={0} />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="payment_method" label="طريقة الدفع" rules={[{ required: true }]}>
+                                        <Select options={[
+                                            { label: 'كاش (Cash)', value: 'Cash' },
+                                            { label: 'تحويل بنكي (Bank Transfer)', value: 'Bank Transfer' }
+                                        ]} />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Form>
+                    </Modal>
 
                     {/* Global Receipt Modal */}
                     <ReceiptModal
@@ -3305,6 +3900,437 @@
             );
         };
 
+        // --- Component: TreasuryDashboard ---
+        const TreasuryDashboard = ({ cities, profile }) => {
+            const [receipts, setReceipts] = useState([]);
+            const [expenses, setExpenses] = useState([]);
+            const [buildings, setBuildings] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            // Filter states
+            const [selectedCity, setSelectedCity] = useState(null);
+            const [selectedBuilding, setSelectedBuilding] = useState(null);
+
+            // Date filtering states
+            const [calendarMode, setCalendarMode] = useState('Gregorian'); // Gregorian or Hijri
+            const [gregorianRange, setGregorianRange] = useState(null);
+            const [hijriYear, setHijriYear] = useState(null);
+            const [hijriMonth, setHijriMonth] = useState('all');
+
+            const fetchData = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const [rRes, eRes, bRes] = await Promise.all([
+                        supabase.from('receipts').select('*'),
+                        supabase.from('vouchers_expense').select('*'),
+                        supabase.from('buildings').select('*')
+                    ]);
+                    
+                    if (rRes.error) throw rRes.error;
+                    if (eRes.error) throw eRes.error;
+                    if (bRes.error) throw bRes.error;
+
+                    setReceipts(rRes.data || []);
+                    setExpenses(eRes.data || []);
+                    setBuildings(bRes.data || []);
+                } catch (err) {
+                    message.error("خطأ في تحميل بيانات الخزينة: " + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                fetchData();
+                const channel = supabase.channel('treasury-dashboard-changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, fetchData)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers_expense' }, fetchData)
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, fetchData)
+                    .subscribe();
+                return () => {
+                    channel.unsubscribe();
+                };
+            }, [fetchData]);
+
+            const handleCityChange = (val) => {
+                setSelectedCity(val);
+                setSelectedBuilding(null);
+            };
+
+            const filteredBuildingsOptions = useMemo(() => {
+                if (!selectedCity) return buildings;
+                return buildings.filter(b => b.city_id === selectedCity);
+            }, [buildings, selectedCity]);
+
+            // Helper to check if a date is within Gregorian range
+            const isWithinDateFilter = useCallback((dateStr) => {
+                if (!dateStr) return false;
+                
+                if (calendarMode === 'Gregorian' && gregorianRange && gregorianRange.length === 2) {
+                    const start = gregorianRange[0].startOf('day');
+                    const end = gregorianRange[1].endOf('day');
+                    const itemDate = dayjs(dateStr);
+                    if (itemDate.isBefore(start) || itemDate.isAfter(end)) return false;
+                }
+
+                if (calendarMode === 'Hijri' && hijriYear) {
+                    const { startDate, endDate } = getGregorianRangeForHijriMonth(
+                        hijriYear,
+                        hijriMonth === 'all' ? null : parseInt(hijriMonth, 10)
+                    );
+                    if (startDate && endDate) {
+                        const itemDate = new Date(dateStr);
+                        if (itemDate < startDate || itemDate > endDate) return false;
+                    }
+                }
+                return true;
+            }, [calendarMode, gregorianRange, hijriYear, hijriMonth]);
+
+            // Financial Calculations
+            const financialData = useMemo(() => {
+                // Filter receipts first
+                const filteredReceipts = receipts.filter(r => {
+                    if (!isWithinDateFilter(r.created_at)) return false;
+                    const b = buildings.find(building => building.id === r.building_id);
+                    if (selectedCity && (!b || b.city_id !== selectedCity)) return false;
+                    if (selectedBuilding && r.building_id !== selectedBuilding) return false;
+                    return true;
+                });
+
+                // Filter expenses (approved only)
+                const filteredExpenses = expenses.filter(e => {
+                    if (e.approval_status !== 'approved') return false;
+                    if (!isWithinDateFilter(e.created_at)) return false;
+                    const b = buildings.find(building => building.id === e.building_id);
+                    if (selectedCity && (!b || b.city_id !== selectedCity)) return false;
+                    if (selectedBuilding && e.building_id !== selectedBuilding) return false;
+                    return true;
+                });
+
+                // Sum global
+                let globalReceiptsCash = 0;
+                let globalReceiptsBank = 0;
+                let globalExpensesCash = 0;
+                let globalExpensesBank = 0;
+
+                filteredReceipts.forEach(r => {
+                    if (r.payment_method === 'Cash') {
+                        globalReceiptsCash += r.amount_received || 0;
+                    } else if (r.payment_method === 'Bank Transfer') {
+                        globalReceiptsBank += r.amount_received || 0;
+                    }
+                });
+
+                filteredExpenses.forEach(e => {
+                    if (e.payment_method === 'Cash') {
+                        globalExpensesCash += e.amount || 0;
+                    } else if (e.payment_method === 'Bank Transfer') {
+                        globalExpensesBank += e.amount || 0;
+                    }
+                });
+
+                const globalCash = globalReceiptsCash - globalExpensesCash;
+                const globalBank = globalReceiptsBank - globalExpensesBank;
+                const globalTotal = globalCash + globalBank;
+
+                // Building level boxes
+                const visibleBuildings = buildings.filter(b => {
+                    if (selectedCity && b.city_id !== selectedCity) return false;
+                    if (selectedBuilding && b.id !== selectedBuilding) return false;
+                    return true;
+                });
+
+                const buildingBoxes = visibleBuildings.map(b => {
+                    const bReceipts = receipts.filter(r => r.building_id === b.id && isWithinDateFilter(r.created_at));
+                    const bExpenses = expenses.filter(e => e.building_id === b.id && e.approval_status === 'approved' && isWithinDateFilter(e.created_at));
+
+                    let bCashIn = 0;
+                    let bBankIn = 0;
+                    let bCashOut = 0;
+                    let bBankOut = 0;
+
+                    bReceipts.forEach(r => {
+                        if (r.payment_method === 'Cash') bCashIn += r.amount_received || 0;
+                        else if (r.payment_method === 'Bank Transfer') bBankIn += r.amount_received || 0;
+                    });
+
+                    bExpenses.forEach(e => {
+                        if (e.payment_method === 'Cash') bCashOut += e.amount || 0;
+                        else if (e.payment_method === 'Bank Transfer') bBankOut += e.amount || 0;
+                    });
+
+                    const cashBox = bCashIn - bCashOut;
+                    const bankBox = bBankIn - bBankOut;
+                    const totalBox = cashBox + bankBox;
+
+                    // Overdraft status
+                    let status = 'success';
+                    if (cashBox < 0) {
+                        status = 'error'; // Overdraft
+                    } else if (cashBox < 500) {
+                        status = 'warning'; // Low cash
+                    }
+
+                    return {
+                        id: b.id,
+                        name: b.name,
+                        city: cities.find(c => c.id === b.city_id)?.name_ar || '-',
+                        cashBox,
+                        bankBox,
+                        totalBox,
+                        status
+                    };
+                });
+
+                return {
+                    globalCash,
+                    globalBank,
+                    globalTotal,
+                    buildingBoxes
+                };
+            }, [receipts, expenses, buildings, selectedCity, selectedBuilding, calendarMode, gregorianRange, hijriYear, hijriMonth, isWithinDateFilter, cities]);
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center h-64">
+                        <Spin size="large" tip="جاري تحميل بيانات الخزينة..." />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div>
+                            <Title level={3} className="!m-0 text-primary flex items-center gap-2">
+                                <DollarOutlined /> شاشة الخزينة والصندوق (Treasury & Cash Dashboard)
+                            </Title>
+                            <Text type="secondary">
+                                تحليلات الخزينة العامة، الأرصدة البنكية، والصناديق النقدية للعقارات في بث حي ومباشر
+                            </Text>
+                        </div>
+                    </div>
+
+                    {/* Filter Panel */}
+                    <Card className="shadow-sm border-gray-100" title={<div className="flex items-center gap-2 font-bold text-primary"><span>🔍</span> تصفية وبحث حسابات الخزينة</div>}>
+                        <div className="space-y-4">
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">المدينة (City)</div>
+                                    <Select
+                                        className="w-full"
+                                        placeholder="كل المدن"
+                                        allowClear
+                                        value={selectedCity}
+                                        onChange={handleCityChange}
+                                        options={cities.map(c => ({ label: c.name_ar, value: c.id }))}
+                                    />
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">العمارة (Building)</div>
+                                    <Select
+                                        className="w-full"
+                                        placeholder="كل العمارات"
+                                        allowClear
+                                        value={selectedBuilding}
+                                        onChange={setSelectedBuilding}
+                                        options={filteredBuildingsOptions.map(b => ({ label: b.name, value: b.id }))}
+                                    />
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                    <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
+                                    <div className="flex gap-2 items-center">
+                                        <Radio.Group 
+                                            value={calendarMode} 
+                                            onChange={e => setCalendarMode(e.target.value)}
+                                            size="middle"
+                                            className="flex-shrink-0"
+                                        >
+                                            <Radio.Button value="Gregorian">ميلادي</Radio.Button>
+                                            <Radio.Button value="Hijri">هجري</Radio.Button>
+                                        </Radio.Group>
+                                        {calendarMode === 'Gregorian' ? (
+                                            <DatePicker.RangePicker 
+                                                className="w-full"
+                                                value={gregorianRange}
+                                                onChange={setGregorianRange}
+                                                placeholder={['من تاريخ', 'إلى تاريخ']}
+                                            />
+                                        ) : (
+                                            <div className="flex gap-1 w-full">
+                                                <Select 
+                                                    className="w-1/2"
+                                                    placeholder="السنة"
+                                                    value={hijriYear}
+                                                    onChange={setHijriYear}
+                                                    allowClear
+                                                    options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
+                                                />
+                                                <Select 
+                                                    className="w-1/2"
+                                                    value={hijriMonth}
+                                                    onChange={setHijriMonth}
+                                                    options={[
+                                                        { value: 'all', label: 'كل الأشهر' },
+                                                        { value: 1, label: '1 - محرم' },
+                                                        { value: 2, label: '2 - صفر' },
+                                                        { value: 3, label: '3 - ربيع الأول' },
+                                                        { value: 4, label: '4 - ربيع الثاني' },
+                                                        { value: 5, label: '5 - جمادى الأولى' },
+                                                        { value: 6, label: '6 - جمادى الآخرة' },
+                                                        { value: 7, label: '7 - رجب' },
+                                                        { value: 8, label: '8 - شعبان' },
+                                                        { value: 9, label: '9 - رمضان' },
+                                                        { value: 10, label: '10 - شوال' },
+                                                        { value: 11, label: '11 - ذو القعدة' },
+                                                        { value: 12, label: '12 - ذو الحجة' }
+                                                    ]}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </Col>
+                            </Row>
+                        </div>
+                    </Card>
+
+                    {/* Section 2: Global Treasury Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Total Liquid Assets */}
+                        <div className={`p-6 rounded-2xl bg-white shadow-sm border-t-4 transition-all hover:shadow-md ${financialData.globalTotal >= 0 ? 'border-t-emerald-600' : 'border-t-red-600'}`}>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="text-xs font-semibold text-slate-400 mb-1">إجمالي الأموال السائلة (Total Liquid Assets)</div>
+                                    <h3 className={`text-2xl font-black ${financialData.globalTotal >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                        {sarFormatter(financialData.globalTotal)}
+                                    </h3>
+                                </div>
+                                <div className={`p-3 rounded-xl ${financialData.globalTotal >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                                    <DollarOutlined style={{ fontSize: '24px' }} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Global Bank Balance */}
+                        <div className={`p-6 rounded-2xl bg-white shadow-sm border-t-4 transition-all hover:shadow-md ${financialData.globalBank >= 0 ? 'border-t-indigo-600' : 'border-t-red-600'}`}>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="text-xs font-semibold text-slate-400 mb-1">رصيد حسابات البنوك (Global Bank Balance)</div>
+                                    <h3 className={`text-2xl font-black ${financialData.globalBank >= 0 ? 'text-indigo-600' : 'text-red-600'}`}>
+                                        {sarFormatter(financialData.globalBank)}
+                                    </h3>
+                                </div>
+                                <div className={`p-3 rounded-xl ${financialData.globalBank >= 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>
+                                    <BankOutlined style={{ fontSize: '24px' }} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Global Cash Box */}
+                        <div className={`p-6 rounded-2xl bg-white shadow-sm border-t-4 transition-all hover:shadow-md ${financialData.globalCash >= 0 ? 'border-t-amber-600' : 'border-t-red-600'}`}>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="text-xs font-semibold text-slate-400 mb-1">إجمالي رصيد الصندوق (Global Cash Box)</div>
+                                    <h3 className={`text-2xl font-black ${financialData.globalCash >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                                        {sarFormatter(financialData.globalCash)}
+                                    </h3>
+                                </div>
+                                <div className={`p-3 rounded-xl ${financialData.globalCash >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'}`}>
+                                    <WalletOutlined style={{ fontSize: '24px' }} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 3: Building Cash Boxes Grid */}
+                    <Card title={<div className="font-bold text-primary flex items-center gap-2"><span>🏢</span> صناديق وأرصدة العمارات (Building Cash Boxes)</div>} className="shadow-sm">
+                        {financialData.buildingBoxes.length === 0 ? (
+                            <Empty description="لا توجد عقارات مطابقة للبحث" />
+                        ) : (
+                            <Row gutter={[16, 16]}>
+                                {financialData.buildingBoxes.map(box => {
+                                    // Calculate cash vs bank ratio
+                                    const absCash = Math.abs(box.cashBox);
+                                    const absBank = Math.abs(box.bankBox);
+                                    const totalAbs = absCash + absBank;
+                                    const cashPercent = totalAbs > 0 ? Math.round((absCash / totalAbs) * 100) : 50;
+                                    const bankPercent = totalAbs > 0 ? Math.round((absBank / totalAbs) * 100) : 50;
+
+                                    // Overdraft visual indicators
+                                    let cardStyle = "border border-slate-200 bg-white hover:border-slate-300";
+                                    let badgeColor = "default";
+                                    let badgeText = "مستقر";
+                                    
+                                    if (box.status === 'error') {
+                                        cardStyle = "border-2 border-red-500 bg-red-50/10 shadow-sm relative animate-overdraft-pulse";
+                                        badgeColor = "red";
+                                        badgeText = "عجز / مكشوف";
+                                    } else if (box.status === 'warning') {
+                                        cardStyle = "border border-amber-300 bg-amber-50/10 shadow-sm";
+                                        badgeColor = "warning";
+                                        badgeText = "رصيد منخفض";
+                                    } else {
+                                        cardStyle = "border border-emerald-200 bg-emerald-50/5 hover:border-emerald-300";
+                                        badgeColor = "success";
+                                        badgeText = "كافٍ ومستقر";
+                                    }
+
+                                    return (
+                                        <Col xs={24} sm={12} md={8} key={box.id}>
+                                            <div className={`p-5 rounded-2xl transition-all duration-300 ${cardStyle}`}>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <h4 className="font-bold text-base text-slate-800 m-0">{box.name}</h4>
+                                                        <span className="text-xs text-slate-400">{box.city}</span>
+                                                    </div>
+                                                    <Tag color={badgeColor} className="m-0 font-semibold">{badgeText}</Tag>
+                                                </div>
+
+                                                <div className="space-y-2 mt-4">
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="text-slate-500">المحصل بنكياً:</span>
+                                                        <span className={`font-bold ${box.bankBox >= 0 ? 'text-indigo-600' : 'text-red-600'}`}>
+                                                            {sarFormatter(box.bankBox)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="text-slate-500">الصندوق (كاش):</span>
+                                                        <span className={`font-bold ${box.cashBox >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                            {sarFormatter(box.cashBox)}
+                                                        </span>
+                                                    </div>
+                                                    <Divider className="my-2" />
+                                                    <div className="flex justify-between items-center text-sm font-bold">
+                                                        <span className="text-slate-800">صافي رصيد العقار:</span>
+                                                        <span className={box.totalBox >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                                                            {sarFormatter(box.totalBox)}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Ratio visual indicator */}
+                                                    <div className="space-y-1 mt-4">
+                                                        <div className="flex justify-between text-[10px] text-gray-400 font-semibold">
+                                                            <span>كاش ({cashPercent}%)</span>
+                                                            <span>بنك ({bankPercent}%)</span>
+                                                        </div>
+                                                        <div className="w-full h-1.5 rounded-full bg-slate-100 flex overflow-hidden">
+                                                            <div style={{ width: `${cashPercent}%` }} className="bg-amber-500 h-full"></div>
+                                                            <div style={{ width: `${bankPercent}%` }} className="bg-indigo-500 h-full"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Col>
+                                    );
+                                })}
+                            </Row>
+                        )}
+                    </Card>
+                </div>
+            );
+        };
+
         // --- Main App ---
 
         const App = () => {
@@ -3487,6 +4513,7 @@
                                     { key: 'dashboard', icon: <DashboardOutlined />, label: 'لوحة المعلومات' },
                                     { key: 'properties', icon: <BankOutlined />, label: 'إدارة العقارات' },
                                     { key: 'vouchers', icon: <WalletOutlined />, label: 'السندات' },
+                                    { key: 'treasury', icon: <DollarOutlined />, label: 'الخزينة والصناديق' },
                                     (profile?.can_report || profile?.role === 'admin') ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
                                     (profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL) ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
                                     { key: 'logout', icon: <LogoutOutlined />, label: 'تسجيل الخروج', danger: true }
@@ -3510,6 +4537,12 @@
                                 )}
                                 {activeTab === 'vouchers' && (
                                     <VouchersLedger
+                                        cities={cities}
+                                        profile={profile}
+                                    />
+                                )}
+                                {activeTab === 'treasury' && (
+                                    <TreasuryDashboard
                                         cities={cities}
                                         profile={profile}
                                     />

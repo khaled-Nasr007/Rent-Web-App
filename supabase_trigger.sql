@@ -88,3 +88,38 @@ CREATE POLICY "Allow insert access for authenticated users" ON public.vouchers_e
 CREATE POLICY "Allow all access for authenticated users" ON public.vouchers_expense
     FOR ALL TO authenticated USING (true);
 
+
+-- 4. Create expired_contracts_archive table to store historical lease records
+CREATE TABLE IF NOT EXISTS public.expired_contracts_archive (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    unit_id uuid REFERENCES public.units(id) ON DELETE CASCADE,
+    building_id uuid REFERENCES public.buildings(id) ON DELETE CASCADE,
+    tenant_name text NOT NULL,
+    id_number text NOT NULL,
+    phone_number text,
+    contract_number text NOT NULL,
+    monthly_rent numeric(12,2) NOT NULL,
+    amount_paid numeric(12,2) NOT NULL,
+    payment_method text NOT NULL,
+    period_start date NOT NULL,
+    period_end date NOT NULL,
+    archived_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.expired_contracts_archive ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Allow all access for authenticated users on expired_contracts_archive" ON public.expired_contracts_archive;
+
+-- Create Policies
+CREATE POLICY "Allow all access for authenticated users on expired_contracts_archive" 
+ON public.expired_contracts_archive
+FOR ALL TO authenticated USING (true);
+
+-- Migration: add columns for financial settlement tracking to expired_contracts_archive (safe, idempotent)
+ALTER TABLE public.expired_contracts_archive ADD COLUMN IF NOT EXISTS settlement_status text;
+ALTER TABLE public.expired_contracts_archive ADD COLUMN IF NOT EXISTS final_carried_debt_amount numeric(12,2) DEFAULT 0;
+
+
+
