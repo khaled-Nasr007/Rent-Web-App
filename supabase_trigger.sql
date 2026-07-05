@@ -78,13 +78,7 @@ DROP POLICY IF EXISTS "Allow read access for authenticated users" ON public.vouc
 DROP POLICY IF EXISTS "Allow insert access for authenticated users" ON public.vouchers_expense;
 DROP POLICY IF EXISTS "Allow all access for authenticated users" ON public.vouchers_expense;
 
--- Create policies (allowing authenticated users access)
-CREATE POLICY "Allow read access for authenticated users" ON public.vouchers_expense
-    FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY "Allow insert access for authenticated users" ON public.vouchers_expense
-    FOR INSERT TO authenticated WITH CHECK (true);
-
+-- Create single policy (allowing authenticated users full access)
 CREATE POLICY "Allow all access for authenticated users" ON public.vouchers_expense
     FOR ALL TO authenticated USING (true);
 
@@ -92,8 +86,8 @@ CREATE POLICY "Allow all access for authenticated users" ON public.vouchers_expe
 -- 4. Create expired_contracts_archive table to store historical lease records
 CREATE TABLE IF NOT EXISTS public.expired_contracts_archive (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    unit_id uuid REFERENCES public.units(id) ON DELETE CASCADE,
-    building_id uuid REFERENCES public.buildings(id) ON DELETE CASCADE,
+    unit_id text REFERENCES public.units(id) ON DELETE CASCADE,
+    building_id text REFERENCES public.buildings(id) ON DELETE CASCADE,
     tenant_name text NOT NULL,
     id_number text NOT NULL,
     phone_number text,
@@ -121,5 +115,130 @@ FOR ALL TO authenticated USING (true);
 ALTER TABLE public.expired_contracts_archive ADD COLUMN IF NOT EXISTS settlement_status text;
 ALTER TABLE public.expired_contracts_archive ADD COLUMN IF NOT EXISTS final_carried_debt_amount numeric(12,2) DEFAULT 0;
 
+-- Migration: Create system_logs table and RLS policies (safe, idempotent)
+CREATE TABLE IF NOT EXISTS public.system_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_email TEXT NOT NULL,
+    action_type TEXT NOT NULL, -- INSERT, UPDATE, DELETE, LOGIN, RENEWAL
+    target_module TEXT NOT NULL, -- REAL_ESTATE, UNITS, RECEIPTS, EXPENSES, CONTRACTS, AUTH
+    record_id TEXT,
+    description TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.system_logs ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Allow authenticated users to insert logs
+CREATE OR REPLACE FUNCTION public.check_is_auth() RETURNS boolean AS $$
+BEGIN
+  RETURN auth.role() = 'authenticated';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP POLICY IF EXISTS "Allow authenticated users to insert logs" ON public.system_logs;
+CREATE POLICY "Allow authenticated users to insert logs"
+ON public.system_logs FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow super admin to view logs" ON public.system_logs;
+CREATE POLICY "Allow super admin to view logs"
+ON public.system_logs FOR SELECT
+TO authenticated
+USING (auth.jwt()->>'email' = 'khalednasr007@gmail.com');
+
+-- Migration: Add assigned_buildings column to profiles for building-level RBAC (safe, idempotent)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS assigned_buildings TEXT[] DEFAULT '{}';
+
+-- Helper function to check if user has access to a building
+CREATE OR REPLACE FUNCTION public.check_user_building_access(user_id uuid, target_building_id text)
+RETURNS boolean AS $$
+DECLARE
+    user_role text;
+    user_buildings text[];
+BEGIN
+    -- Get user role and assigned buildings
+    SELECT role, assigned_buildings INTO user_role, user_buildings
+    FROM public.profiles
+    WHERE id = user_id;
+
+    -- Admins have access to all buildings
+    IF user_role = 'admin' THEN
+        RETURN true;
+    END IF;
+
+    -- Check if target_building_id is in the assigned_buildings array
+    RETURN target_building_id = ANY(user_buildings);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Enable RLS on buildings, units, receipts, vouchers_expense, expired_contracts_archive
+ALTER TABLE public.buildings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.units ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vouchers_expense ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expired_contracts_archive ENABLE ROW LEVEL SECURITY;
+
+-- 1. Policies for buildings
+DROP POLICY IF EXISTS "Access assigned buildings only" ON public.buildings;
+CREATE POLICY "Access assigned buildings only" ON public.buildings
+    FOR ALL TO authenticated
+    USING (public.check_user_building_access(auth.uid(), id))
+    WITH CHECK (public.check_user_building_access(auth.uid(), id));
+
+-- 2. Policies for units
+DROP POLICY IF EXISTS "Access units of assigned buildings only" ON public.units;
+CREATE POLICY "Access units of assigned buildings only" ON public.units
+    FOR ALL TO authenticated
+    USING (public.check_user_building_access(auth.uid(), building_id))
+    WITH CHECK (public.check_user_building_access(auth.uid(), building_id));
+
+-- 3. Policies for receipts
+DROP POLICY IF EXISTS "Access receipts of assigned buildings only" ON public.receipts;
+CREATE POLICY "Access receipts of assigned buildings only" ON public.receipts
+    FOR ALL TO authenticated
+    USING (public.check_user_building_access(auth.uid(), building_id))
+    WITH CHECK (public.check_user_building_access(auth.uid(), building_id));
+
+-- 4. Policies for vouchers_expense
+DROP POLICY IF EXISTS "Allow all access for authenticated users" ON public.vouchers_expense;
+DROP POLICY IF EXISTS "Access expenses of assigned buildings only" ON public.vouchers_expense;
+CREATE POLICY "Access expenses of assigned buildings only" ON public.vouchers_expense
+    FOR ALL TO authenticated
+    USING (public.check_user_building_access(auth.uid(), building_id))
+    WITH CHECK (public.check_user_building_access(auth.uid(), building_id));
+
+-- 5. Policies for expired_contracts_archive
+DROP POLICY IF EXISTS "Allow all access for authenticated users on expired_contracts_archive" ON public.expired_contracts_archive;
+DROP POLICY IF EXISTS "Access archive of assigned buildings only" ON public.expired_contracts_archive;
+CREATE POLICY "Access archive of assigned buildings only" ON public.expired_contracts_archive
+    FOR ALL TO authenticated
+    USING (public.check_user_building_access(auth.uid(), building_id))
+    WITH CHECK (public.check_user_building_access(auth.uid(), building_id));
+
+-- 6. Policies for profiles table (User RBAC and self-management)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+RETURNS boolean AS $$
+DECLARE
+    user_role text;
+BEGIN
+    SELECT role INTO user_role FROM public.profiles WHERE id = user_id;
+    RETURN user_role = 'admin';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP POLICY IF EXISTS "Allow users to read their own profile or admin to read all" ON public.profiles;
+CREATE POLICY "Allow users to read their own profile or admin to read all" ON public.profiles
+    FOR SELECT TO authenticated
+    USING (auth.uid() = id OR public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Allow users to update their own profile or admin to update all" ON public.profiles;
+CREATE POLICY "Allow users to update their own profile or admin to update all" ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = id OR public.is_admin(auth.uid()))
+    WITH CHECK (auth.uid() = id OR public.is_admin(auth.uid()));
 

@@ -1,295 +1,4 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بوابة تحصيل الإيجارات السعودية | Saudi Rent Portal</title>
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            corePlugins: { preflight: false },
-            theme: {
-                extend: {
-                    fontFamily: {
-                        cairo: ['Cairo', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: '#006B3F', // Saudi Green
-                        secondary: '#D4AF37', // Gold
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- React & Dependencies -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/regenerator-runtime@0.14.1/runtime.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-
-    <!-- Ant Design -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/locale/ar.min.js"></script>
-    <script src="https://unpkg.com/antd@5/dist/antd-with-locales.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ant-design/icons@5/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Cairo', sans-serif;
-            background-color: #f0f2f5;
-        }
-
-        .ant-layout {
-            font-family: 'Cairo', sans-serif !important;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .saudi-gradient {
-            background: linear-gradient(135deg, #006B3F 0%, #004D2E 100%);
-        }
-
-        /* Custom RTL Fixes for AntD if any */
-        .ant-menu-rtl {
-            text-align: right;
-        }
-
-        /* Premium Receipt Styles */
-        .receipt-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .receipt-border-accent {
-            border: 1px solid #D4AF37;
-        }
-
-        .receipt-watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 80px;
-            font-weight: 900;
-            color: rgba(0, 107, 63, 0.04);
-            white-space: nowrap;
-            pointer-events: none;
-            user-select: none;
-            z-index: 1;
-        }
-
-        .receipt-header-band {
-            background: linear-gradient(135deg, #006B3F 0%, #004D2E 100%);
-            color: #ffffff;
-            padding: 24px;
-            position: relative;
-            border-bottom: 4px solid #D4AF37;
-        }
-
-        .receipt-badge-gold {
-            border: 1px solid #D4AF37;
-            background-color: rgba(212, 175, 55, 0.1);
-            color: #b58d1b;
-            font-weight: bold;
-        }
-
-        .hijri-hint {
-            font-size: 11px;
-            color: #006B3F;
-            margin-top: 4px;
-            display: block;
-            font-weight: 500;
-        }
-
-        .expense-hijri-hint {
-            font-size: 11px;
-            color: #991b1b;
-            margin-top: 4px;
-            display: block;
-            font-weight: 500;
-        }
-
-        .receipt-table-summary {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-        }
-
-        /* Premium Expense Voucher Styles */
-        .voucher-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .voucher-border-accent {
-            border: 1px solid #D4AF37;
-        }
-
-        .voucher-watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 80px;
-            font-weight: 900;
-            color: rgba(153, 27, 27, 0.04);
-            white-space: nowrap;
-            pointer-events: none;
-            user-select: none;
-            z-index: 1;
-        }
-
-        .voucher-header-band {
-            background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
-            color: #ffffff;
-            padding: 24px;
-            position: relative;
-            border-bottom: 4px solid #D4AF37;
-        }
-
-
-        /* Print styling */
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            
-            /* Hide the main app and other page layouts entirely */
-            #root,
-            .ant-modal-mask,
-            .ant-modal-close,
-            .ant-modal-header,
-            .ant-modal-footer,
-            .no-print {
-                display: none !important;
-            }
-            
-            /* Override visibility for the modal content path */
-            .ant-modal-root,
-            .ant-modal-wrap,
-            .ant-modal,
-            .ant-modal-content,
-            .ant-modal-body,
-            .print-receipt-section,
-            .print-receipt-section * {
-                visibility: visible !important;
-            }
-            
-            /* Reset modal wrapping layout */
-            .ant-modal-wrap {
-                position: static !important;
-                overflow: visible !important;
-                display: block !important;
-            }
-            
-            .ant-modal {
-                position: static !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                top: 0 !important;
-                box-shadow: none !important;
-                background: transparent !important;
-            }
-            
-            .ant-modal-content {
-                background: transparent !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-                border: none !important;
-            }
-            
-            .ant-modal-body {
-                padding: 0 !important;
-            }
-
-            .print-receipt-section {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            
-            body {
-                background-color: #ffffff !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-        }
-
-        @keyframes borderPulse {
-            0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
-            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-            100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-        .animate-overdraft-pulse {
-            animation: borderPulse 2s infinite ease-in-out;
-        }
-        .row-lease-expired {
-            background-color: rgba(254, 243, 199, 0.45) !important; /* amber-50 */
-            border-right: 4px solid #d97706 !important;
-        }
-        .row-lease-expired:hover > td {
-            background-color: rgba(254, 243, 199, 0.7) !important;
-        }
-    </style>
-</head>
-
-<body>
-    <div id="root"></div>
-    <div id="error-display" style="display:none;direction:rtl;font-family:Cairo,sans-serif;padding:40px;text-align:center;">
-        <h2 style="color:#c00;">⚠️ حدث خطأ في تحميل التطبيق</h2>
-        <pre id="error-details" style="background:#fff3f3;padding:20px;border-radius:8px;text-align:left;direction:ltr;overflow:auto;max-height:300px;"></pre>
-        <p>يرجى تحديث الصفحة أو التواصل مع الدعم الفني.</p>
-    </div>
-
-    <script>
-        // Global error handler - show errors visually instead of blank page
-        window.onerror = function(msg, src, line, col, err) {
-            var el = document.getElementById('error-display');
-            var det = document.getElementById('error-details');
-            if (el && det) {
-                el.style.display = 'block';
-                det.textContent = 'Error: ' + msg + '\nSource: ' + src + '\nLine: ' + line + '\n' + (err && err.stack ? err.stack : '');
-            }
-            console.error('Global error:', msg, src, line, col, err);
-        };
-    </script>
-
-    <script type="text/babel" data-presets="env,react">
         const { useState, useEffect, useMemo, useCallback } = React;
         dayjs.locale('ar');
         const {
@@ -577,9 +286,6 @@
         // --- Components ---
 
         const ReceiptModal = ({ receipt, visible, onClose }) => {
-            const { can_report, role } = useAppSession();
-            const canPrint = role === 'admin' || can_report;
-
             if (!receipt) return null;
 
             const handlePrint = () => {
@@ -592,10 +298,8 @@
                     onCancel={onClose}
                     footer={[
                         <Button key="close" onClick={onClose} className="no-print">إغلاق</Button>,
-                        canPrint && (
-                            <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-primary hover:bg-opacity-90 no-print">طباعة السند / حفظ PDF</Button>
-                        )
-                    ].filter(Boolean)}
+                        <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-primary hover:bg-opacity-90 no-print">طباعة السند / حفظ PDF</Button>
+                    ]}
                     width={750}
                     bodyStyle={{ padding: 0 }}
                 >
@@ -712,9 +416,6 @@
         };
 
         const ExpenseVoucherModal = ({ voucher, visible, onClose }) => {
-            const { can_report, role } = useAppSession();
-            const canPrint = role === 'admin' || can_report;
-
             if (!voucher) return null;
 
             const handlePrint = () => {
@@ -737,10 +438,8 @@
                     onCancel={onClose}
                     footer={[
                         <Button key="close" onClick={onClose} className="no-print">إغلاق</Button>,
-                        canPrint && (
-                            <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-red-600 hover:bg-opacity-90 no-print border-red-600">طباعة السند / حفظ PDF</Button>
-                        )
-                    ].filter(Boolean)}
+                        <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-red-600 hover:bg-opacity-90 no-print border-red-600">طباعة السند / حفظ PDF</Button>
+                    ]}
                     width={750}
                     bodyStyle={{ padding: 0 }}
                 >
@@ -1032,34 +731,22 @@
             const [form] = Form.useForm();
 
             const fetchBuildings = useCallback(async () => {
-                if (!profile) {
-                    setBuildings([]);
-                    setLoading(false);
-                    return;
-                }
                 setLoading(true);
+                const { data: bData, error: bError } = await supabase
+                    .from('buildings')
+                    .select('*');
 
-                const assignedIds = getAssignedBuildingIds(profile);
-                if (assignedIds !== null && assignedIds.length === 0) {
-                    setBuildings([]);
-                    setLoading(false);
-                    return;
-                }
+                if (!bError && bData.length > 0) {
+                    // RBAC: Filter buildings by assigned_buildings for non-admin users
+                    const assignedIds = getAssignedBuildingIds(profile);
+                    const filteredBData = assignedIds === null ? bData : bData.filter(b => assignedIds.includes(b.id));
 
-                let query = supabase.from('buildings').select('*');
-                if (profile.role !== 'admin') {
-                    query = query.in('id', assignedIds);
-                }
-
-                const { data: bData, error: bError } = await query;
-
-                if (!bError && bData && bData.length > 0) {
-                    const bIds = bData.map(b => b.id);
+                    const bIds = filteredBData.map(b => b.id);
                     const { data: uData } = bIds.length > 0 
                         ? await supabase.from('units').select('building_id, monthly_rent, amount_paid, is_rented').in('building_id', bIds)
                         : { data: [] };
 
-                    const buildingsWithStats = bData.map(b => {
+                    const buildingsWithStats = filteredBData.map(b => {
                         const bUnits = uData?.filter(u => u.building_id === b.id) || [];
                         const rentedUnits = bUnits.filter(u => u.is_rented);
                         const totalExpected = rentedUnits.reduce((acc, u) => acc + (u.monthly_rent || 0), 0);
@@ -1714,16 +1401,7 @@
                         if (error) {
                             console.warn("Table expired_contracts_archive might not exist: ", error.message);
                         } else {
-                            const unique = [];
-                            const seen = new Set();
-                            (data || []).forEach(r => {
-                                const key = `${r.contract_number}_${r.period_start}_${r.period_end}`;
-                                if (!seen.has(key)) {
-                                    seen.add(key);
-                                    unique.push(r);
-                                }
-                            });
-                            archs = unique;
+                            archs = data || [];
                         }
                     } catch (e) {
                         console.warn("Error fetching expired_contracts_archive: ", e);
@@ -1760,18 +1438,9 @@
                                     period_start: unit.period_start,
                                     period_end: unit.period_end
                                 };
-                                
-                                const { data: existingArch } = await supabase
-                                    .from('expired_contracts_archive')
-                                    .select('id')
-                                    .eq('unit_id', unit.id)
-                                    .eq('contract_number', unit.contract_number);
-                                
-                                if (!existingArch || existingArch.length === 0) {
-                                    const { error: archErr } = await supabase.from('expired_contracts_archive').insert([archiveData]);
-                                    if (archErr) {
-                                        console.warn("Could not archive terminated lease: ", archErr.message);
-                                    }
+                                const { error: archErr } = await supabase.from('expired_contracts_archive').insert([archiveData]);
+                                if (archErr) {
+                                    console.warn("Could not archive terminated lease: ", archErr.message);
                                 }
                             } catch (e) {
                                 console.warn("Failed to archive terminated lease: ", e);
@@ -1825,7 +1494,6 @@
                     
                     const oldRemaining = (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0);
                     const isDebt = oldRemaining > 0;
-                    const targetTotalRent = values.new_rent_value + (values.settlement_action === 'rollover' ? oldRemaining : 0);
                     
                     let settlementStatus = null;
                     let finalCarriedDebtAmount = 0;
@@ -1900,27 +1568,42 @@
                             final_carried_debt_amount: finalCarriedDebtAmount
                         };
                         
-                        const { data: existingArch } = await supabase
+                        const { error: archErr } = await supabase
                             .from('expired_contracts_archive')
-                            .select('id')
-                            .eq('unit_id', selectedUnit.id)
-                            .eq('contract_number', selectedUnit.contract_number);
+                            .insert([archiveData]);
                         
-                        if (!existingArch || existingArch.length === 0) {
-                            const { error: archErr } = await supabase
-                                .from('expired_contracts_archive')
-                                .insert([archiveData]);
-                            
-                            if (archErr) {
-                                console.warn("Could not archive renewed lease: ", archErr.message);
-                            }
+                        if (archErr) {
+                            console.warn("Could not archive renewed lease: ", archErr.message);
                         }
                     } catch (e) {
                         console.warn("Failed to archive renewed lease: ", e);
                     }
 
-                    // 2. Issue new receipt FIRST (before updating unit to prevent data inconsistency)
-                    let insertedReceipt = null;
+                    // 2. Update units table row with new contract parameters
+                    // New Target Total = New Lease Base Rent + Rolled-forward Balance (if rollover)
+                    const targetTotalRent = values.new_rent_value + (values.settlement_action === 'rollover' ? oldRemaining : 0);
+                    
+                    const updatedUnitData = {
+                        is_rented: true,
+                        tenant_name: values.tenant_name || selectedUnit.tenant_name,
+                        id_number: values.id_number || selectedUnit.id_number,
+                        phone_number: values.phone_number || selectedUnit.phone_number,
+                        contract_number: values.new_contract_number,
+                        monthly_rent: targetTotalRent,
+                        period_start: startDateStr,
+                        period_end: endDateStr,
+                        amount_paid: values.amount_received || 0,
+                        payment_method: values.payment_method
+                    };
+
+                    const { error: updateErr } = await supabase
+                        .from('units')
+                        .update(updatedUnitData)
+                        .eq('id', selectedUnit.id);
+                    
+                    if (updateErr) throw updateErr;
+
+                    // 3. Issue new receipt if amount_received > 0
                     if (values.amount_received > 0) {
                         const receiptNum = await generateReceiptNumber();
                         const currentUser = (await supabase.auth.getUser()).data.user;
@@ -1937,7 +1620,7 @@
                             building_name: building.name,
                             city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
                             amount_received: values.amount_received,
-                            payment_method: values.payment_method || 'Cash',
+                            payment_method: values.payment_method,
                             period_start: startDateStr,
                             period_end: endDateStr,
                             period_start_hijri: start ? toHijri(start.toDate()) : null,
@@ -1947,45 +1630,23 @@
                             created_by_email: currentUser ? currentUser.email : ''
                         };
 
-                        const { data: recData, error: recError } = await supabase
+                        const { data: insertedReceipt, error: recError } = await supabase
                             .from('receipts')
                             .insert([receiptData])
                             .select()
                             .single();
                         
                         if (recError) throw recError;
-                        insertedReceipt = recData;
-                        
+
+                        message.success("تم تجديد العقد بنجاح وتوثيق التسوية/الترحيل المالي");
                         logActivity('INSERT', 'RECEIPTS', insertedReceipt?.id, `تم إصدار سند قبض جديد برقم: ${receiptNum} للمستأجر: ${values.tenant_name || selectedUnit.tenant_name} بمبلغ ${values.amount_received} ر.س`);
-                    }
-
-                    // 3. Update units table row with new contract parameters (after receipt is safely committed)
-                    const updatedUnitData = {
-                        is_rented: true,
-                        tenant_name: values.tenant_name || selectedUnit.tenant_name,
-                        id_number: values.id_number || selectedUnit.id_number,
-                        phone_number: values.phone_number || selectedUnit.phone_number,
-                        contract_number: values.new_contract_number,
-                        monthly_rent: targetTotalRent,
-                        period_start: startDateStr,
-                        period_end: endDateStr,
-                        amount_paid: values.amount_received || 0,
-                        payment_method: values.payment_method || 'Cash'
-                    };
-
-                    const { error: updateErr } = await supabase
-                        .from('units')
-                        .update(updatedUnitData)
-                        .eq('id', selectedUnit.id);
-                    
-                    if (updateErr) throw updateErr;
-
-                    // Show success message and receipt popup
-                    message.success("تم تجديد العقد بنجاح وتوثيق التسوية/الترحيل المالي");
-                    
-                    if (insertedReceipt) {
-                        setActiveReceipt(insertedReceipt);
-                        setReceiptModalVisible(true);
+                        
+                        if (insertedReceipt) {
+                            setActiveReceipt(insertedReceipt);
+                            setReceiptModalVisible(true);
+                        }
+                    } else {
+                        message.success("تم تجديد العقد بنجاح وتوثيق التسوية/الترحيل المالي");
                     }
 
                     // Log renewal action
@@ -2316,7 +1977,7 @@
                                                             setIsModalOpen(true);
                                                         }} />
                                                     )}
-                                                    {(profile?.can_add || profile?.role === 'admin') && (
+                                                    {(profile?.can_edit || profile?.role === 'admin') && (
                                                         <Tooltip title="إصدار سند صرف مصروفات">
                                                             <Button 
                                                                 className="border-red-200 hover:border-red-500 hover:text-red-500"
@@ -2430,16 +2091,14 @@
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100">
                                         <Text strong className="text-lg text-red-700">سجل سندات صرف المصروفات</Text>
-                                        {(profile?.can_add || profile?.role === 'admin') && (
-                                            <Button 
-                                                type="primary" 
-                                                danger
-                                                icon={<PlusOutlined />}
-                                                onClick={() => handleOpenExpenseModal(null)}
-                                            >
-                                                إصدار سند صرف عام للمبنى
-                                            </Button>
-                                        )}
+                                        <Button 
+                                            type="primary" 
+                                            danger
+                                            icon={<PlusOutlined />}
+                                            onClick={() => handleOpenExpenseModal(null)}
+                                        >
+                                            إصدار سند صرف عام للمبنى
+                                        </Button>
                                     </div>
                                     <Table
                                         dataSource={expenses}
@@ -2807,27 +2466,23 @@
                                     <div className="font-bold text-base mb-1 text-amber-900">⚠️ العقد الحالي منتهي الصلاحية</div>
                                     <div className="text-xs mb-3 text-amber-800">انتهت فترة عقد الإيجار لهذه الوحدة بتاريخ {selectedUnit?.period_end} م. يرجى اتخاذ قرار بالتجديد أو إنهاء العقد وتفريغ الوحدة.</div>
                                     <Space>
-                                        {(profile?.can_edit || profile?.role === 'admin') && (
-                                            <Button type="primary" className="bg-amber-600 hover:bg-amber-700 border-amber-600 font-semibold" onClick={() => {
-                                                renewalForm.resetFields();
-                                                renewalForm.setFieldsValue({
-                                                    tenant_name: selectedUnit?.tenant_name,
-                                                    id_number: selectedUnit?.id_number,
-                                                    phone_number: selectedUnit?.phone_number,
-                                                    payment_method: 'Cash',
-                                                    amount_received: 0,
-                                                    new_rent_value: selectedUnit?.monthly_rent
-                                                });
-                                                setRenewalLiveStartDate(null);
-                                                setRenewalLiveEndDate(null);
-                                                setSettlementAction(null);
-                                                setNewRentValue(selectedUnit?.monthly_rent || 0);
-                                                setRenewalModalOpen(true);
-                                            }}>تجديد العقد (Renew)</Button>
-                                        )}
-                                        {(profile?.can_edit || profile?.role === 'admin') && (
-                                            <Button danger type="primary" className="font-semibold" onClick={() => handleTerminateContract(selectedUnit)}>إنهاء العقد (Terminate)</Button>
-                                        )}
+                                        <Button type="primary" className="bg-amber-600 hover:bg-amber-700 border-amber-600 font-semibold" onClick={() => {
+                                            renewalForm.resetFields();
+                                            renewalForm.setFieldsValue({
+                                                tenant_name: selectedUnit?.tenant_name,
+                                                id_number: selectedUnit?.id_number,
+                                                phone_number: selectedUnit?.phone_number,
+                                                payment_method: 'Cash',
+                                                amount_received: 0,
+                                                new_rent_value: selectedUnit?.monthly_rent
+                                            });
+                                            setRenewalLiveStartDate(null);
+                                            setRenewalLiveEndDate(null);
+                                            setSettlementAction(null);
+                                            setNewRentValue(selectedUnit?.monthly_rent || 0);
+                                            setRenewalModalOpen(true);
+                                        }}>تجديد العقد (Renew)</Button>
+                                        <Button danger type="primary" className="font-semibold" onClick={() => handleTerminateContract(selectedUnit)}>إنهاء العقد (Terminate)</Button>
                                     </Space>
                                 </div>
                             )}
@@ -2893,14 +2548,10 @@
                                                                 setActiveReceipt(record);
                                                                 setReceiptModalVisible(true);
                                                             }}>عرض السند</Button>
-                                                            {(profile?.role === 'admin' || profile?.can_edit || profile?.can_delete) && (
+                                                            {profile?.role === 'admin' && (
                                                                 <>
-                                                                    {(profile?.role === 'admin' || profile?.can_edit) && (
-                                                                        <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
-                                                                    )}
-                                                                    {(profile?.role === 'admin' || profile?.can_delete) && (
-                                                                        <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
-                                                                    )}
+                                                                    <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
+                                                                    <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
                                                                 </>
                                                             )}
                                                         </Space>
@@ -3074,7 +2725,7 @@
                                     </Form.Item>
                                 </Col>
                                 <Col span={12}>
-                                    <Form.Item name="payment_method" label="طريقة دفع الدفعة الأولى" initialValue="Cash" rules={[{ required: true }]}>
+                                    <Form.Item name="payment_method" label="طريقة الدفع" rules={[{ required: true }]}>
                                         <Select options={[
                                             { label: 'كاش (Cash)', value: 'Cash' },
                                             { label: 'تحويل بنكي (Bank Transfer)', value: 'Bank Transfer' }
@@ -3103,114 +2754,10 @@
         };
 
 
-        const AdminPanel = ({ users, onUpdateUser, cities, allBuildings, currentProfile }) => {
+        const AdminPanel = ({ users, onUpdateUser, cities, allBuildings }) => {
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [selectedUser, setSelectedUser] = useState(null);
             const [form] = Form.useForm();
-
-            const [localUsers, setLocalUsers] = useState(users);
-            const [loadingRows, setLoadingRows] = useState({});
-            const [assignModalOpen, setAssignModalOpen] = useState(false);
-            const [assignRecord, setAssignRecord] = useState(null);
-            const [assignSelectedIds, setAssignSelectedIds] = useState([]);
-
-            useEffect(() => {
-                setLocalUsers(users);
-            }, [users]);
-
-            useEffect(() => {
-                if (assignRecord) {
-                    setAssignSelectedIds(assignRecord.assigned_buildings || []);
-                } else {
-                    setAssignSelectedIds([]);
-                }
-            }, [assignRecord]);
-
-            const logAdminActivity = async (actionType, userId, description) => {
-                if (currentProfile?.email === SUPER_ADMIN_EMAIL) {
-                    await logActivity(actionType, "AUTH", userId, description);
-                }
-            };
-
-            const handleRoleChange = async (userId, newRole) => {
-                const originalUsers = [...localUsers];
-                setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-                setLoadingRows(prev => ({ ...prev, [userId]: true }));
-
-                try {
-                    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-                    if (error) {
-                        setLocalUsers(originalUsers);
-                        message.error("خطأ في تحديث دور المستخدم: " + error.message);
-                    } else {
-                        message.success("تم تحديث دور المستخدم بنجاح");
-                        const targetUser = originalUsers.find(u => u.id === userId);
-                        const targetName = targetUser ? displayUsername(targetUser.email) : userId;
-                        await logAdminActivity("UPDATE", userId, `قام المسؤول بتعديل صلاحيات المستخدم ${targetName}`);
-                    }
-                } catch (err) {
-                    setLocalUsers(originalUsers);
-                    message.error("خطأ في الاتصال: " + err.message);
-                } finally {
-                    setLoadingRows(prev => ({ ...prev, [userId]: false }));
-                }
-            };
-
-            const handlePermissionChange = async (userId, field, checked) => {
-                const originalUsers = [...localUsers];
-                setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, [field]: checked } : u));
-                setLoadingRows(prev => ({ ...prev, [userId]: true }));
-
-                try {
-                    const { error } = await supabase.from('profiles').update({ [field]: checked }).eq('id', userId);
-                    if (error) {
-                        setLocalUsers(originalUsers);
-                        message.warning("خطأ في تحديث الصلاحيات: " + error.message);
-                    } else {
-                        const targetUser = originalUsers.find(u => u.id === userId);
-                        const targetName = targetUser ? displayUsername(targetUser.email) : userId;
-                        await logAdminActivity("UPDATE", userId, `قام المسؤول بتعديل صلاحيات المستخدم ${targetName}`);
-                    }
-                } catch (err) {
-                    setLocalUsers(originalUsers);
-                    message.warning("خطأ في تحديث الصلاحيات: " + err.message);
-                } finally {
-                    setLoadingRows(prev => ({ ...prev, [userId]: false }));
-                }
-            };
-
-            const handleOpenAssignBuildings = (record) => {
-                if (record.role === 'admin') return;
-                setAssignRecord(record);
-                setAssignSelectedIds(record.assigned_buildings || []);
-                setAssignModalOpen(true);
-            };
-
-            const handleAssignBuildings = async (userId, selectedIds) => {
-                const targetUser = localUsers.find(u => u.id === userId);
-                const currentSelectedIds = selectedIds || (targetUser ? targetUser.assigned_buildings : []) || [];
-
-                const originalUsers = [...localUsers];
-                setLocalUsers(prev => prev.map(u => u.id === userId ? { ...u, assigned_buildings: currentSelectedIds } : u));
-                setLoadingRows(prev => ({ ...prev, [userId]: true }));
-
-                try {
-                    const { error } = await supabase.from('profiles').update({ assigned_buildings: currentSelectedIds }).eq('id', userId);
-                    if (error) {
-                        setLocalUsers(originalUsers);
-                        message.error("خطأ في تخصيص العمارات: " + error.message);
-                    } else {
-                        message.success("تم تحديث صلاحيات العمارات بنجاح");
-                        const targetName = targetUser ? displayUsername(targetUser.email) : userId;
-                        await logAdminActivity("UPDATE", userId, `قام المسؤول بتعديل صلاحيات المستخدم ${targetName}`);
-                    }
-                } catch (err) {
-                    setLocalUsers(originalUsers);
-                    message.error("خطأ في الاتصال: " + err.message);
-                } finally {
-                    setLoadingRows(prev => ({ ...prev, [userId]: false }));
-                }
-            };
 
             const handleSaveUser = async (values) => {
                 const processedEmail = processUsername(values.email);
@@ -3316,8 +2863,7 @@
             const PermissionToggle = ({ field, record }) => (
                 <Checkbox
                     checked={record[field]}
-                    disabled={loadingRows[record.id]}
-                    onChange={(e) => handlePermissionChange(record.id, field, e.target.checked)}
+                    onChange={(e) => onUpdateUser(record.id, { [field]: e.target.checked })}
                 />
             );
 
@@ -3330,22 +2876,11 @@
 
                     <Card className="shadow-sm">
                         <Table
-                            dataSource={localUsers}
+                            dataSource={users}
                             rowKey="id"
                             scroll={{ x: 800 }}
                             columns={[
-                                {
-                                    title: 'اسم المستخدم',
-                                    dataIndex: 'email',
-                                    key: 'email',
-                                    fixed: 'left',
-                                    render: (v, record) => (
-                                        <Space>
-                                            {loadingRows[record.id] && <Spin size="small" />}
-                                            {displayUsername(v)}
-                                        </Space>
-                                    )
-                                },
+                                { title: 'اسم المستخدم', dataIndex: 'email', key: 'email', fixed: 'left', render: v => displayUsername(v) },
                                 {
                                     title: 'الدور',
                                     dataIndex: 'role',
@@ -3353,8 +2888,7 @@
                                     render: (role, record) => (
                                         <Select
                                             value={role}
-                                            disabled={loadingRows[record.id]}
-                                            onChange={(val) => handleRoleChange(record.id, val)}
+                                            onChange={(val) => onUpdateUser(record.id, { role: val })}
                                             options={[{ label: 'مسؤول', value: 'admin' }, { label: 'مستخدم', value: 'user' }]}
                                         />
                                     )
@@ -3366,26 +2900,12 @@
                                 {
                                     title: 'العمارات المخصصة',
                                     key: 'assigned_buildings',
-                                    width: 180,
+                                    width: 150,
                                     render: (_, record) => {
                                         const count = (record.assigned_buildings || []).length;
-                                        const isMainAdmin = record.role === 'admin';
-                                        
-                                        return (
-                                            <Space 
-                                                className={isMainAdmin ? "" : "cursor-pointer"} 
-                                                onClick={() => handleOpenAssignBuildings(record)}
-                                            >
-                                                {isMainAdmin ? (
-                                                    <Tag color="green" className="m-0">جميع العمارات</Tag>
-                                                ) : (
-                                                    <Tag color={count > 0 ? 'green' : 'red'} className="m-0">
-                                                        {count > 0 ? `تم تخصيص ${count} عمارات` : 'لم يتم التخصيص'}
-                                                    </Tag>
-                                                )}
-                                                {!isMainAdmin && <EditOutlined className="text-gray-400 hover:text-primary" />}
-                                            </Space>
-                                        );
+                                        return record.role === 'admin'
+                                            ? <Tag color="green">جميع العمارات</Tag>
+                                            : <Tag color={count > 0 ? 'blue' : 'red'}>{count > 0 ? `${count} عمارة` : 'لم يتم التخصيص'}</Tag>;
                                     }
                                 },
                                 {
@@ -3398,15 +2918,16 @@
                                             <Button
                                                 icon={<EditOutlined />}
                                                 size="small"
-                                                style={{ color: '#006B3F', borderColor: '#006B3F' }}
-                                                disabled={loadingRows[record.id]}
-                                                onClick={() => handleOpenAssignBuildings(record)}
+                                                onClick={() => {
+                                                    setSelectedUser(record);
+                                                    form.setFieldsValue(record);
+                                                    setIsModalOpen(true);
+                                                }}
                                                 title="تعديل المستخدم"
                                             />
                                             <Button
                                                 icon={<LockOutlined />}
                                                 size="small"
-                                                disabled={loadingRows[record.id]}
                                                 onClick={() => {
                                                     const newPass = prompt("أدخل كلمة المرور الجديدة للمستخدم:");
                                                     if (newPass && newPass.length >= 6) {
@@ -3420,7 +2941,6 @@
                                             <Popconfirm
                                                 title="حذف المستخدم؟"
                                                 description="لا يمكن التراجع عن هذا الإجراء."
-                                                disabled={loadingRows[record.id]}
                                                 onConfirm={() => handleDeleteUser(record.id)}
                                                 okText="نعم"
                                                 cancelText="لا"
@@ -3430,7 +2950,6 @@
                                                     danger
                                                     icon={<DeleteOutlined />}
                                                     size="small"
-                                                    disabled={loadingRows[record.id]}
                                                     title="حذف المستخدم"
                                                 />
                                             </Popconfirm>
@@ -3539,75 +3058,6 @@
                             {selectedUser && <Text type="secondary" className="block mb-4">اسم المستخدم: {displayUsername(selectedUser.email)}</Text>}
                             {!selectedUser && <Text type="secondary">ملاحظة: سيتم تطبيق هذه الصلاحيات فور إنشاء المستخدم لحسابه.</Text>}
                         </Form>
-                    </Modal>
-
-                    <Modal
-                        title={`تخصيص العمارات للمستخدم: ${assignRecord ? displayUsername(assignRecord.email) : ''}`}
-                        open={assignModalOpen}
-                        onCancel={() => { setAssignModalOpen(false); setAssignRecord(null); }}
-                        onOk={async () => {
-                            if (!assignRecord) return;
-                            setAssignModalOpen(false);
-                            await handleAssignBuildings(assignRecord.id, assignSelectedIds);
-                        }}
-                        okText="حفظ التخصيص"
-                        cancelText="إلغاء"
-                        width={600}
-                    >
-                        <div className="space-y-4 py-4" dir="rtl">
-                            <p className="text-sm text-gray-500">اختر العمارات المسموح للمستخدم بالوصول إليها وإدارتها:</p>
-                            <Select
-                                mode="multiple"
-                                placeholder="اختر العمارات..."
-                                allowClear
-                                showSearch
-                                optionFilterProp="label"
-                                style={{ width: '100%' }}
-                                value={assignSelectedIds}
-                                onChange={(val) => setAssignSelectedIds(val)}
-                            >
-                                {cities.map(city => {
-                                    const cityBuildings = (allBuildings || []).filter(b => b.city_id === city.id);
-                                    if (cityBuildings.length === 0) return null;
-                                    return (
-                                        <Select.OptGroup key={city.id} label={`🏙️ ${city.name_ar} (${cityBuildings.length} عمارة)`}>
-                                            {cityBuildings.map(b => (
-                                                <Select.Option key={b.id} value={b.id} label={`${b.name} - ${city.name_ar}`}>
-                                                    {b.name}
-                                                </Select.Option>
-                                            ))}
-                                        </Select.OptGroup>
-                                    );
-                                })}
-                            </Select>
-                            
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {cities.map(city => {
-                                    const cityBuildings = (allBuildings || []).filter(b => b.city_id === city.id);
-                                    if (cityBuildings.length === 0) return null;
-                                    return (
-                                        <Button
-                                            key={city.id}
-                                            size="small"
-                                            type="dashed"
-                                            className="ml-2 mb-1"
-                                            onClick={() => {
-                                                const current = assignSelectedIds || [];
-                                                const cityBIds = cityBuildings.map(b => b.id);
-                                                const allSelected = cityBIds.every(id => current.includes(id));
-                                                if (allSelected) {
-                                                    setAssignSelectedIds(current.filter(id => !cityBIds.includes(id)));
-                                                } else {
-                                                    setAssignSelectedIds([...new Set([...current, ...cityBIds])]);
-                                                }
-                                            }}
-                                        >
-                                            تحديد/إلغاء كل عمارات {city.name_ar}
-                                        </Button>
-                                    );
-                                })}
-                            </div>
-                        </div>
                     </Modal>
                 </div>
             );
@@ -3805,44 +3255,22 @@
         };
 
         const Reporting = ({ profile, cities }) => {
-            const [buildings, setBuildings] = useState([]);
-            const [units, setUnits] = useState([]);
+            const [form] = Form.useForm();
             const [loading, setLoading] = useState(false);
-            const [selectedReport, setSelectedReport] = useState(null);
-            const [previewData, setPreviewData] = useState([]);
-            const [previewColumns, setPreviewColumns] = useState([]);
-            const [summaryData, setSummaryData] = useState(null);
-            const [filterCity, setFilterCity] = useState([]);
-            const [filterBuilding, setFilterBuilding] = useState([]);
-            const [calendarMode, setCalendarMode] = useState('Gregorian');
-            const [gregorianRange, setGregorianRange] = useState(null);
-            const [hijriYear, setHijriYear] = useState(null);
-            const [hijriMonth, setHijriMonth] = useState('all');
+            const [buildings, setBuildings] = useState([]);
+            const [calendarMode, setCalendarMode] = useState('Gregorian'); // Gregorian or Hijri
 
-            // Fetch buildings scoped to user
             useEffect(() => {
-                const fetchScopedData = async () => {
+                const fetchBuildingsForUser = async () => {
+                    const { data } = await supabase
+                        .from('buildings')
+                        .select('*');
+                    
                     const assignedBIds = getAssignedBuildingIds(profile);
-                    let bQuery = supabase.from('buildings').select('*');
-                    if (assignedBIds !== null && assignedBIds.length > 0) {
-                        bQuery = bQuery.in('id', assignedBIds);
-                    } else if (assignedBIds !== null && assignedBIds.length === 0) {
-                        setBuildings([]);
-                        setUnits([]);
-                        return;
-                    }
-                    const { data: bData } = await bQuery;
-                    setBuildings(bData || []);
-
-                    const bIds = (bData || []).map(b => b.id);
-                    if (bIds.length > 0) {
-                        const { data: uData } = await supabase.from('units').select('*').in('building_id', bIds);
-                        setUnits(uData || []);
-                    } else {
-                        setUnits([]);
-                    }
+                    const filtered = assignedBIds === null ? (data || []) : (data || []).filter(b => assignedBIds.includes(b.id));
+                    setBuildings(filtered);
                 };
-                fetchScopedData();
+                fetchBuildingsForUser();
             }, [profile]);
 
             const filteredCities = useMemo(() => {
@@ -3850,10 +3278,98 @@
                 return cities.filter(c => buildings.some(b => b.city_id === c.id));
             }, [cities, buildings, profile]);
 
-            const filteredBuildingOptions = useMemo(() => {
-                if (filterCity.length === 0) return buildings;
-                return buildings.filter(b => filterCity.includes(b.city_id));
-            }, [buildings, filterCity]);
+            const generateExcel = async (values) => {
+                setLoading(true);
+                try {
+                    let query = supabase.from('units').select('*, buildings(*)');
+
+                    if (values.buildings && values.buildings.length > 0) {
+                        query = query.in('building_id', values.buildings);
+                    } else if (values.cities && values.cities.length > 0) {
+                        const { data: bData } = await supabase.from('buildings').select('id').in('city_id', values.cities);
+                        const cityBuildings = bData?.map(b => b.id) || [];
+                        if (cityBuildings.length > 0) query = query.in('building_id', cityBuildings);
+                    } else {
+                        const authCities = filteredCities.map(c => c.id);
+                        const { data: bData } = await supabase.from('buildings').select('id').in('city_id', authCities);
+                        const authCityBuildings = bData?.map(b => b.id) || [];
+                        if (authCityBuildings.length > 0) query = query.in('building_id', authCityBuildings);
+                    }
+
+                    const { data, error } = await query;
+                    if (error) throw error;
+
+                    const assignedBIds = getAssignedBuildingIds(profile);
+                    let filteredData = data || [];
+                    if (assignedBIds !== null) {
+                        filteredData = filteredData.filter(u => assignedBIds.includes(u.building_id));
+                    }
+                    if (calendarMode === 'Gregorian' && values.dates) {
+                        const [start, end] = values.dates;
+                        filteredData = data.filter(u => {
+                            const date = dayjs(u.updated_at);
+                            return date.isAfter(start) && date.isBefore(end);
+                        });
+                    } else if (calendarMode === 'Hijri' && values.hijri_year) {
+                        const { startDate, endDate } = getGregorianRangeForHijriMonth(
+                            values.hijri_year, 
+                            values.hijri_month === 'all' ? null : parseInt(values.hijri_month, 10)
+                        );
+                        if (startDate && endDate) {
+                            filteredData = data.filter(u => {
+                                const date = new Date(u.updated_at);
+                                return date >= startDate && date <= endDate;
+                            });
+                        }
+                    }
+
+                    const worksheetData = filteredData.map(u => ({
+                        'المدينة': cities.find(c => c.id === u.buildings?.city_id)?.name_ar || '-',
+                        'المبنى': u.buildings?.name || '-',
+                        'رقم الوحدة': u.unit_number,
+                        'رقم العقد': u.contract_number || '-',
+                        'المستأجر': u.tenant_name || '-',
+                        'رقم الهوية': u.id_number || '-',
+                        'قيمة العقد المتوقعة': u.monthly_rent,
+                        'المبلغ المدفوع': u.amount_paid,
+                        'المتبقى': (u.monthly_rent || 0) - (u.amount_paid || 0),
+                        'طريقة الدفع': u.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                        'الحالة': u.is_rented ? 'مؤجرة' : 'شاغرة',
+                        'تاريخ التحديث': dayjs(u.updated_at).format('YYYY-MM-DD'),
+                        'تاريخ التحديث (هجري)': toHijri(u.updated_at)
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(worksheetData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "تقرير تحصيل الإيجارات");
+
+                    // Generate Excel file
+                    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                    // Robust download method
+                    const fileName = `Rent_Portal_Report_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+                    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                        window.navigator.msSaveOrOpenBlob(blob, fileName);
+                    } else {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        document.body.appendChild(a);
+                        a.style = 'display: none';
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }
+
+                    message.success("تم توليد ملف Excel بنجاح");
+                } catch (error) {
+                    message.error("خطأ في توليد التقرير: " + error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
 
             const isSuperAdmin = profile?.email === 'khalednasr007@gmail.com';
 
@@ -3865,721 +3381,90 @@
                 );
             }
 
-            // Date filter helper
-            const isWithinDateRange = (dateStr) => {
-                if (!dateStr) return true;
-                if (calendarMode === 'Gregorian' && gregorianRange && gregorianRange.length === 2) {
-                    const d = dayjs(dateStr);
-                    return d.isAfter(gregorianRange[0].startOf('day').subtract(1, 'ms')) && d.isBefore(gregorianRange[1].endOf('day').add(1, 'ms'));
-                }
-                if (calendarMode === 'Hijri' && hijriYear) {
-                    const { startDate, endDate } = getGregorianRangeForHijriMonth(
-                        hijriYear, hijriMonth === 'all' ? null : parseInt(hijriMonth, 10)
-                    );
-                    if (startDate && endDate) {
-                        const d = new Date(dateStr);
-                        return d >= startDate && d <= endDate;
-                    }
-                }
-                return true;
-            };
-
-            // Scoped building IDs for queries
-            const getScopedBuildingIds = () => {
-                if (filterBuilding.length > 0) return filterBuilding;
-                if (filterCity.length > 0) return filteredBuildingOptions.map(b => b.id);
-                return buildings.map(b => b.id);
-            };
-
-            // ========== REPORT 1: كشف الحساب المالي الشامل ==========
-            const fetchFinancialStatement = async () => {
-                const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
-
-                const [rRes, eRes] = await Promise.all([
-                    supabase.from('receipts').select('*').in('building_id', bIds).order('created_at', { ascending: true }),
-                    supabase.from('vouchers_expense').select('*').in('building_id', bIds).eq('approval_status', 'approved').order('created_at', { ascending: true })
-                ]);
-
-                const allItems = [];
-                (rRes.data || []).forEach(r => {
-                    if (isWithinDateRange(r.created_at)) {
-                        allItems.push({
-                            date: r.created_at,
-                            refNumber: r.receipt_number,
-                            type: 'سند قبض',
-                            building: buildings.find(b => b.id === r.building_id)?.name || '-',
-                            unit: r.unit_number || '-',
-                            amount: r.amount_received || 0,
-                            sign: 1,
-                            paymentMethod: r.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
-                            description: r.description || r.tenant_name || '-'
-                        });
-                    }
-                });
-                (eRes.data || []).forEach(e => {
-                    if (isWithinDateRange(e.created_at)) {
-                        allItems.push({
-                            date: e.created_at,
-                            refNumber: e.voucher_number,
-                            type: 'سند صرف',
-                            building: buildings.find(b => b.id === e.building_id)?.name || '-',
-                            unit: units.find(u => u.id === e.unit_id)?.unit_number || 'عام',
-                            amount: e.amount || 0,
-                            sign: -1,
-                            paymentMethod: e.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
-                            description: e.description || '-'
-                        });
-                    }
-                });
-
-                allItems.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-                let runningBalance = 0;
-                const rows = allItems.map((item, idx) => {
-                    runningBalance += item.amount * item.sign;
-                    return {
-                        key: idx,
-                        التاريخ: dayjs(item.date).format('YYYY-MM-DD HH:mm'),
-                        'التاريخ_هجري': toHijri(item.date),
-                        'رقم السند': item.refNumber,
-                        النوع: item.type,
-                        العقار: item.building,
-                        الوحدة: item.unit,
-                        المبلغ: item.amount,
-                        'القيمة_الموجبة_السالبة': item.amount * item.sign,
-                        'طريقة الدفع': item.paymentMethod,
-                        البيان: item.description,
-                        'الرصيد التراكمي': runningBalance
-                    };
-                });
-
-                const totalReceipts = rows.filter(r => r.النوع === 'سند قبض').reduce((s, r) => s + r.المبلغ, 0);
-                const totalExpenses = rows.filter(r => r.النوع === 'سند صرف').reduce((s, r) => s + r.المبلغ, 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'التاريخ', dataIndex: 'التاريخ', key: 'date' },
-                    { title: 'التاريخ الهجري', dataIndex: 'التاريخ_هجري', key: 'hijri' },
-                    { title: 'رقم السند', dataIndex: 'رقم السند', key: 'ref' },
-                    { title: 'النوع', dataIndex: 'النوع', key: 'type', render: (v) => <Tag color={v === 'سند قبض' ? 'success' : 'error'}>{v}</Tag> },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'الوحدة', dataIndex: 'الوحدة', key: 'unit' },
-                    { title: 'المبلغ (ر.س)', dataIndex: 'المبلغ', key: 'amount', render: (v, r) => <span className={r.النوع === 'سند قبض' ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>{r.النوع === 'سند قبض' ? '+' : '-'}{sarFormatter(v)}</span> },
-                    { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
-                    { title: 'البيان', dataIndex: 'البيان', key: 'desc', className: 'max-w-[200px] truncate' },
-                    { title: 'الرصيد التراكمي (ر.س)', dataIndex: 'الرصيد التراكمي', key: 'balance', render: (v) => <span className={`font-bold ${v >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{sarFormatter(v)}</span> }
-                ]);
-
-                setSummaryData({ totalReceipts, totalExpenses, netBalance: runningBalance, count: rows.length });
-                setPreviewData(rows);
-            };
-
-            // ========== REPORT 2: تقرير نسب الإشغال والشاغر ==========
-            const fetchOccupancyReport = async () => {
-                const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
-
-                const scopedBuildings = buildings.filter(b => bIds.includes(b.id));
-                const scopedUnits = units.filter(u => bIds.includes(u.building_id));
-
-                const rows = scopedBuildings.map((b, idx) => {
-                    const bUnits = scopedUnits.filter(u => u.building_id === b.id);
-                    const rented = bUnits.filter(u => u.is_rented).length;
-                    const vacant = bUnits.length - rented;
-                    const occupancy = bUnits.length > 0 ? Math.round((rented / bUnits.length) * 100) : 0;
-                    const city = cities.find(c => c.id === b.city_id);
-                    return {
-                        key: idx,
-                        المدينة: city?.name_ar || '-',
-                        العقار: b.name,
-                        'إجمالي الوحدات': bUnits.length,
-                        'وحدات مؤجرة': rented,
-                        'وحدات شاغرة': vacant,
-                        'نسبة الإشغال %': occupancy
-                    };
-                });
-
-                const totalUnits = rows.reduce((s, r) => s + r['إجمالي الوحدات'], 0);
-                const totalRented = rows.reduce((s, r) => s + r['وحدات مؤجرة'], 0);
-                const totalVacant = rows.reduce((s, r) => s + r['وحدات شاغرة'], 0);
-                const avgOccupancy = totalUnits > 0 ? Math.round((totalRented / totalUnits) * 100) : 0;
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'المدينة', dataIndex: 'المدينة', key: 'city' },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'إجمالي الوحدات', dataIndex: 'إجمالي الوحدات', key: 'total' },
-                    { title: 'وحدات مؤجرة', dataIndex: 'وحدات مؤجرة', key: 'rented', render: (v) => <span className="text-emerald-600 font-semibold">{v}</span> },
-                    { title: 'وحدات شاغرة', dataIndex: 'وحدات شاغرة', key: 'vacant', render: (v) => <span className={`font-semibold ${v > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{v}</span> },
-                    { title: 'نسبة الإشغال %', dataIndex: 'نسبة الإشغال %', key: 'occ', render: (v) => <antd.Progress percent={v} size="small" strokeColor={v >= 80 ? '#006B3F' : v >= 50 ? '#D4AF37' : '#ef4444'} /> }
-                ]);
-
-                setSummaryData({ totalUnits, totalRented, totalVacant, avgOccupancy, count: rows.length });
-                setPreviewData(rows);
-            };
-
-            // ========== REPORT 3: تقرير تحصيل الإيجارات والمتأخرات ==========
-            const fetchCollectionReport = async () => {
-                const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
-
-                const scopedUnits = units.filter(u => bIds.includes(u.building_id) && u.is_rented);
-
-                const rows = scopedUnits.map((u, idx) => {
-                    const b = buildings.find(bld => bld.id === u.building_id);
-                    const contractValue = u.monthly_rent || 0;
-                    const collected = u.amount_paid || 0;
-                    const remaining = contractValue - collected;
-                    const status = remaining <= 0 ? 'مكتمل' : remaining < contractValue * 0.5 ? 'جزئي' : 'متأخر';
-                    return {
-                        key: idx,
-                        العقار: b?.name || '-',
-                        'رقم الوحدة': u.unit_number,
-                        المستأجر: u.tenant_name || '-',
-                        'رقم الهوية': u.id_number || '-',
-                        'رقم العقد': u.contract_number || '-',
-                        'قيمة العقد': contractValue,
-                        'المحصّل': collected,
-                        المتبقي: remaining,
-                        'طريقة الدفع': u.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
-                        'حالة التحصيل': status
-                    };
-                });
-
-                const totalContract = rows.reduce((s, r) => s + r['قيمة العقد'], 0);
-                const totalCollected = rows.reduce((s, r) => s + r['المحصّل'], 0);
-                const totalRemaining = rows.reduce((s, r) => s + r.المتبقي, 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'رقم الوحدة', dataIndex: 'رقم الوحدة', key: 'unit' },
-                    { title: 'المستأجر', dataIndex: 'المستأجر', key: 'tenant' },
-                    { title: 'رقم الهوية', dataIndex: 'رقم الهوية', key: 'id' },
-                    { title: 'رقم العقد', dataIndex: 'رقم العقد', key: 'contract' },
-                    { title: 'قيمة العقد (ر.س)', dataIndex: 'قيمة العقد', key: 'value', render: (v) => <span className="font-semibold">{sarFormatter(v)}</span> },
-                    { title: 'المحصّل (ر.س)', dataIndex: 'المحصّل', key: 'collected', render: (v) => <span className="text-emerald-600 font-semibold">{sarFormatter(v)}</span> },
-                    { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', render: (v) => <span className={`font-bold ${v > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{sarFormatter(v)}</span> },
-                    { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
-                    { title: 'حالة التحصيل', dataIndex: 'حالة التحصيل', key: 'status', render: (v) => <Tag color={v === 'مكتمل' ? 'success' : v === 'جزئي' ? 'warning' : 'error'}>{v}</Tag> }
-                ]);
-
-                setSummaryData({ totalContract, totalCollected, totalRemaining, count: rows.length });
-                setPreviewData(rows);
-            };
-
-            // ========== REPORT 4: تقرير مصاريف الصيانة والتشغيل ==========
-            const fetchExpensesReport = async () => {
-                const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
-
-                const { data: expData } = await supabase.from('vouchers_expense').select('*').in('building_id', bIds).order('created_at', { ascending: false });
-
-                const translateCategory = (cat) => {
-                    if (!cat) return '-';
-                    switch(cat) {
-                        case 'Maintenance': return 'صيانة';
-                        case 'Utilities': return 'خدمات';
-                        case 'General': return 'أخرى';
-                        default: return cat;
-                    }
-                };
-
-                const rows = (expData || []).filter(e => isWithinDateRange(e.created_at)).map((e, idx) => {
-                    const b = buildings.find(bld => bld.id === e.building_id);
-                    const u = units.find(unit => unit.id === e.unit_id);
-                    const statusText = e.approval_status === 'approved' ? 'معتمد' : e.approval_status === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
-                    return {
-                        key: idx,
-                        التاريخ: dayjs(e.created_at).format('YYYY-MM-DD'),
-                        'التاريخ_هجري': toHijri(e.created_at),
-                        'رقم سند الصرف': e.voucher_number,
-                        العقار: b?.name || '-',
-                        الوحدة: u?.unit_number || 'عام للمبنى',
-                        التصنيف: translateCategory(e.category),
-                        المبلغ: e.amount || 0,
-                        'طريقة الدفع': e.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
-                        البيان: e.description || '-',
-                        'المعتمد بواسطة': e.approved_by || '-',
-                        'حالة الاعتماد': statusText,
-                        _approvalStatus: e.approval_status
-                    };
-                });
-
-                const totalAmount = rows.reduce((s, r) => s + r.المبلغ, 0);
-                const approvedTotal = rows.filter(r => r._approvalStatus === 'approved').reduce((s, r) => s + r.المبلغ, 0);
-                const maintenanceTotal = rows.filter(r => r.التصنيف === 'صيانة').reduce((s, r) => s + r.المبلغ, 0);
-                const utilitiesTotal = rows.filter(r => r.التصنيف === 'خدمات').reduce((s, r) => s + r.المبلغ, 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'التاريخ', dataIndex: 'التاريخ', key: 'date' },
-                    { title: 'التاريخ الهجري', dataIndex: 'التاريخ_هجري', key: 'hijri' },
-                    { title: 'رقم سند الصرف', dataIndex: 'رقم سند الصرف', key: 'ref' },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'الوحدة', dataIndex: 'الوحدة', key: 'unit' },
-                    { title: 'التصنيف', dataIndex: 'التصنيف', key: 'cat', render: (v) => <Tag color={v === 'صيانة' ? 'orange' : v === 'خدمات' ? 'blue' : 'default'}>{v}</Tag> },
-                    { title: 'المبلغ (ر.س)', dataIndex: 'المبلغ', key: 'amount', render: (v) => <span className="text-red-600 font-bold">{sarFormatter(v)}</span> },
-                    { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
-                    { title: 'البيان', dataIndex: 'البيان', key: 'desc', className: 'max-w-[180px] truncate' },
-                    { title: 'المعتمد بواسطة', dataIndex: 'المعتمد بواسطة', key: 'approver' },
-                    { title: 'حالة الاعتماد', dataIndex: 'حالة الاعتماد', key: 'status', render: (v) => <Tag color={v === 'معتمد' ? 'green' : v === 'مرفوض' ? 'red' : 'gold'}>{v}</Tag> }
-                ]);
-
-                setSummaryData({ totalAmount, approvedTotal, maintenanceTotal, utilitiesTotal, count: rows.length });
-                setPreviewData(rows);
-            };
-
-            // ========== REPORT 5: تقرير تواريخ انتهاء العقود ==========
-            const fetchLeaseExpirationReport = async () => {
-                const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
-
-                const { data: archiveData } = await supabase.from('expired_contracts_archive').select('*').in('building_id', bIds).order('archived_at', { ascending: false });
-
-                const scopedUnits = units.filter(u => bIds.includes(u.building_id) && u.is_rented);
-                const today = dayjs();
-
-                const activeRows = scopedUnits.map(u => {
-                    const b = buildings.find(bld => bld.id === u.building_id);
-                    const endDate = u.period_end ? dayjs(u.period_end) : null;
-                    const isExpired = endDate ? endDate.isBefore(today) : false;
-                    const daysLeft = endDate ? endDate.diff(today, 'day') : null;
-                    return {
-                        العقار: b?.name || '-',
-                        'رقم الوحدة': u.unit_number,
-                        المستأجر: u.tenant_name || '-',
-                        'بداية العقد': u.period_start || '-',
-                        'نهاية العقد': u.period_end || '-',
-                        الحالة: isExpired ? 'منتهي' : 'ساري',
-                        'الأيام المتبقية': daysLeft !== null ? (isExpired ? `منتهي منذ ${Math.abs(daysLeft)} يوم` : `${daysLeft} يوم`) : '-',
-                        'قيمة الإيجار': u.monthly_rent || 0,
-                        المتبقي: (u.monthly_rent || 0) - (u.amount_paid || 0),
-                        'المبالغ المرحّلة': 0,
-                        _isExpired: isExpired,
-                        _source: 'active'
-                    };
-                });
-
-                const archivedRows = (archiveData || []).map(a => {
-                    const b = buildings.find(bld => bld.id === a.building_id);
-                    return {
-                        العقار: b?.name || '-',
-                        'رقم الوحدة': a.unit_id ? (units.find(u => u.id === a.unit_id)?.unit_number || '-') : '-',
-                        المستأجر: a.tenant_name || '-',
-                        'بداية العقد': a.period_start || '-',
-                        'نهاية العقد': a.period_end || '-',
-                        الحالة: 'أرشيف',
-                        'الأيام المتبقية': '-',
-                        'قيمة الإيجار': a.monthly_rent || 0,
-                        المتبقي: (a.monthly_rent || 0) - (a.amount_paid || 0),
-                        'المبالغ المرحّلة': a.final_carried_debt_amount || 0,
-                        _isExpired: true,
-                        _source: 'archive'
-                    };
-                });
-
-                const allRows = [...activeRows, ...archivedRows].map((r, idx) => ({ ...r, key: idx }));
-
-                const activeExpired = activeRows.filter(r => r._isExpired).length;
-                const activeSafe = activeRows.filter(r => !r._isExpired).length;
-                const totalCarriedDebt = allRows.reduce((s, r) => s + r['المبالغ المرحّلة'], 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'رقم الوحدة', dataIndex: 'رقم الوحدة', key: 'unit' },
-                    { title: 'المستأجر', dataIndex: 'المستأجر', key: 'tenant' },
-                    { title: 'بداية العقد', dataIndex: 'بداية العقد', key: 'start' },
-                    { title: 'نهاية العقد', dataIndex: 'نهاية العقد', key: 'end' },
-                    { title: 'الحالة', dataIndex: 'الحالة', key: 'status', render: (v) => <Tag color={v === 'ساري' ? 'green' : v === 'منتهي' ? 'red' : 'default'}>{v}</Tag> },
-                    { title: 'الأيام المتبقية', dataIndex: 'الأيام المتبقية', key: 'days', render: (v, r) => <span className={r._isExpired ? 'text-red-600 font-semibold' : 'text-emerald-600'}>{v}</span> },
-                    { title: 'قيمة الإيجار (ر.س)', dataIndex: 'قيمة الإيجار', key: 'rent', render: (v) => sarFormatter(v) },
-                    { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', render: (v) => <span className={v > 0 ? 'text-red-600 font-bold' : ''}>{sarFormatter(v)}</span> },
-                    { title: 'المبالغ المرحّلة (ر.س)', dataIndex: 'المبالغ المرحّلة', key: 'carried', render: (v) => v > 0 ? <span className="text-orange-600 font-bold">{sarFormatter(v)}</span> : '-' }
-                ]);
-
-                setSummaryData({ activeSafe, activeExpired, archivedCount: archivedRows.length, totalCarriedDebt, count: allRows.length });
-                setPreviewData(allRows);
-            };
-
-            // Report type definitions
-            const reportTypes = [
-                { key: 'financial', title: 'كشف الحساب المالي الشامل', icon: '💰', desc: 'سجل زمني لجميع سندات القبض والصرف مع الرصيد التراكمي', color: '#006B3F', fetcher: fetchFinancialStatement },
-                { key: 'occupancy', title: 'تقرير نسب الإشغال والشاغر', icon: '🏢', desc: 'تفصيل لكل عقار: الوحدات المؤجرة والشاغرة ونسب الإشغال', color: '#2563eb', fetcher: fetchOccupancyReport },
-                { key: 'collection', title: 'تقرير تحصيل الإيجارات والمتأخرات', icon: '📊', desc: 'قيم العقود مقابل المحصّل والمتبقي حسب المستأجر والوحدة', color: '#D4AF37', fetcher: fetchCollectionReport },
-                { key: 'expenses', title: 'تقرير مصاريف الصيانة والتشغيل', icon: '🔧', desc: 'تصنيف مفصّل للمصروفات مع هوية المعتمِد وحالة الاعتماد', color: '#dc2626', fetcher: fetchExpensesReport },
-                { key: 'leases', title: 'تقرير تواريخ انتهاء العقود', icon: '📅', desc: 'العقود المنتهية والقادمة مع المبالغ المرحّلة', color: '#7c3aed', fetcher: fetchLeaseExpirationReport }
-            ];
-
-            const handleGenerateReport = async () => {
-                if (!selectedReport) { message.warning('يرجى اختيار نوع التقرير أولاً'); return; }
-                setLoading(true);
-                setPreviewData([]);
-                setSummaryData(null);
-                try {
-                    const report = reportTypes.find(r => r.key === selectedReport);
-                    await report.fetcher();
-                    message.success('تم تحميل بيانات التقرير بنجاح');
-                } catch (err) {
-                    message.error('خطأ في تحميل التقرير: ' + err.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            // ========== STYLED EXCEL EXPORT ==========
-            const exportStyledExcel = () => {
-                if (previewData.length === 0) { message.warning('لا توجد بيانات للتصدير. يرجى عرض التقرير أولاً.'); return; }
-
-                const report = reportTypes.find(r => r.key === selectedReport);
-                const sheetName = report?.title || 'تقرير';
-
-                // Prepare export columns (exclude internal keys)
-                const internalKeys = ['key', '_isExpired', '_source', '_approvalStatus'];
-                const exportKeys = Object.keys(previewData[0]).filter(k => !internalKeys.includes(k));
-
-                // Build header row
-                const headerRow = exportKeys;
-
-                // Build data rows
-                const dataRows = previewData.map(row => exportKeys.map(k => {
-                    const val = row[k];
-                    return val !== undefined && val !== null ? val : '';
-                }));
-
-                // Build summary row
-                const summaryRow = exportKeys.map(k => {
-                    if (typeof previewData[0]?.[k] === 'number') {
-                        const sum = previewData.reduce((s, r) => s + (r[k] || 0), 0);
-                        return sum;
-                    }
-                    return '';
-                });
-                summaryRow[0] = 'الإجمالي';
-
-                // Create worksheet
-                const allRows = [headerRow, ...dataRows, summaryRow];
-                const ws = XLSX.utils.aoa_to_sheet(allRows);
-
-                // Column widths
-                const colWidths = exportKeys.map((k, colIdx) => {
-                    let maxLen = k.length;
-                    dataRows.forEach(row => {
-                        const cellLen = String(row[colIdx] || '').length;
-                        if (cellLen > maxLen) maxLen = cellLen;
-                    });
-                    return { wch: Math.min(Math.max(maxLen + 4, 12), 40) };
-                });
-                ws['!cols'] = colWidths;
-
-                // Apply styles
-                const headerStyle = {
-                    font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Cairo', sz: 12 },
-                    fill: { fgColor: { rgb: '006B3F' } },
-                    alignment: { horizontal: 'center', vertical: 'center', readingOrder: 2 },
-                    border: {
-                        top: { style: 'thin', color: { rgb: '000000' } },
-                        bottom: { style: 'thin', color: { rgb: '000000' } },
-                        left: { style: 'thin', color: { rgb: '000000' } },
-                        right: { style: 'thin', color: { rgb: '000000' } }
-                    }
-                };
-
-                const dataStyle = {
-                    font: { name: 'Cairo', sz: 11 },
-                    alignment: { horizontal: 'center', vertical: 'center', readingOrder: 2 },
-                    border: {
-                        top: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                        bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                        left: { style: 'thin', color: { rgb: 'CCCCCC' } },
-                        right: { style: 'thin', color: { rgb: 'CCCCCC' } }
-                    }
-                };
-
-                const moneyStyle = {
-                    ...dataStyle,
-                    numFmt: '#,##0.00 "ر.س"',
-                    font: { ...dataStyle.font, bold: true }
-                };
-
-                const summaryStyle = {
-                    font: { bold: true, name: 'Cairo', sz: 12, color: { rgb: '006B3F' } },
-                    fill: { fgColor: { rgb: 'E8F5E9' } },
-                    alignment: { horizontal: 'center', vertical: 'center', readingOrder: 2 },
-                    border: {
-                        top: { style: 'medium', color: { rgb: '006B3F' } },
-                        bottom: { style: 'medium', color: { rgb: '006B3F' } },
-                        left: { style: 'thin', color: { rgb: '006B3F' } },
-                        right: { style: 'thin', color: { rgb: '006B3F' } }
-                    }
-                };
-
-                const summaryMoneyStyle = {
-                    ...summaryStyle,
-                    numFmt: '#,##0.00 "ر.س"'
-                };
-
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = range.s.r; R <= range.e.r; R++) {
-                    for (let C = range.s.c; C <= range.e.c; C++) {
-                        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-                        if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
-
-                        if (R === 0) {
-                            ws[cellRef].s = headerStyle;
-                        } else if (R === range.e.r) {
-                            // Summary row
-                            const isNumber = typeof previewData[0]?.[exportKeys[C]] === 'number';
-                            ws[cellRef].s = isNumber ? summaryMoneyStyle : summaryStyle;
-                        } else {
-                            const isNumber = typeof previewData[0]?.[exportKeys[C]] === 'number';
-                            ws[cellRef].s = isNumber ? moneyStyle : dataStyle;
-                        }
-                    }
-                }
-
-                // RTL direction
-                if (!ws['!sheetViews']) ws['!sheetViews'] = [{}];
-                ws['!sheetViews'][0].rightToLeft = true;
-
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-
-                const fileName = `${sheetName}_${dayjs().format('YYYY-MM-DD')}.xlsx`;
-                XLSX.writeFile(wb, fileName);
-                message.success('تم تصدير التقرير إلى إكسيل بنجاح ✅');
-            };
-
-            // Summary renderer for Ant Design Table
-            const renderSummary = () => {
-                if (!summaryData || previewData.length === 0) return null;
-
-                if (selectedReport === 'financial') {
-                    return (
-                        <Table.Summary fixed>
-                            <Table.Summary.Row className="bg-emerald-50 font-bold">
-                                <Table.Summary.Cell index={0} colSpan={7}>الإجمالي</Table.Summary.Cell>
-                                <Table.Summary.Cell index={7}>
-                                    <div><span className="text-emerald-600">قبض: {sarFormatter(summaryData.totalReceipts)}</span></div>
-                                    <div><span className="text-red-600">صرف: {sarFormatter(summaryData.totalExpenses)}</span></div>
-                                </Table.Summary.Cell>
-                                <Table.Summary.Cell index={8} colSpan={2}></Table.Summary.Cell>
-                                <Table.Summary.Cell index={10}>
-                                    <span className={`text-lg ${summaryData.netBalance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                                        صافي: {sarFormatter(summaryData.netBalance)}
-                                    </span>
-                                </Table.Summary.Cell>
-                            </Table.Summary.Row>
-                        </Table.Summary>
-                    );
-                }
-                if (selectedReport === 'occupancy') {
-                    return (
-                        <Table.Summary fixed>
-                            <Table.Summary.Row className="bg-blue-50 font-bold">
-                                <Table.Summary.Cell index={0} colSpan={3}>الإجمالي ({summaryData.count} عقار)</Table.Summary.Cell>
-                                <Table.Summary.Cell index={3}>{summaryData.totalUnits}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={4} className="text-emerald-600">{summaryData.totalRented}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={5} className="text-amber-600">{summaryData.totalVacant}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={6}>متوسط: {summaryData.avgOccupancy}%</Table.Summary.Cell>
-                            </Table.Summary.Row>
-                        </Table.Summary>
-                    );
-                }
-                if (selectedReport === 'collection') {
-                    return (
-                        <Table.Summary fixed>
-                            <Table.Summary.Row className="bg-amber-50 font-bold">
-                                <Table.Summary.Cell index={0} colSpan={6}>الإجمالي ({summaryData.count} عقد)</Table.Summary.Cell>
-                                <Table.Summary.Cell index={6}>{sarFormatter(summaryData.totalContract)}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={7} className="text-emerald-600">{sarFormatter(summaryData.totalCollected)}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={8} className="text-red-600">{sarFormatter(summaryData.totalRemaining)}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={9} colSpan={2}></Table.Summary.Cell>
-                            </Table.Summary.Row>
-                        </Table.Summary>
-                    );
-                }
-                if (selectedReport === 'expenses') {
-                    return (
-                        <Table.Summary fixed>
-                            <Table.Summary.Row className="bg-red-50 font-bold">
-                                <Table.Summary.Cell index={0} colSpan={7}>الإجمالي ({summaryData.count} سند) — صيانة: {sarFormatter(summaryData.maintenanceTotal)} | خدمات: {sarFormatter(summaryData.utilitiesTotal)}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={7} className="text-red-700">{sarFormatter(summaryData.totalAmount)}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={8} colSpan={4}>معتمد: {sarFormatter(summaryData.approvedTotal)}</Table.Summary.Cell>
-                            </Table.Summary.Row>
-                        </Table.Summary>
-                    );
-                }
-                if (selectedReport === 'leases') {
-                    return (
-                        <Table.Summary fixed>
-                            <Table.Summary.Row className="bg-purple-50 font-bold">
-                                <Table.Summary.Cell index={0} colSpan={6}>ساري: {summaryData.activeSafe} | منتهي: {summaryData.activeExpired} | أرشيف: {summaryData.archivedCount}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={6} colSpan={4}></Table.Summary.Cell>
-                                <Table.Summary.Cell index={10}>مرحّل: {sarFormatter(summaryData.totalCarriedDebt)}</Table.Summary.Cell>
-                            </Table.Summary.Row>
-                        </Table.Summary>
-                    );
-                }
-                return null;
-            };
-
-            // Build tab items
             const tabItems = [
                 {
-                    key: 'reports',
-                    label: 'التقارير المقترحة والمطلوبة',
+                    key: 'excel',
+                    label: 'تقارير Excel والبحث المتقدم',
                     children: (
-                        <div className="space-y-6">
-                            {/* Report Selection Cards */}
-                            <div>
-                                <Title level={4} className="mb-4">📋 اختر نوع التقرير</Title>
-                                <Row gutter={[16, 16]}>
-                                    {reportTypes.map(r => (
-                                        <Col xs={24} sm={12} md={8} lg={8} key={r.key}>
-                                            <div
-                                                onClick={() => { setSelectedReport(r.key); setPreviewData([]); setSummaryData(null); }}
-                                                className={`cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-                                                    selectedReport === r.key
-                                                        ? 'border-primary bg-emerald-50/50 shadow-md ring-2 ring-primary/20'
-                                                        : 'border-gray-200 bg-white hover:border-gray-300'
-                                                }`}
-                                            >
-                                                <div className="text-3xl mb-3">{r.icon}</div>
-                                                <h4 className="font-bold text-base mb-1" style={{ color: r.color }}>{r.title}</h4>
-                                                <p className="text-xs text-gray-500 m-0 leading-relaxed">{r.desc}</p>
-                                                {selectedReport === r.key && (
-                                                    <div className="mt-3">
-                                                        <Tag color="green" className="text-xs">✓ محدد</Tag>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </Col>
-                                    ))}
-                                </Row>
-                            </div>
+                        <Card className="shadow-sm">
+                            <Title level={4}>محرك التقارير والبحث المتقدم</Title>
+                            <Text type="secondary" className="block mb-6">قم بتصفية البيانات المطلوبة بناءً على التاريخ الهجري أو الميلادي وتوليد تقرير Excel شامل.</Text>
 
-                            {/* Shared Filter Bar */}
-                            {selectedReport && (
-                                <Card className="shadow-sm border-t-4" style={{ borderTopColor: reportTypes.find(r => r.key === selectedReport)?.color }}>
-                                    <Title level={5} className="mb-4">🔍 فلاتر التقرير</Title>
-                                    <Row gutter={[16, 16]}>
-                                        <Col xs={24} md={6}>
-                                            <Text type="secondary" className="block mb-1">المدينة</Text>
-                                            <Select
-                                                mode="multiple"
-                                                placeholder="كل المدن"
-                                                value={filterCity}
-                                                onChange={(val) => { setFilterCity(val); setFilterBuilding([]); }}
-                                                allowClear
+                            <Form form={form} layout="vertical" onFinish={generateExcel} initialValues={{ hijri_month: 'all' }}>
+                                <Row gutter={16}>
+                                    <Col xs={24} md={8}>
+                                        <Form.Item label="نظام التقويم">
+                                            <antd.Radio.Group 
+                                                value={calendarMode} 
+                                                onChange={e => setCalendarMode(e.target.value)}
                                                 className="w-full"
                                             >
-                                                {filteredCities.map(c => <Select.Option key={c.id} value={c.id}>{c.name_ar}</Select.Option>)}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} md={6}>
-                                            <Text type="secondary" className="block mb-1">العقار</Text>
-                                            <Select
-                                                mode="multiple"
-                                                placeholder="كل العقارات"
-                                                value={filterBuilding}
-                                                onChange={setFilterBuilding}
-                                                allowClear
-                                                className="w-full"
-                                            >
-                                                {filteredBuildingOptions.map(b => <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>)}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} md={4}>
-                                            <Text type="secondary" className="block mb-1">نظام التقويم</Text>
-                                            <antd.Radio.Group value={calendarMode} onChange={e => setCalendarMode(e.target.value)} className="w-full">
-                                                <antd.Radio.Button value="Gregorian" className="w-1/2 text-center text-xs">ميلادي</antd.Radio.Button>
-                                                <antd.Radio.Button value="Hijri" className="w-1/2 text-center text-xs">هجري</antd.Radio.Button>
+                                                <antd.Radio.Button value="Gregorian" className="w-1/2 text-center">ميلادي (Gregorian)</antd.Radio.Button>
+                                                <antd.Radio.Button value="Hijri" className="w-1/2 text-center">هجري (Hijri)</antd.Radio.Button>
                                             </antd.Radio.Group>
+                                        </Form.Item>
+                                    </Col>
+                                    
+                                    {calendarMode === 'Gregorian' ? (
+                                        <Col xs={24} md={16}>
+                                            <Form.Item name="dates" label="النطاق الزمني">
+                                                <DatePicker.RangePicker className="w-full" />
+                                            </Form.Item>
                                         </Col>
-                                        {calendarMode === 'Gregorian' ? (
-                                            <Col xs={24} md={5}>
-                                                <Text type="secondary" className="block mb-1">النطاق الزمني</Text>
-                                                <DatePicker.RangePicker className="w-full" value={gregorianRange} onChange={setGregorianRange} />
+                                    ) : (
+                                        <>
+                                            <Col xs={24} md={8}>
+                                                <Form.Item name="hijri_year" label="السنة الهجرية" rules={[{ required: true, message: 'الرجاء اختيار السنة الهجرية' }]}>
+                                                    <Select placeholder="اختر السنة الهجرية">
+                                                        {[1445, 1446, 1447, 1448, 1449, 1450].map(y => (
+                                                            <Select.Option key={y} value={y}>{y} هـ</Select.Option>
+                                                        ))}
+                                                    </Select>
+                                                </Form.Item>
                                             </Col>
-                                        ) : (
-                                            <>
-                                                <Col xs={12} md={3}>
-                                                    <Text type="secondary" className="block mb-1">السنة الهجرية</Text>
-                                                    <Select value={hijriYear} onChange={setHijriYear} placeholder="السنة" className="w-full">
-                                                        {[1445, 1446, 1447, 1448, 1449, 1450].map(y => <Select.Option key={y} value={y}>{y} هـ</Select.Option>)}
-                                                    </Select>
-                                                </Col>
-                                                <Col xs={12} md={3}>
-                                                    <Text type="secondary" className="block mb-1">الشهر</Text>
-                                                    <Select value={hijriMonth} onChange={setHijriMonth} className="w-full">
-                                                        <Select.Option value="all">الكل</Select.Option>
+                                            <Col xs={24} md={8}>
+                                                <Form.Item name="hijri_month" label="الشهر الهجري">
+                                                    <Select>
+                                                        <Select.Option value="all">كل الأشهر</Select.Option>
                                                         {[
-                                                            { val: 1, label: 'محرم' }, { val: 2, label: 'صفر' }, { val: 3, label: 'ربيع الأول' },
-                                                            { val: 4, label: 'ربيع الثاني' }, { val: 5, label: 'جمادى الأولى' }, { val: 6, label: 'جمادى الآخرة' },
-                                                            { val: 7, label: 'رجب' }, { val: 8, label: 'شعبان' }, { val: 9, label: 'رمضان' },
-                                                            { val: 10, label: 'شوال' }, { val: 11, label: 'ذو القعدة' }, { val: 12, label: 'ذو الحجة' }
-                                                        ].map(m => <Select.Option key={m.val} value={m.val}>{m.label}</Select.Option>)}
+                                                            { val: 1, label: '1 - محرم' },
+                                                            { val: 2, label: '2 - صفر' },
+                                                            { val: 3, label: '3 - ربيع الأول' },
+                                                            { val: 4, label: '4 - ربيع الثاني' },
+                                                            { val: 5, label: '5 - جمادى الأولى' },
+                                                            { val: 6, label: '6 - جمادى الآخرة' },
+                                                            { val: 7, label: '7 - رجب' },
+                                                            { val: 8, label: '8 - شعبان' },
+                                                            { val: 9, label: '9 - رمضان' },
+                                                            { val: 10, label: '10 - شوال' },
+                                                            { val: 11, label: '11 - ذو القعدة' },
+                                                            { val: 12, label: '12 - ذو الحجة' }
+                                                        ].map(m => (
+                                                            <Select.Option key={m.val} value={m.val}>{m.label}</Select.Option>
+                                                        ))}
                                                     </Select>
-                                                </Col>
-                                            </>
-                                        )}
-                                        <Col xs={24} md={3} className="flex items-end">
-                                            <Space className="w-full" direction="vertical">
-                                                <Button type="primary" icon={<SearchOutlined />} onClick={handleGenerateReport} loading={loading} block>
-                                                    عرض التقرير
-                                                </Button>
-                                            </Space>
-                                        </Col>
-                                    </Row>
-                                </Card>
-                            )}
-
-                            {/* Preview Table */}
-                            {previewData.length > 0 && (
-                                <Card
-                                    className="shadow-sm"
-                                    title={
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold text-primary">
-                                                {reportTypes.find(r => r.key === selectedReport)?.icon} {reportTypes.find(r => r.key === selectedReport)?.title}
-                                                <Tag color="blue" className="mr-3">{previewData.length} سجل</Tag>
-                                            </span>
-                                            <Button
-                                                type="primary"
-                                                icon={<FileTextOutlined />}
-                                                onClick={exportStyledExcel}
-                                                className="bg-primary"
-                                            >
-                                                تصدير إلى إكسيل 📥
-                                            </Button>
-                                        </div>
-                                    }
-                                >
-                                    <Table
-                                        columns={previewColumns}
-                                        dataSource={previewData}
-                                        rowKey="key"
-                                        bordered
-                                        size="small"
-                                        pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
-                                        scroll={{ x: 'max-content' }}
-                                        summary={() => renderSummary()}
-                                        locale={{ emptyText: 'لا توجد بيانات مطابقة للفلاتر المحددة' }}
-                                    />
-                                </Card>
-                            )}
-
-                            {/* Empty state */}
-                            {selectedReport && previewData.length === 0 && !loading && (
-                                <div className="text-center py-16 text-gray-400">
-                                    <div className="text-5xl mb-4">📊</div>
-                                    <Title level={5} type="secondary">اختر الفلاتر ثم اضغط "عرض التقرير" لعرض البيانات</Title>
-                                </div>
-                            )}
-                        </div>
+                                                </Form.Item>
+                                            </Col>
+                                        </>
+                                    )}
+                                </Row>
+                                
+                                <Row gutter={16}>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item name="buildings" label="المباني">
+                                            <Select mode="multiple" placeholder="اختر المباني (اختياري)" allowClear>
+                                                {buildings.map(b => <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>)}
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12} className="flex items-end pb-6">
+                                        <Button type="primary" icon={<FileTextOutlined />} htmlType="submit" loading={loading} block size="large">
+                                            توليد تقرير Excel
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        </Card>
                     )
                 }
             ];
@@ -4594,11 +3479,10 @@
 
             return (
                 <div className="space-y-6">
-                    <antd.Tabs defaultActiveKey="reports" items={tabItems} />
+                    <antd.Tabs defaultActiveKey="excel" items={tabItems} />
                 </div>
             );
         };
-
 
         const VouchersLedger = ({ profile, cities }) => {
             const [receipts, setReceipts] = useState([]);
@@ -4628,44 +3512,13 @@
             const [printOnLoad, setPrintOnLoad] = useState(false);
 
             const fetchData = useCallback(async () => {
-                if (!profile) {
-                    setReceipts([]);
-                    setExpenses([]);
-                    setBuildings([]);
-                    setUnits([]);
-                    setLoading(false);
-                    return;
-                }
                 setLoading(true);
                 try {
-                    const assignedBIds = getAssignedBuildingIds(profile);
-
-                    if (assignedBIds !== null && assignedBIds.length === 0) {
-                        setReceipts([]);
-                        setExpenses([]);
-                        setBuildings([]);
-                        setUnits([]);
-                        setLoading(false);
-                        return;
-                    }
-
-                    let receiptsQuery = supabase.from('receipts').select('*').order('created_at', { ascending: false });
-                    let expensesQuery = supabase.from('vouchers_expense').select('*').order('created_at', { ascending: false });
-                    let buildingsQuery = supabase.from('buildings').select('*');
-                    let unitsQuery = supabase.from('units').select('*');
-
-                    if (assignedBIds !== null) {
-                        receiptsQuery = receiptsQuery.in('building_id', assignedBIds);
-                        expensesQuery = expensesQuery.in('building_id', assignedBIds);
-                        buildingsQuery = buildingsQuery.in('id', assignedBIds);
-                        unitsQuery = unitsQuery.in('building_id', assignedBIds);
-                    }
-
                     const [rRes, eRes, bRes, uRes] = await Promise.all([
-                        receiptsQuery,
-                        expensesQuery,
-                        buildingsQuery,
-                        unitsQuery
+                        supabase.from('receipts').select('*').order('created_at', { ascending: false }),
+                        supabase.from('vouchers_expense').select('*').order('created_at', { ascending: false }),
+                        supabase.from('buildings').select('*'),
+                        supabase.from('units').select('*')
                     ]);
                     
                     if (rRes.error) throw rRes.error;
@@ -4673,10 +3526,19 @@
                     if (bRes.error) throw bRes.error;
                     if (uRes.error) throw uRes.error;
 
-                    setReceipts(rRes.data || []);
-                    setExpenses(eRes.data || []);
-                    setBuildings(bRes.data || []);
-                    setUnits(uRes.data || []);
+                    const assignedBIds = getAssignedBuildingIds(profile);
+
+                    const filteredBuildings = assignedBIds === null ? (bRes.data || []) : (bRes.data || []).filter(b => assignedBIds.includes(b.id));
+                    const filteredBuildingsIds = filteredBuildings.map(b => b.id);
+
+                    const filteredUnits = assignedBIds === null ? (uRes.data || []) : (uRes.data || []).filter(u => filteredBuildingsIds.includes(u.building_id));
+                    const filteredReceipts = assignedBIds === null ? (rRes.data || []) : (rRes.data || []).filter(r => filteredBuildingsIds.includes(r.building_id));
+                    const filteredExpenses = assignedBIds === null ? (eRes.data || []) : (eRes.data || []).filter(e => filteredBuildingsIds.includes(e.building_id));
+
+                    setReceipts(filteredReceipts);
+                    setExpenses(filteredExpenses);
+                    setBuildings(filteredBuildings);
+                    setUnits(filteredUnits);
                 } catch (err) {
                     message.error("خطأ في تحميل بيانات السندات: " + err.message);
                 } finally {
@@ -5112,18 +3974,16 @@
                                     render: (_, record) => (
                                         <Space onClick={e => e.stopPropagation()}>
                                             <Button size="small" type="link" onClick={() => handleViewRow(record)}>تصفح</Button>
-                                            {(profile?.can_report || profile?.role === 'admin') && (
-                                                <Button 
-                                                    size="small" 
-                                                    type="primary" 
-                                                    ghost 
-                                                    className="border-primary text-primary"
-                                                    icon={<span>🖨️</span>} 
-                                                    onClick={(e) => handlePrintRow(record, e)}
-                                                >
-                                                    طباعة
-                                                </Button>
-                                            )}
+                                            <Button 
+                                                size="small" 
+                                                type="primary" 
+                                                ghost 
+                                                className="border-primary text-primary"
+                                                icon={<span>🖨️</span>} 
+                                                onClick={(e) => handlePrintRow(record, e)}
+                                            >
+                                                طباعة
+                                            </Button>
                                         </Space>
                                     )
                                 }
@@ -5165,48 +4025,29 @@
             const [hijriMonth, setHijriMonth] = useState('all');
 
             const fetchData = useCallback(async () => {
-                if (!profile) {
-                    setReceipts([]);
-                    setExpenses([]);
-                    setBuildings([]);
-                    setLoading(false);
-                    return;
-                }
                 setLoading(true);
                 try {
-                    const assignedBIds = getAssignedBuildingIds(profile);
-
-                    if (assignedBIds !== null && assignedBIds.length === 0) {
-                        setReceipts([]);
-                        setExpenses([]);
-                        setBuildings([]);
-                        setLoading(false);
-                        return;
-                    }
-
-                    let receiptsQuery = supabase.from('receipts').select('*');
-                    let expensesQuery = supabase.from('vouchers_expense').select('*');
-                    let buildingsQuery = supabase.from('buildings').select('*');
-
-                    if (assignedBIds !== null) {
-                        receiptsQuery = receiptsQuery.in('building_id', assignedBIds);
-                        expensesQuery = expensesQuery.in('building_id', assignedBIds);
-                        buildingsQuery = buildingsQuery.in('id', assignedBIds);
-                    }
-
                     const [rRes, eRes, bRes] = await Promise.all([
-                        receiptsQuery,
-                        expensesQuery,
-                        buildingsQuery
+                        supabase.from('receipts').select('*'),
+                        supabase.from('vouchers_expense').select('*'),
+                        supabase.from('buildings').select('*')
                     ]);
                     
                     if (rRes.error) throw rRes.error;
                     if (eRes.error) throw eRes.error;
                     if (bRes.error) throw bRes.error;
 
-                    setReceipts(rRes.data || []);
-                    setExpenses(eRes.data || []);
-                    setBuildings(bRes.data || []);
+                    const assignedBIds = getAssignedBuildingIds(profile);
+
+                    const filteredBuildings = assignedBIds === null ? (bRes.data || []) : (bRes.data || []).filter(b => assignedBIds.includes(b.id));
+                    const filteredBuildingsIds = filteredBuildings.map(b => b.id);
+
+                    const filteredReceipts = assignedBIds === null ? (rRes.data || []) : (rRes.data || []).filter(r => filteredBuildingsIds.includes(r.building_id));
+                    const filteredExpenses = assignedBIds === null ? (eRes.data || []) : (eRes.data || []).filter(e => filteredBuildingsIds.includes(e.building_id));
+
+                    setReceipts(filteredReceipts);
+                    setExpenses(filteredExpenses);
+                    setBuildings(filteredBuildings);
                 } catch (err) {
                     message.error("خطأ في تحميل بيانات الخزينة: " + err.message);
                 } finally {
@@ -5605,24 +4446,6 @@
             );
         };
 
-        // --- App Session Context & Hook ---
-        const AppSessionContext = React.createContext(null);
-
-        const useAppSession = () => {
-            const context = React.useContext(AppSessionContext);
-            return context || {
-                user: null,
-                profile: null,
-                loading: false,
-                role: null,
-                assigned_buildings: [],
-                can_create: false,
-                can_update: false,
-                can_delete: false,
-                can_report: false,
-            };
-        };
-
         // --- Main App ---
 
         const App = () => {
@@ -5635,34 +4458,6 @@
             const [stats, setStats] = useState({ totalBuildings: 0, totalUnits: 0, totalPaid: 0, collectionRate: 0, cityStats: [] });
             const [allUsers, setAllUsers] = useState([]);
             const [allBuildings, setAllBuildings] = useState([]);
-
-            const sessionValue = useMemo(() => {
-                if (!user || !profile) {
-                    return {
-                        user: null,
-                        profile: null,
-                        loading: loading,
-                        role: null,
-                        assigned_buildings: [],
-                        can_create: false,
-                        can_update: false,
-                        can_delete: false,
-                        can_report: false,
-                    };
-                }
-                const isAdmin = profile.role === 'admin';
-                return {
-                    user,
-                    profile,
-                    loading: loading,
-                    role: profile.role,
-                    assigned_buildings: profile.assigned_buildings || [],
-                    can_create: isAdmin || !!profile.can_add,
-                    can_update: isAdmin || !!profile.can_edit,
-                    can_delete: isAdmin || !!profile.can_delete,
-                    can_report: isAdmin || !!profile.can_report,
-                };
-            }, [user, profile, loading]);
 
             const fetchProfile = async (u) => {
                 const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
@@ -5764,6 +4559,15 @@
                         const prof = await fetchProfile(session.user);
                         if (prof) {
                             await fetchInitialData(prof);
+                            // Realtime Subscriptions
+                            const channel = supabase.channel('schema-db-changes')
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers_expense' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, () => fetchProfile(session.user).then(p => p && fetchInitialData(p)))
+                                .subscribe();
                         }
                     } else {
                         setUser(null);
@@ -5788,23 +4592,6 @@
                 return () => subscription.unsubscribe();
             }, []);
 
-            useEffect(() => {
-                if (!user) return;
-
-                const channel = supabase.channel('schema-db-changes')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, () => fetchProfile(user).then(p => p && fetchInitialData(p)))
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, () => fetchProfile(user).then(p => p && fetchInitialData(p)))
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchProfile(user).then(p => p && fetchInitialData(p)))
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'receipts' }, () => fetchProfile(user).then(p => p && fetchInitialData(p)))
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers_expense' }, () => fetchProfile(user).then(p => p && fetchInitialData(p)))
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, () => fetchProfile(user).then(p => p && fetchInitialData(p)))
-                    .subscribe();
-
-                return () => {
-                    supabase.removeChannel(channel);
-                };
-            }, [user]);
-
             const handleLogout = async () => {
                 await supabase.auth.signOut();
                 window.location.href = window.location.origin + window.location.pathname;
@@ -5824,92 +4611,86 @@
             if (!user) return <Login onLogin={(u) => { setUser(u); fetchProfile(u).then(prof => fetchInitialData(prof)); }} />;
 
             return (
-                <AppSessionContext.Provider value={sessionValue}>
-                    <ConfigProvider direction="rtl" locale={antd.locales?.ar_EG} theme={{ token: { fontFamily: 'Cairo', colorPrimary: '#006B3F' } }}>
-                        <Layout className="min-h-screen">
-                            <Sider
-                                breakpoint="lg"
-                                collapsedWidth="0"
-                                className="!bg-white shadow-lg z-10"
-                            >
-                                <div className="p-6 text-center border-b border-gray-100">
-                                    <Avatar size={64} icon={<UserOutlined />} className="bg-primary mb-2" />
-                                    <div className="font-bold text-primary truncate">{displayUsername(profile?.email)}</div>
-                                    <Tag color="gold" className="mt-1">{profile?.role === 'admin' ? 'مدير نظام' : 'مدير عقارات'}</Tag>
-                                </div>
-                                <Menu
-                                    mode="inline"
-                                    selectedKeys={[activeTab]}
-                                    onClick={({ key }) => {
-                                        if (key === 'logout') {
-                                            handleLogout();
-                                        } else {
-                                            setActiveTab(key);
-                                        }
-                                    }}
-                                    className="border-none mt-4"
-                                    items={[
-                                        { key: 'dashboard', icon: <DashboardOutlined />, label: 'لوحة المعلومات' },
-                                        { key: 'properties', icon: <BankOutlined />, label: 'إدارة العقارات' },
-                                        { key: 'vouchers', icon: <WalletOutlined />, label: 'السندات' },
-                                        { key: 'treasury', icon: <DollarOutlined />, label: 'الخزينة والصناديق' },
-                                        (profile?.can_report || profile?.role === 'admin') ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
-                                        (profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL) ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
-                                        { key: 'logout', icon: <LogoutOutlined />, label: 'تسجيل الخروج', danger: true }
-                                    ].filter(Boolean)}
-                                />
-                            </Sider>
-                            <Layout>
-                                <Header className="bg-white px-6 flex items-center justify-between shadow-sm border-b border-gray-100">
-                                    <Title level={4} className="!m-0 text-primary">بوابة تحصيل الإيجارات</Title>
-                                    <Space>
-                                        <Text type="secondary">{dayjs().format('DD MMMM YYYY')}</Text>
-                                    </Space>
-                                </Header>
-                                <Content className="p-6 overflow-auto">
-                                    {activeTab === 'dashboard' && <Dashboard stats={stats} />}
-                                    {activeTab === 'properties' && (
-                                        <BuildingManager
-                                            cities={cities}
-                                            profile={profile}
-                                        />
-                                    )}
-                                    {activeTab === 'vouchers' && (
-                                        <VouchersLedger
-                                            cities={cities}
-                                            profile={profile}
-                                        />
-                                    )}
-                                    {activeTab === 'treasury' && (
-                                        <TreasuryDashboard
-                                            cities={cities}
-                                            profile={profile}
-                                        />
-                                    )}
-                                    {activeTab === 'reports' && <Reporting profile={profile} cities={cities} />}
-                                    {activeTab === 'admin' && profile?.role === 'admin' && (
-                                        <AdminPanel
-                                            users={allUsers}
-                                            onUpdateUser={handleUpdateUser}
-                                            cities={cities}
-                                            allBuildings={allBuildings}
-                                            currentProfile={profile}
-                                        />
-                                    )}
-                                </Content>
-                                <Footer className="text-center text-gray-400 text-xs">
-                                    جميع الحقوق محفوظة © {new Date().getFullYear()} بوابة تحصيل الإيجارات - المملكة العربية السعودية
-                                </Footer>
-                            </Layout>
+                <ConfigProvider direction="rtl" locale={antd.locales?.ar_EG} theme={{ token: { fontFamily: 'Cairo', colorPrimary: '#006B3F' } }}>
+                    <Layout className="min-h-screen">
+                        <Sider
+                            breakpoint="lg"
+                            collapsedWidth="0"
+                            className="!bg-white shadow-lg z-10"
+                        >
+                            <div className="p-6 text-center border-b border-gray-100">
+                                <Avatar size={64} icon={<UserOutlined />} className="bg-primary mb-2" />
+                                <div className="font-bold text-primary truncate">{displayUsername(profile?.email)}</div>
+                                <Tag color="gold" className="mt-1">{profile?.role === 'admin' ? 'مدير نظام' : 'مدير عقارات'}</Tag>
+                            </div>
+                            <Menu
+                                mode="inline"
+                                selectedKeys={[activeTab]}
+                                onClick={({ key }) => {
+                                    if (key === 'logout') {
+                                        handleLogout();
+                                    } else {
+                                        setActiveTab(key);
+                                    }
+                                }}
+                                className="border-none mt-4"
+                                items={[
+                                    { key: 'dashboard', icon: <DashboardOutlined />, label: 'لوحة المعلومات' },
+                                    { key: 'properties', icon: <BankOutlined />, label: 'إدارة العقارات' },
+                                    { key: 'vouchers', icon: <WalletOutlined />, label: 'السندات' },
+                                    { key: 'treasury', icon: <DollarOutlined />, label: 'الخزينة والصناديق' },
+                                    (profile?.can_report || profile?.role === 'admin') ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
+                                    (profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL) ? { key: 'admin', icon: <TeamOutlined />, label: 'إدارة النظام' } : null,
+                                    { key: 'logout', icon: <LogoutOutlined />, label: 'تسجيل الخروج', danger: true }
+                                ].filter(Boolean)}
+                            />
+                        </Sider>
+                        <Layout>
+                            <Header className="bg-white px-6 flex items-center justify-between shadow-sm border-b border-gray-100">
+                                <Title level={4} className="!m-0 text-primary">بوابة تحصيل الإيجارات</Title>
+                                <Space>
+                                    <Text type="secondary">{dayjs().format('DD MMMM YYYY')}</Text>
+                                </Space>
+                            </Header>
+                            <Content className="p-6 overflow-auto">
+                                {activeTab === 'dashboard' && <Dashboard stats={stats} />}
+                                {activeTab === 'properties' && (
+                                    <BuildingManager
+                                        cities={cities}
+                                        profile={profile}
+                                    />
+                                )}
+                                {activeTab === 'vouchers' && (
+                                    <VouchersLedger
+                                        cities={cities}
+                                        profile={profile}
+                                    />
+                                )}
+                                {activeTab === 'treasury' && (
+                                    <TreasuryDashboard
+                                        cities={cities}
+                                        profile={profile}
+                                    />
+                                )}
+                                {activeTab === 'reports' && <Reporting profile={profile} cities={cities} />}
+                                {activeTab === 'admin' && profile?.role === 'admin' && (
+                                    <AdminPanel
+                                        users={allUsers}
+                                        onUpdateUser={handleUpdateUser}
+                                        cities={cities}
+                                        allBuildings={allBuildings}
+                                    />
+                                )}
+                            </Content>
+                            <Footer className="text-center text-gray-400 text-xs">
+                                جميع الحقوق محفوظة © {new Date().getFullYear()} بوابة تحصيل الإيجارات - المملكة العربية السعودية
+                            </Footer>
                         </Layout>
-                    </ConfigProvider>
-                </AppSessionContext.Provider>
+                    </Layout>
+                </ConfigProvider>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-    </script>
-</body>
-
-</html>
+    
