@@ -387,7 +387,7 @@
                                     <Divider className="my-3" />
                                     <Row gutter={16}>
                                         <Col span={12}>
-                                            <Text type="secondary">الإيجار السنوي المتوقع: </Text>
+                                            <Text type="secondary">قيمة الايجار بالعقد: </Text>
                                             <Text className="font-bold">{sarFormatter(receipt.monthly_rent || 0)}</Text>
                                         </Col>
                                         <Col span={12} className="text-left" style={{ textAlign: 'left' }}>

@@ -356,7 +356,7 @@
                                                                 
                                                      
                                                        
-                                                                   الإيجار السنوي المتوقع:        
+                                                                   قيمة الايجار بالعقد:        
                                                                         {sarFormatter(receipt.monthly_rent || 0)}       
                                               
                                                                                                            

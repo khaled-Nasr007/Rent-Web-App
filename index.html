@@ -683,7 +683,7 @@
                                     <Divider className="my-3" />
                                     <Row gutter={16}>
                                         <Col span={12}>
-                                            <Text type="secondary">الإيجار السنوي المتوقع: </Text>
+                                            <Text type="secondary">قيمة الايجار بالعقد: </Text>
                                             <Text className="font-bold">{sarFormatter(receipt.monthly_rent || 0)}</Text>
                                         </Col>
                                         <Col span={12} className="text-left" style={{ textAlign: 'left' }}>
@@ -1758,7 +1758,9 @@
                                     amount_paid: unit.amount_paid || 0,
                                     payment_method: unit.payment_method || 'Cash',
                                     period_start: unit.period_start,
-                                    period_end: unit.period_end
+                                    period_end: unit.period_end,
+                                    settlement_status: remaining > 0 ? 'Waived' : null,
+                                    final_carried_debt_amount: 0
                                 };
                                 
                                 const { data: existingArch } = await supabase
@@ -1880,6 +1882,12 @@
                     if (isDebt && values.settlement_action === 'rollover') {
                         settlementStatus = 'Rolled_Over';
                         finalCarriedDebtAmount = oldRemaining;
+                    }
+
+                    // Option C: Waive/Write Off
+                    if (isDebt && values.settlement_action === 'waive') {
+                        settlementStatus = 'Waived';
+                        finalCarriedDebtAmount = 0;
                     }
 
                     // 1. Archive the old contract details
@@ -2959,6 +2967,9 @@
                                                 <Radio value="rollover" className="text-xs">
                                                     <strong>ترحيل وإضافة على العقد الجديد (Balance Rollover)</strong> - ترحيل المتبقي وإضافته لمديونية العقد الجديد.
                                                 </Radio>
+                                                <Radio value="waive" className="text-xs">
+                                                    <strong>إعفاء وإسقاط المبلغ (Waived / Written Off)</strong> - إسقاط المتبقي وإعفاء المستأجر منه رسمياً.
+                                                </Radio>
                                             </Radio.Group>
                                         </Form.Item>
 
@@ -3809,15 +3820,30 @@
             const [units, setUnits] = useState([]);
             const [loading, setLoading] = useState(false);
             const [selectedReport, setSelectedReport] = useState(null);
-            const [previewData, setPreviewData] = useState([]);
-            const [previewColumns, setPreviewColumns] = useState([]);
-            const [summaryData, setSummaryData] = useState(null);
+            const [rawReportData, setRawReportData] = useState([]);
             const [filterCity, setFilterCity] = useState([]);
             const [filterBuilding, setFilterBuilding] = useState([]);
             const [calendarMode, setCalendarMode] = useState('Gregorian');
             const [gregorianRange, setGregorianRange] = useState(null);
             const [hijriYear, setHijriYear] = useState(null);
             const [hijriMonth, setHijriMonth] = useState('all');
+
+            // Advanced filter & sort states
+            const [searchVal, setSearchVal] = useState('');
+            const [filterSearchText, setFilterSearchText] = useState('');
+            const [filterPaymentMethods, setFilterPaymentMethods] = useState([]);
+            const [filterDirections, setFilterDirections] = useState([]);
+            const [filterAmountRange, setFilterAmountRange] = useState([0, 100000]);
+            const [sortParams, setSortParams] = useState({ field: null, order: null });
+            const [filterResolutions, setFilterResolutions] = useState([]);
+
+            // Debounce effect for text search input
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setFilterSearchText(searchVal);
+                }, 300);
+                return () => clearTimeout(timer);
+            }, [searchVal]);
 
             // Fetch buildings scoped to user
             useEffect(() => {
@@ -3894,7 +3920,7 @@
             // ========== REPORT 1: كشف الحساب المالي الشامل ==========
             const fetchFinancialStatement = async () => {
                 const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
+                if (bIds.length === 0) { setRawReportData([]); return; }
 
                 const [rRes, eRes] = await Promise.all([
                     supabase.from('receipts').select('*').in('building_id', bIds).order('created_at', { ascending: true }),
@@ -3940,6 +3966,7 @@
                     runningBalance += item.amount * item.sign;
                     return {
                         key: idx,
+                        _date: new Date(item.date),
                         التاريخ: dayjs(item.date).format('YYYY-MM-DD HH:mm'),
                         'التاريخ_هجري': toHijri(item.date),
                         'رقم السند': item.refNumber,
@@ -3954,31 +3981,13 @@
                     };
                 });
 
-                const totalReceipts = rows.filter(r => r.النوع === 'سند قبض').reduce((s, r) => s + r.المبلغ, 0);
-                const totalExpenses = rows.filter(r => r.النوع === 'سند صرف').reduce((s, r) => s + r.المبلغ, 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'التاريخ', dataIndex: 'التاريخ', key: 'date' },
-                    { title: 'التاريخ الهجري', dataIndex: 'التاريخ_هجري', key: 'hijri' },
-                    { title: 'رقم السند', dataIndex: 'رقم السند', key: 'ref' },
-                    { title: 'النوع', dataIndex: 'النوع', key: 'type', render: (v) => <Tag color={v === 'سند قبض' ? 'success' : 'error'}>{v}</Tag> },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'الوحدة', dataIndex: 'الوحدة', key: 'unit' },
-                    { title: 'المبلغ (ر.س)', dataIndex: 'المبلغ', key: 'amount', render: (v, r) => <span className={r.النوع === 'سند قبض' ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>{r.النوع === 'سند قبض' ? '+' : '-'}{sarFormatter(v)}</span> },
-                    { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
-                    { title: 'البيان', dataIndex: 'البيان', key: 'desc', className: 'max-w-[200px] truncate' },
-                    { title: 'الرصيد التراكمي (ر.س)', dataIndex: 'الرصيد التراكمي', key: 'balance', render: (v) => <span className={`font-bold ${v >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{sarFormatter(v)}</span> }
-                ]);
-
-                setSummaryData({ totalReceipts, totalExpenses, netBalance: runningBalance, count: rows.length });
-                setPreviewData(rows);
+                setRawReportData(rows);
             };
 
             // ========== REPORT 2: تقرير نسب الإشغال والشاغر ==========
             const fetchOccupancyReport = async () => {
                 const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
+                if (bIds.length === 0) { setRawReportData([]); return; }
 
                 const scopedBuildings = buildings.filter(b => bIds.includes(b.id));
                 const scopedUnits = units.filter(u => bIds.includes(u.building_id));
@@ -4000,29 +4009,13 @@
                     };
                 });
 
-                const totalUnits = rows.reduce((s, r) => s + r['إجمالي الوحدات'], 0);
-                const totalRented = rows.reduce((s, r) => s + r['وحدات مؤجرة'], 0);
-                const totalVacant = rows.reduce((s, r) => s + r['وحدات شاغرة'], 0);
-                const avgOccupancy = totalUnits > 0 ? Math.round((totalRented / totalUnits) * 100) : 0;
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'المدينة', dataIndex: 'المدينة', key: 'city' },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'إجمالي الوحدات', dataIndex: 'إجمالي الوحدات', key: 'total' },
-                    { title: 'وحدات مؤجرة', dataIndex: 'وحدات مؤجرة', key: 'rented', render: (v) => <span className="text-emerald-600 font-semibold">{v}</span> },
-                    { title: 'وحدات شاغرة', dataIndex: 'وحدات شاغرة', key: 'vacant', render: (v) => <span className={`font-semibold ${v > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{v}</span> },
-                    { title: 'نسبة الإشغال %', dataIndex: 'نسبة الإشغال %', key: 'occ', render: (v) => <antd.Progress percent={v} size="small" strokeColor={v >= 80 ? '#006B3F' : v >= 50 ? '#D4AF37' : '#ef4444'} /> }
-                ]);
-
-                setSummaryData({ totalUnits, totalRented, totalVacant, avgOccupancy, count: rows.length });
-                setPreviewData(rows);
+                setRawReportData(rows);
             };
 
             // ========== REPORT 3: تقرير تحصيل الإيجارات والمتأخرات ==========
             const fetchCollectionReport = async () => {
                 const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
+                if (bIds.length === 0) { setRawReportData([]); return; }
 
                 const scopedUnits = units.filter(u => bIds.includes(u.building_id) && u.is_rented);
 
@@ -4047,32 +4040,13 @@
                     };
                 });
 
-                const totalContract = rows.reduce((s, r) => s + r['قيمة العقد'], 0);
-                const totalCollected = rows.reduce((s, r) => s + r['المحصّل'], 0);
-                const totalRemaining = rows.reduce((s, r) => s + r.المتبقي, 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'رقم الوحدة', dataIndex: 'رقم الوحدة', key: 'unit' },
-                    { title: 'المستأجر', dataIndex: 'المستأجر', key: 'tenant' },
-                    { title: 'رقم الهوية', dataIndex: 'رقم الهوية', key: 'id' },
-                    { title: 'رقم العقد', dataIndex: 'رقم العقد', key: 'contract' },
-                    { title: 'قيمة العقد (ر.س)', dataIndex: 'قيمة العقد', key: 'value', render: (v) => <span className="font-semibold">{sarFormatter(v)}</span> },
-                    { title: 'المحصّل (ر.س)', dataIndex: 'المحصّل', key: 'collected', render: (v) => <span className="text-emerald-600 font-semibold">{sarFormatter(v)}</span> },
-                    { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', render: (v) => <span className={`font-bold ${v > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{sarFormatter(v)}</span> },
-                    { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
-                    { title: 'حالة التحصيل', dataIndex: 'حالة التحصيل', key: 'status', render: (v) => <Tag color={v === 'مكتمل' ? 'success' : v === 'جزئي' ? 'warning' : 'error'}>{v}</Tag> }
-                ]);
-
-                setSummaryData({ totalContract, totalCollected, totalRemaining, count: rows.length });
-                setPreviewData(rows);
+                setRawReportData(rows);
             };
 
             // ========== REPORT 4: تقرير مصاريف الصيانة والتشغيل ==========
             const fetchExpensesReport = async () => {
                 const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
+                if (bIds.length === 0) { setRawReportData([]); return; }
 
                 const { data: expData } = await supabase.from('vouchers_expense').select('*').in('building_id', bIds).order('created_at', { ascending: false });
 
@@ -4092,6 +4066,7 @@
                     const statusText = e.approval_status === 'approved' ? 'معتمد' : e.approval_status === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
                     return {
                         key: idx,
+                        _date: new Date(e.created_at),
                         التاريخ: dayjs(e.created_at).format('YYYY-MM-DD'),
                         'التاريخ_هجري': toHijri(e.created_at),
                         'رقم سند الصرف': e.voucher_number,
@@ -4107,34 +4082,13 @@
                     };
                 });
 
-                const totalAmount = rows.reduce((s, r) => s + r.المبلغ, 0);
-                const approvedTotal = rows.filter(r => r._approvalStatus === 'approved').reduce((s, r) => s + r.المبلغ, 0);
-                const maintenanceTotal = rows.filter(r => r.التصنيف === 'صيانة').reduce((s, r) => s + r.المبلغ, 0);
-                const utilitiesTotal = rows.filter(r => r.التصنيف === 'خدمات').reduce((s, r) => s + r.المبلغ, 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'التاريخ', dataIndex: 'التاريخ', key: 'date' },
-                    { title: 'التاريخ الهجري', dataIndex: 'التاريخ_هجري', key: 'hijri' },
-                    { title: 'رقم سند الصرف', dataIndex: 'رقم سند الصرف', key: 'ref' },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'الوحدة', dataIndex: 'الوحدة', key: 'unit' },
-                    { title: 'التصنيف', dataIndex: 'التصنيف', key: 'cat', render: (v) => <Tag color={v === 'صيانة' ? 'orange' : v === 'خدمات' ? 'blue' : 'default'}>{v}</Tag> },
-                    { title: 'المبلغ (ر.س)', dataIndex: 'المبلغ', key: 'amount', render: (v) => <span className="text-red-600 font-bold">{sarFormatter(v)}</span> },
-                    { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
-                    { title: 'البيان', dataIndex: 'البيان', key: 'desc', className: 'max-w-[180px] truncate' },
-                    { title: 'المعتمد بواسطة', dataIndex: 'المعتمد بواسطة', key: 'approver' },
-                    { title: 'حالة الاعتماد', dataIndex: 'حالة الاعتماد', key: 'status', render: (v) => <Tag color={v === 'معتمد' ? 'green' : v === 'مرفوض' ? 'red' : 'gold'}>{v}</Tag> }
-                ]);
-
-                setSummaryData({ totalAmount, approvedTotal, maintenanceTotal, utilitiesTotal, count: rows.length });
-                setPreviewData(rows);
+                setRawReportData(rows);
             };
 
             // ========== REPORT 5: تقرير تواريخ انتهاء العقود ==========
             const fetchLeaseExpirationReport = async () => {
                 const bIds = getScopedBuildingIds();
-                if (bIds.length === 0) { setPreviewData([]); return; }
+                if (bIds.length === 0) { setRawReportData([]); return; }
 
                 const { data: archiveData } = await supabase.from('expired_contracts_archive').select('*').in('building_id', bIds).order('archived_at', { ascending: false });
 
@@ -4146,17 +4100,30 @@
                     const endDate = u.period_end ? dayjs(u.period_end) : null;
                     const isExpired = endDate ? endDate.isBefore(today) : false;
                     const daysLeft = endDate ? endDate.diff(today, 'day') : null;
+
+                    const unitArchive = (archiveData || []).find(a => String(a.unit_id) === String(u.id));
+                    const isRolledOver = unitArchive && unitArchive.settlement_status === 'Rolled_Over';
+                    const carriedDebt = isRolledOver ? (unitArchive.final_carried_debt_amount || 0) : 0;
+                    const baseRent = (u.monthly_rent || 0) - carriedDebt;
+                    const combinedTotal = u.monthly_rent || 0;
+
                     return {
                         العقار: b?.name || '-',
                         'رقم الوحدة': u.unit_number,
                         المستأجر: u.tenant_name || '-',
+                        _startDate: u.period_start ? new Date(u.period_start) : new Date(0),
+                        _endDate: u.period_end ? new Date(u.period_end) : new Date(0),
                         'بداية العقد': u.period_start || '-',
                         'نهاية العقد': u.period_end || '-',
                         الحالة: isExpired ? 'منتهي' : 'ساري',
                         'الأيام المتبقية': daysLeft !== null ? (isExpired ? `منتهي منذ ${Math.abs(daysLeft)} يوم` : `${daysLeft} يوم`) : '-',
                         'قيمة الإيجار': u.monthly_rent || 0,
                         المتبقي: (u.monthly_rent || 0) - (u.amount_paid || 0),
-                        'المبالغ المرحّلة': 0,
+                        'المبالغ المرحّلة': carriedDebt,
+                        'طريقة التسوية': isExpired ? 'Pending' : null,
+                        'قيمة العقد الجديد الأساسية': baseRent,
+                        'قيمة المبالغ المرحلة': carriedDebt,
+                        'إجمالي المطلوب المحقق': combinedTotal,
                         _isExpired: isExpired,
                         _source: 'active'
                     };
@@ -4164,10 +4131,23 @@
 
                 const archivedRows = (archiveData || []).map(a => {
                     const b = buildings.find(bld => bld.id === a.building_id);
+                    
+                    const olderArchives = (archiveData || []).filter(x => 
+                        String(x.unit_id) === String(a.unit_id) && 
+                        new Date(x.archived_at) < new Date(a.archived_at)
+                    );
+                    const prevArchive = olderArchives[0];
+                    const isRolledOver = prevArchive && prevArchive.settlement_status === 'Rolled_Over';
+                    const carriedDebt = isRolledOver ? (prevArchive.final_carried_debt_amount || 0) : 0;
+                    const baseRent = (a.monthly_rent || 0) - carriedDebt;
+                    const combinedTotal = a.monthly_rent || 0;
+
                     return {
                         العقار: b?.name || '-',
                         'رقم الوحدة': a.unit_id ? (units.find(u => u.id === a.unit_id)?.unit_number || '-') : '-',
                         المستأجر: a.tenant_name || '-',
+                        _startDate: a.period_start ? new Date(a.period_start) : new Date(0),
+                        _endDate: a.period_end ? new Date(a.period_end) : new Date(0),
                         'بداية العقد': a.period_start || '-',
                         'نهاية العقد': a.period_end || '-',
                         الحالة: 'أرشيف',
@@ -4175,6 +4155,10 @@
                         'قيمة الإيجار': a.monthly_rent || 0,
                         المتبقي: (a.monthly_rent || 0) - (a.amount_paid || 0),
                         'المبالغ المرحّلة': a.final_carried_debt_amount || 0,
+                        'طريقة التسوية': a.settlement_status || null,
+                        'قيمة العقد الجديد الأساسية': baseRent,
+                        'قيمة المبالغ المرحلة': a.final_carried_debt_amount || 0,
+                        'إجمالي المطلوب المحقق': combinedTotal,
                         _isExpired: true,
                         _source: 'archive'
                     };
@@ -4182,26 +4166,7 @@
 
                 const allRows = [...activeRows, ...archivedRows].map((r, idx) => ({ ...r, key: idx }));
 
-                const activeExpired = activeRows.filter(r => r._isExpired).length;
-                const activeSafe = activeRows.filter(r => !r._isExpired).length;
-                const totalCarriedDebt = allRows.reduce((s, r) => s + r['المبالغ المرحّلة'], 0);
-
-                setPreviewColumns([
-                    { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
-                    { title: 'العقار', dataIndex: 'العقار', key: 'building' },
-                    { title: 'رقم الوحدة', dataIndex: 'رقم الوحدة', key: 'unit' },
-                    { title: 'المستأجر', dataIndex: 'المستأجر', key: 'tenant' },
-                    { title: 'بداية العقد', dataIndex: 'بداية العقد', key: 'start' },
-                    { title: 'نهاية العقد', dataIndex: 'نهاية العقد', key: 'end' },
-                    { title: 'الحالة', dataIndex: 'الحالة', key: 'status', render: (v) => <Tag color={v === 'ساري' ? 'green' : v === 'منتهي' ? 'red' : 'default'}>{v}</Tag> },
-                    { title: 'الأيام المتبقية', dataIndex: 'الأيام المتبقية', key: 'days', render: (v, r) => <span className={r._isExpired ? 'text-red-600 font-semibold' : 'text-emerald-600'}>{v}</span> },
-                    { title: 'قيمة الإيجار (ر.س)', dataIndex: 'قيمة الإيجار', key: 'rent', render: (v) => sarFormatter(v) },
-                    { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', render: (v) => <span className={v > 0 ? 'text-red-600 font-bold' : ''}>{sarFormatter(v)}</span> },
-                    { title: 'المبالغ المرحّلة (ر.س)', dataIndex: 'المبالغ المرحّلة', key: 'carried', render: (v) => v > 0 ? <span className="text-orange-600 font-bold">{sarFormatter(v)}</span> : '-' }
-                ]);
-
-                setSummaryData({ activeSafe, activeExpired, archivedCount: archivedRows.length, totalCarriedDebt, count: allRows.length });
-                setPreviewData(allRows);
+                setRawReportData(allRows);
             };
 
             // Report type definitions
@@ -4216,8 +4181,8 @@
             const handleGenerateReport = async () => {
                 if (!selectedReport) { message.warning('يرجى اختيار نوع التقرير أولاً'); return; }
                 setLoading(true);
-                setPreviewData([]);
-                setSummaryData(null);
+                setRawReportData([]);
+                setSortParams({ field: null, order: null });
                 try {
                     const report = reportTypes.find(r => r.key === selectedReport);
                     await report.fetcher();
@@ -4229,30 +4194,283 @@
                 }
             };
 
+            // --- Advanced Filtering and Sorting Engine ---
+
+            const maxAmountInDataset = useMemo(() => {
+                if (rawReportData.length === 0) return 100000;
+                const maxVal = Math.max(...rawReportData.map(r => {
+                    const amt = r['المبلغ'] || r['قيمة العقد'] || r['قيمة الإيجار'] || 0;
+                    return amt;
+                }));
+                return maxVal > 0 ? maxVal : 100000;
+            }, [rawReportData]);
+
+            // Sync range slider max when dataset updates
+            useEffect(() => {
+                setFilterAmountRange([0, maxAmountInDataset]);
+            }, [maxAmountInDataset]);
+
+            const matchSearch = (row, searchText) => {
+                if (!searchText) return true;
+                const cleanSearch = searchText.trim().toLowerCase();
+                return Object.keys(row).some(key => {
+                    if (key.startsWith('_') || key === 'key') return false;
+                    const val = row[key];
+                    if (val === undefined || val === null) return false;
+                    return String(val).toLowerCase().includes(cleanSearch);
+                });
+            };
+
+            const matchPayment = (row, paymentMethods) => {
+                if (!paymentMethods || paymentMethods.length === 0) return true;
+                const rowPayment = row['طريقة الدفع'];
+                if (!rowPayment) return true; 
+                return paymentMethods.some(method => {
+                    if (method === 'Cash') return rowPayment === 'كاش' || rowPayment === 'نقدي' || rowPayment === 'نقدي / كاش';
+                    if (method === 'Bank Transfer') return rowPayment === 'تحويل بنكي';
+                    return false;
+                });
+            };
+
+            const matchDirection = (row, directions) => {
+                if (!directions || directions.length === 0) return true;
+                const rowType = row['النوع'] || row['type'];
+                if (!rowType) return true; 
+                return directions.some(dir => {
+                    if (dir === 'Receipt') return rowType === 'سند قبض';
+                    if (dir === 'Expense') return rowType === 'سند صرف';
+                    return false;
+                });
+            };
+
+            const matchAmount = (row, range, reportType) => {
+                if (!range || range.length !== 2) return true;
+                let amt = 0;
+                if (reportType === 'financial' || reportType === 'expenses') {
+                    amt = row['المبلغ'] || 0;
+                } else if (reportType === 'collection') {
+                    amt = row['قيمة العقد'] || 0;
+                } else if (reportType === 'leases') {
+                    amt = row['قيمة الإيجار'] || 0;
+                } else {
+                    return true; 
+                }
+                return amt >= range[0] && amt <= range[1];
+            };
+
+            const matchResolution = (row, resolutions, reportType) => {
+                if (reportType !== 'leases') return true;
+                if (!resolutions || resolutions.length === 0) return true;
+                const rowResolution = row['طريقة التسوية'];
+                return resolutions.includes(rowResolution);
+            };
+
+            // Main filtered and sorted reactive dataset
+            const processedData = useMemo(() => {
+                let result = rawReportData.filter(row => {
+                    if (!matchSearch(row, filterSearchText)) return false;
+                    if (!matchPayment(row, filterPaymentMethods)) return false;
+                    if (!matchDirection(row, filterDirections)) return false;
+                    if (!matchResolution(row, filterResolutions, selectedReport)) return false;
+                    if (!matchAmount(row, filterAmountRange, selectedReport)) return false;
+                    return true;
+                });
+
+                if (sortParams.field && sortParams.order) {
+                    const isAsc = sortParams.order === 'ascend';
+                    const field = sortParams.field;
+                    
+                    result.sort((a, b) => {
+                        let valA = a[field];
+                        let valB = b[field];
+
+                        if (valA === undefined || valA === null) valA = '';
+                        if (valB === undefined || valB === null) valB = '';
+
+                        if (field === 'التاريخ' || field === 'بداية العقد' || field === 'نهاية العقد') {
+                            const dateA = a._date || a._startDate || a._endDate || new Date(valA);
+                            const dateB = b._date || b._startDate || b._endDate || new Date(valB);
+                            return isAsc ? (dateA - dateB) : (dateB - dateA);
+                        }
+
+                        if (typeof valA === 'number' && typeof valB === 'number') {
+                            return isAsc ? (valA - valB) : (valB - valA);
+                        }
+
+                        const strA = String(valA);
+                        const strB = String(valB);
+                        return isAsc 
+                            ? strA.localeCompare(strB, 'ar', { numeric: true }) 
+                            : strB.localeCompare(strA, 'ar', { numeric: true });
+                    });
+                }
+
+                return result.map((item, idx) => ({ ...item, key: idx }));
+            }, [rawReportData, filterSearchText, filterPaymentMethods, filterDirections, filterResolutions, filterAmountRange, sortParams, selectedReport]);
+
+            // Dynamic KPI calculation
+            const summaryData = useMemo(() => {
+                if (processedData.length === 0) return null;
+                if (selectedReport === 'financial') {
+                    const totalReceipts = processedData.filter(r => r.النوع === 'سند قبض').reduce((s, r) => s + r.المبلغ, 0);
+                    const totalExpenses = processedData.filter(r => r.النوع === 'سند صرف').reduce((s, r) => s + r.المبلغ, 0);
+                    return { totalReceipts, totalExpenses, netBalance: totalReceipts - totalExpenses, count: processedData.length };
+                }
+                if (selectedReport === 'occupancy') {
+                    const totalUnits = processedData.reduce((s, r) => s + r['إجمالي الوحدات'], 0);
+                    const totalRented = processedData.reduce((s, r) => s + r['وحدات مؤجرة'], 0);
+                    const totalVacant = processedData.reduce((s, r) => s + r['وحدات شاغرة'], 0);
+                    const avgOccupancy = totalUnits > 0 ? Math.round((totalRented / totalUnits) * 100) : 0;
+                    return { totalUnits, totalRented, totalVacant, avgOccupancy, count: processedData.length };
+                }
+                if (selectedReport === 'collection') {
+                    const totalContract = processedData.reduce((s, r) => s + r['قيمة العقد'], 0);
+                    const totalCollected = processedData.reduce((s, r) => s + r['المحصّل'], 0);
+                    const totalRemaining = processedData.reduce((s, r) => s + r.المتبقي, 0);
+                    return { totalContract, totalCollected, totalRemaining, count: processedData.length };
+                }
+                if (selectedReport === 'expenses') {
+                    const totalAmount = processedData.reduce((s, r) => s + (r.المبلغ || 0), 0);
+                    const approvedTotal = processedData.filter(r => r._approvalStatus === 'approved').reduce((s, r) => s + (r.المبلغ || 0), 0);
+                    const maintenanceTotal = processedData.filter(r => r.التصنيف === 'صيانة').reduce((s, r) => s + (r.المبلغ || 0), 0);
+                    const utilitiesTotal = processedData.filter(r => r.التصنيف === 'خدمات').reduce((s, r) => s + (r.المبلغ || 0), 0);
+                    return { totalAmount, approvedTotal, maintenanceTotal, utilitiesTotal, count: processedData.length };
+                }
+                if (selectedReport === 'leases') {
+                    const activeExpired = processedData.filter(r => r._source === 'active' && r._isExpired).length;
+                    const activeSafe = processedData.filter(r => r._source === 'active' && !r._isExpired).length;
+                    const archivedCount = processedData.filter(r => r._source === 'archive').length;
+                    const totalCarriedDebt = processedData.reduce((s, r) => s + (r['المبالغ المرحّلة'] || 0), 0);
+                    return { activeSafe, activeExpired, archivedCount, totalCarriedDebt, count: processedData.length };
+                }
+                return null;
+            }, [processedData, selectedReport]);
+
+            // Reactive Table Columns configuration
+            const previewColumns = useMemo(() => {
+                if (!selectedReport) return [];
+
+                const getSortOrder = (colKey) => {
+                    return sortParams.field === colKey ? sortParams.order : null;
+                };
+
+                if (selectedReport === 'financial') {
+                    return [
+                        { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
+                        { title: 'التاريخ', dataIndex: 'التاريخ', key: 'date', sorter: true, sortOrder: getSortOrder('التاريخ') },
+                        { title: 'التاريخ الهجري', dataIndex: 'التاريخ_هجري', key: 'hijri' },
+                        { title: 'رقم السند', dataIndex: 'رقم السند', key: 'ref', sorter: true, sortOrder: getSortOrder('رقم السند') },
+                        { title: 'النوع', dataIndex: 'النوع', key: 'type', render: (v) => <Tag color={v === 'سند قبض' ? 'success' : 'error'}>{v}</Tag> },
+                        { title: 'العقار', dataIndex: 'العقار', key: 'building', sorter: true, sortOrder: getSortOrder('العقار') },
+                        { title: 'الوحدة', dataIndex: 'الوحدة', key: 'unit' },
+                        { title: 'المبلغ (ر.س)', dataIndex: 'المبلغ', key: 'amount', sorter: true, sortOrder: getSortOrder('المبلغ'), render: (v, r) => <span className={r.النوع === 'سند قبض' ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>{r.النوع === 'سند قبض' ? '+' : '-'}{sarFormatter(v)}</span> },
+                        { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
+                        { title: 'البيان', dataIndex: 'البيان', key: 'desc', className: 'max-w-[200px] truncate' },
+                        { title: 'الرصيد التراكمي (ر.س)', dataIndex: 'الرصيد التراكمي', key: 'balance', sorter: true, sortOrder: getSortOrder('الرصيد التراكمي'), render: (v) => <span className={`font-bold ${v >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{sarFormatter(v)}</span> }
+                    ];
+                }
+                if (selectedReport === 'occupancy') {
+                    return [
+                        { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
+                        { title: 'المدينة', dataIndex: 'المدينة', key: 'city' },
+                        { title: 'العقار', dataIndex: 'العقار', key: 'building', sorter: true, sortOrder: getSortOrder('العقار') },
+                        { title: 'إجمالي الوحدات', dataIndex: 'إجمالي الوحدات', key: 'total' },
+                        { title: 'وحدات مؤجرة', dataIndex: 'وحدات مؤجرة', key: 'rented', render: (v) => <span className="text-emerald-600 font-semibold">{v}</span> },
+                        { title: 'وحدات شاغرة', dataIndex: 'وحدات شاغرة', key: 'vacant', render: (v) => <span className={`font-semibold ${v > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{v}</span> },
+                        { title: 'نسبة الإشغال %', dataIndex: 'نسبة الإشغال %', key: 'occ', render: (v) => <antd.Progress percent={v} size="small" strokeColor={v >= 80 ? '#006B3F' : v >= 50 ? '#D4AF37' : '#ef4444'} /> }
+                    ];
+                }
+                if (selectedReport === 'collection') {
+                    return [
+                        { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
+                        { title: 'العقار', dataIndex: 'العقار', key: 'building', sorter: true, sortOrder: getSortOrder('العقار') },
+                        { title: 'رقم الوحدة', dataIndex: 'رقم الوحدة', key: 'unit' },
+                        { title: 'المستأجر', dataIndex: 'المستأجر', key: 'tenant', sorter: true, sortOrder: getSortOrder('المستأجر') },
+                        { title: 'رقم الهوية', dataIndex: 'رقم الهوية', key: 'id' },
+                        { title: 'رقم العقد', dataIndex: 'رقم العقد', key: 'contract' },
+                        { title: 'قيمة العقد (ر.س)', dataIndex: 'قيمة العقد', key: 'value', sorter: true, sortOrder: getSortOrder('قيمة العقد'), render: (v) => <span className="font-semibold">{sarFormatter(v)}</span> },
+                        { title: 'المحصّل (ر.س)', dataIndex: 'المحصّل', key: 'collected', sorter: true, sortOrder: getSortOrder('المحصّل'), render: (v) => <span className="text-emerald-600 font-semibold">{sarFormatter(v)}</span> },
+                        { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', sorter: true, sortOrder: getSortOrder('المتبقي'), render: (v) => <span className={`font-bold ${v > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{sarFormatter(v)}</span> },
+                        { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
+                        { title: 'حالة التحصيل', dataIndex: 'حالة التحصيل', key: 'status', render: (v) => <Tag color={v === 'مكتمل' ? 'success' : v === 'جزئي' ? 'warning' : 'error'}>{v}</Tag> }
+                    ];
+                }
+                if (selectedReport === 'expenses') {
+                    return [
+                        { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
+                        { title: 'التاريخ', dataIndex: 'التاريخ', key: 'date', sorter: true, sortOrder: getSortOrder('التاريخ') },
+                        { title: 'التاريخ الهجري', dataIndex: 'التاريخ_هجري', key: 'hijri' },
+                        { title: 'رقم سند الصرف', dataIndex: 'رقم سند الصرف', key: 'ref', sorter: true, sortOrder: getSortOrder('رقم سند الصرف') },
+                        { title: 'العقار', dataIndex: 'العقار', key: 'building', sorter: true, sortOrder: getSortOrder('العقار') },
+                        { title: 'الوحدة', dataIndex: 'الوحدة', key: 'unit' },
+                        { title: 'التصنيف', dataIndex: 'التصنيف', key: 'cat', render: (v) => <Tag color={v === 'صيانة' ? 'orange' : v === 'خدمات' ? 'blue' : 'default'}>{v}</Tag> },
+                        { title: 'المبلغ (ر.س)', dataIndex: 'المبلغ', key: 'amount', sorter: true, sortOrder: getSortOrder('المبلغ'), render: (v) => <span className="text-red-600 font-bold">{sarFormatter(v)}</span> },
+                        { title: 'طريقة الدفع', dataIndex: 'طريقة الدفع', key: 'payment' },
+                        { title: 'البيان', dataIndex: 'البيان', key: 'desc', className: 'max-w-[180px] truncate' },
+                        { title: 'المعتمد بواسطة', dataIndex: 'المعتمد بواسطة', key: 'approver' },
+                        { title: 'حالة الاعتماد', dataIndex: 'حالة الاعتماد', key: 'status', render: (v) => <Tag color={v === 'معتمد' ? 'green' : v === 'مرفوض' ? 'red' : 'gold'}>{v}</Tag> }
+                    ];
+                }
+                if (selectedReport === 'leases') {
+                    return [
+                        { title: '#', render: (_, __, idx) => idx + 1, width: 50 },
+                        { title: 'العقار', dataIndex: 'العقار', key: 'building', sorter: true, sortOrder: getSortOrder('العقار') },
+                        { title: 'رقم الوحدة', dataIndex: 'رقم الوحدة', key: 'unit' },
+                        { title: 'المستأجر', dataIndex: 'المستأجر', key: 'tenant', sorter: true, sortOrder: getSortOrder('المستأجر') },
+                        { title: 'بداية العقد', dataIndex: 'بداية العقد', key: 'start', sorter: true, sortOrder: getSortOrder('بداية العقد') },
+                        { title: 'نهاية العقد', dataIndex: 'نهاية العقد', key: 'end', sorter: true, sortOrder: getSortOrder('نهاية العقد') },
+                        { title: 'الحالة', dataIndex: 'الحالة', key: 'status', render: (v) => <Tag color={v === 'ساري' ? 'green' : v === 'منتهي' ? 'red' : 'default'}>{v}</Tag> },
+                        { title: 'الأيام المتبقية', dataIndex: 'الأيام المتبقية', key: 'days', render: (v, r) => <span className={r._isExpired ? 'text-red-600 font-semibold' : 'text-emerald-600'}>{v}</span> },
+                        { title: 'قيمة العقد الجديد الأساسية (ر.س)', dataIndex: 'قيمة العقد الجديد الأساسية', key: 'base_rent', render: (v) => sarFormatter(v) },
+                        { title: 'إجمالي المطلوب المحقق (ر.س)', dataIndex: 'إجمالي المطلوب المحقق', key: 'combined_total', render: (v) => <span className="font-bold">{sarFormatter(v)}</span> },
+                        { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', sorter: true, sortOrder: getSortOrder('المتبقي'), render: (v) => <span className={v > 0 ? 'text-red-600 font-bold' : ''}>{sarFormatter(v)}</span> },
+                        { title: 'طريقة التسوية', dataIndex: 'طريقة التسوية', key: 'settlement', render: (v, r) => {
+                            const remaining = r['المتبقي'] || 0;
+                            if (remaining <= 0 && r['الحالة'] === 'ساري') return '-';
+                            if (v === 'Settled') return <Tag color="success">تمت التسوية نقدياً</Tag>;
+                            if (v === 'Rolled_Over') return <Tag color="processing">تم الترحيل للعقد الجديد</Tag>;
+                            if (v === 'Waived') return <Tag color="warning">إسقاط المبالغ / إعفاء</Tag>;
+                            if (v === 'Pending') return <Tag color="default">معلّق (لم تتم التسوية)</Tag>;
+                            return '-';
+                        }},
+                        { title: 'قيمة المبالغ المرحلة (ر.س)', dataIndex: 'قيمة المبالغ المرحلة', key: 'carried_debt', render: (v) => v > 0 ? <span className="text-orange-600 font-bold">{sarFormatter(v)}</span> : '-' }
+                    ];
+                }
+                return [];
+            }, [selectedReport, sortParams]);
+
+            // Table Sort Handler
+            const handleTableChange = (pagination, filters, sorter) => {
+                setSortParams({
+                    field: sorter.field || null,
+                    order: sorter.order || null
+                });
+            };
+
             // ========== STYLED EXCEL EXPORT ==========
             const exportStyledExcel = () => {
-                if (previewData.length === 0) { message.warning('لا توجد بيانات للتصدير. يرجى عرض التقرير أولاً.'); return; }
+                if (processedData.length === 0) { message.warning('لا توجد بيانات للتصدير. يرجى عرض التقرير أولاً.'); return; }
 
                 const report = reportTypes.find(r => r.key === selectedReport);
                 const sheetName = report?.title || 'تقرير';
 
                 // Prepare export columns (exclude internal keys)
-                const internalKeys = ['key', '_isExpired', '_source', '_approvalStatus'];
-                const exportKeys = Object.keys(previewData[0]).filter(k => !internalKeys.includes(k));
+                const internalKeys = ['key', '_isExpired', '_source', '_approvalStatus', '_date', '_startDate', '_endDate'];
+                const exportKeys = Object.keys(processedData[0]).filter(k => !internalKeys.includes(k));
 
                 // Build header row
                 const headerRow = exportKeys;
 
                 // Build data rows
-                const dataRows = previewData.map(row => exportKeys.map(k => {
+                const dataRows = processedData.map(row => exportKeys.map(k => {
                     const val = row[k];
                     return val !== undefined && val !== null ? val : '';
                 }));
 
                 // Build summary row
                 const summaryRow = exportKeys.map(k => {
-                    if (typeof previewData[0]?.[k] === 'number') {
-                        const sum = previewData.reduce((s, r) => s + (r[k] || 0), 0);
+                    if (typeof processedData[0]?.[k] === 'number') {
+                        const sum = processedData.reduce((s, r) => s + (r[k] || 0), 0);
                         return sum;
                     }
                     return '';
@@ -4321,6 +4539,18 @@
                     numFmt: '#,##0.00 "ر.س"'
                 };
 
+                const highlightStyle = {
+                    ...dataStyle,
+                    fill: { fgColor: { rgb: 'FFEBEE' } }, // light red (rose-50)
+                    font: { ...dataStyle.font, color: { rgb: 'C62828' } } // dark red text
+                };
+
+                const highlightMoneyStyle = {
+                    ...moneyStyle,
+                    fill: { fgColor: { rgb: 'FFEBEE' } }, // light red (rose-50)
+                    font: { ...moneyStyle.font, color: { rgb: 'C62828' } } // dark red text
+                };
+
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for (let R = range.s.r; R <= range.e.r; R++) {
                     for (let C = range.s.c; C <= range.e.c; C++) {
@@ -4331,11 +4561,18 @@
                             ws[cellRef].s = headerStyle;
                         } else if (R === range.e.r) {
                             // Summary row
-                            const isNumber = typeof previewData[0]?.[exportKeys[C]] === 'number';
+                            const isNumber = typeof processedData[0]?.[exportKeys[C]] === 'number';
                             ws[cellRef].s = isNumber ? summaryMoneyStyle : summaryStyle;
                         } else {
-                            const isNumber = typeof previewData[0]?.[exportKeys[C]] === 'number';
-                            ws[cellRef].s = isNumber ? moneyStyle : dataStyle;
+                            const isNumber = typeof processedData[0]?.[exportKeys[C]] === 'number';
+                            const rowData = processedData[R - 1];
+                            const hasActiveCarriedDebt = selectedReport === 'leases' && rowData && (rowData['قيمة المبالغ المرحلة'] || 0) > 0 && rowData['_source'] === 'active';
+                            
+                            if (hasActiveCarriedDebt) {
+                                ws[cellRef].s = isNumber ? highlightMoneyStyle : highlightStyle;
+                            } else {
+                                ws[cellRef].s = isNumber ? moneyStyle : dataStyle;
+                            }
                         }
                     }
                 }
@@ -4354,7 +4591,7 @@
 
             // Summary renderer for Ant Design Table
             const renderSummary = () => {
-                if (!summaryData || previewData.length === 0) return null;
+                if (!summaryData || processedData.length === 0) return null;
 
                 if (selectedReport === 'financial') {
                     return (
@@ -4426,6 +4663,173 @@
                 return null;
             };
 
+            // KPI Summary Cards Render Helper
+            const KPISummaryBanner = () => {
+                if (!summaryData || processedData.length === 0) return null;
+
+                if (selectedReport === 'financial') {
+                    return (
+                        <Row gutter={[16, 16]} className="mb-6">
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-r-4 border-emerald-600 bg-emerald-50/20">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي المقبوضات (سندات القبض)</div>
+                                            <h3 className="text-xl font-bold text-emerald-700 m-0 font-cairo">{sarFormatter(summaryData.totalReceipts)}</h3>
+                                        </div>
+                                        <span className="text-2xl">🟢</span>
+                                    </div>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-r-4 border-red-600 bg-red-50/20">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي المصروفات (سندات الصرف)</div>
+                                            <h3 className="text-xl font-bold text-red-700 m-0 font-cairo">{sarFormatter(summaryData.totalExpenses)}</h3>
+                                        </div>
+                                        <span className="text-2xl">🔴</span>
+                                    </div>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className={`shadow-sm border-r-4 bg-gray-50/20 ${summaryData.netBalance >= 0 ? 'border-primary' : 'border-red-400'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-gray-500 text-xs mb-1 font-cairo">صافي النقدية (الرصيد النهائي)</div>
+                                            <h3 className={`text-xl font-bold m-0 font-cairo ${summaryData.netBalance >= 0 ? 'text-primary' : 'text-red-600'}`}>
+                                                {sarFormatter(summaryData.netBalance)}
+                                            </h3>
+                                        </div>
+                                        <span className="text-2xl">💰</span>
+                                    </div>
+                                </Card>
+                            </Col>
+                        </Row>
+                    );
+                }
+
+                if (selectedReport === 'occupancy') {
+                    return (
+                        <Row gutter={[16, 16]} className="mb-6">
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-blue-500 bg-blue-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي العقود / العقارات</div>
+                                    <h3 className="text-xl font-bold text-blue-700 m-0 font-cairo">{summaryData.count} عقار</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-emerald-500 bg-emerald-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">الوحدات المؤجرة</div>
+                                    <h3 className="text-xl font-bold text-emerald-700 m-0 font-cairo">{summaryData.totalRented} وحدة</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-amber-500 bg-amber-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">الوحدات الشاغرة</div>
+                                    <h3 className="text-xl font-bold text-amber-700 m-0 font-cairo">{summaryData.totalVacant} وحدة</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-purple-500 bg-purple-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">متوسط نسبة الإشغال</div>
+                                    <h3 className="text-xl font-bold text-purple-700 m-0 font-cairo">{summaryData.avgOccupancy}%</h3>
+                                </Card>
+                            </Col>
+                        </Row>
+                    );
+                }
+
+                if (selectedReport === 'collection') {
+                    return (
+                        <Row gutter={[16, 16]} className="mb-6">
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-r-4 border-blue-500 bg-blue-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي قيمة العقود</div>
+                                    <h3 className="text-xl font-bold text-blue-700 m-0 font-cairo">{sarFormatter(summaryData.totalContract)}</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-r-4 border-emerald-500 bg-emerald-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي المبالغ المحصلة</div>
+                                    <h3 className="text-xl font-bold text-emerald-700 m-0 font-cairo">{sarFormatter(summaryData.totalCollected)}</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card className="shadow-sm border-r-4 border-red-500 bg-red-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي المبالغ المتبقية</div>
+                                    <h3 className="text-xl font-bold text-red-700 m-0 font-cairo">{sarFormatter(summaryData.totalRemaining)}</h3>
+                                </Card>
+                            </Col>
+                        </Row>
+                    );
+                }
+
+                if (selectedReport === 'expenses') {
+                    return (
+                        <Row gutter={[16, 16]} className="mb-6">
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-red-500 bg-red-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">إجمالي المصروفات</div>
+                                    <h3 className="text-xl font-bold text-red-700 m-0 font-cairo">{sarFormatter(summaryData.totalAmount)}</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-emerald-500 bg-emerald-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">المصروفات المعتمدة</div>
+                                    <h3 className="text-xl font-bold text-emerald-700 m-0 font-cairo">{sarFormatter(summaryData.approvedTotal)}</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-amber-500 bg-amber-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">مصاريف الصيانة</div>
+                                    <h3 className="text-xl font-bold text-amber-700 m-0 font-cairo">{sarFormatter(summaryData.maintenanceTotal)}</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-purple-500 bg-purple-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">مصاريف الخدمات</div>
+                                    <h3 className="text-xl font-bold text-purple-700 m-0 font-cairo">{sarFormatter(summaryData.utilitiesTotal)}</h3>
+                                </Card>
+                            </Col>
+                        </Row>
+                    );
+                }
+
+                if (selectedReport === 'leases') {
+                    return (
+                        <Row gutter={[16, 16]} className="mb-6">
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-emerald-500 bg-emerald-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">العقود السارية</div>
+                                    <h3 className="text-xl font-bold text-emerald-700 m-0 font-cairo">{summaryData.activeSafe} عقد</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-red-500 bg-red-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">العقود المنتهية</div>
+                                    <h3 className="text-xl font-bold text-red-700 m-0 font-cairo">{summaryData.activeExpired} عقد</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-gray-500 bg-gray-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">عقود الأرشيف</div>
+                                    <h3 className="text-xl font-bold text-gray-700 m-0 font-cairo">{summaryData.archivedCount} عقد</h3>
+                                </Card>
+                            </Col>
+                            <Col xs={12} sm={6}>
+                                <Card className="shadow-sm border-r-4 border-orange-500 bg-orange-50/10">
+                                    <div className="text-gray-500 text-xs mb-1 font-cairo">المبالغ المرحلة (الديون)</div>
+                                    <h3 className="text-xl font-bold text-orange-700 m-0 font-cairo">{sarFormatter(summaryData.totalCarriedDebt)}</h3>
+                                </Card>
+                            </Col>
+                        </Row>
+                    );
+                }
+
+                return null;
+            };
+
             // Build tab items
             const tabItems = [
                 {
@@ -4440,7 +4844,18 @@
                                     {reportTypes.map(r => (
                                         <Col xs={24} sm={12} md={8} lg={8} key={r.key}>
                                             <div
-                                                onClick={() => { setSelectedReport(r.key); setPreviewData([]); setSummaryData(null); }}
+                                                onClick={() => {
+                                                    setSelectedReport(r.key);
+                                                    setRawReportData([]);
+                                                    setFilterCity([]);
+                                                    setFilterBuilding([]);
+                                                    setSearchVal('');
+                                                    setFilterSearchText('');
+                                                    setFilterPaymentMethods([]);
+                                                    setFilterDirections([]);
+                                                    setFilterResolutions([]);
+                                                    setSortParams({ field: null, order: null });
+                                                }}
                                                 className={`cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                                                     selectedReport === r.key
                                                         ? 'border-primary bg-emerald-50/50 shadow-md ring-2 ring-primary/20'
@@ -4461,97 +4876,221 @@
                                 </Row>
                             </div>
 
-                            {/* Shared Filter Bar */}
+                            {/* Shared Advanced Filter Bar */}
                             {selectedReport && (
-                                <Card className="shadow-sm border-t-4" style={{ borderTopColor: reportTypes.find(r => r.key === selectedReport)?.color }}>
-                                    <Title level={5} className="mb-4">🔍 فلاتر التقرير</Title>
-                                    <Row gutter={[16, 16]}>
-                                        <Col xs={24} md={6}>
-                                            <Text type="secondary" className="block mb-1">المدينة</Text>
-                                            <Select
-                                                mode="multiple"
-                                                placeholder="كل المدن"
-                                                value={filterCity}
-                                                onChange={(val) => { setFilterCity(val); setFilterBuilding([]); }}
-                                                allowClear
-                                                className="w-full"
-                                            >
-                                                {filteredCities.map(c => <Select.Option key={c.id} value={c.id}>{c.name_ar}</Select.Option>)}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} md={6}>
-                                            <Text type="secondary" className="block mb-1">العقار</Text>
-                                            <Select
-                                                mode="multiple"
-                                                placeholder="كل العقارات"
-                                                value={filterBuilding}
-                                                onChange={setFilterBuilding}
-                                                allowClear
-                                                className="w-full"
-                                            >
-                                                {filteredBuildingOptions.map(b => <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>)}
-                                            </Select>
-                                        </Col>
-                                        <Col xs={24} md={4}>
-                                            <Text type="secondary" className="block mb-1">نظام التقويم</Text>
-                                            <antd.Radio.Group value={calendarMode} onChange={e => setCalendarMode(e.target.value)} className="w-full">
-                                                <antd.Radio.Button value="Gregorian" className="w-1/2 text-center text-xs">ميلادي</antd.Radio.Button>
-                                                <antd.Radio.Button value="Hijri" className="w-1/2 text-center text-xs">هجري</antd.Radio.Button>
-                                            </antd.Radio.Group>
-                                        </Col>
-                                        {calendarMode === 'Gregorian' ? (
-                                            <Col xs={24} md={5}>
-                                                <Text type="secondary" className="block mb-1">النطاق الزمني</Text>
-                                                <DatePicker.RangePicker className="w-full" value={gregorianRange} onChange={setGregorianRange} />
-                                            </Col>
-                                        ) : (
-                                            <>
-                                                <Col xs={12} md={3}>
-                                                    <Text type="secondary" className="block mb-1">السنة الهجرية</Text>
-                                                    <Select value={hijriYear} onChange={setHijriYear} placeholder="السنة" className="w-full">
-                                                        {[1445, 1446, 1447, 1448, 1449, 1450].map(y => <Select.Option key={y} value={y}>{y} هـ</Select.Option>)}
-                                                    </Select>
-                                                </Col>
-                                                <Col xs={12} md={3}>
-                                                    <Text type="secondary" className="block mb-1">الشهر</Text>
-                                                    <Select value={hijriMonth} onChange={setHijriMonth} className="w-full">
-                                                        <Select.Option value="all">الكل</Select.Option>
-                                                        {[
-                                                            { val: 1, label: 'محرم' }, { val: 2, label: 'صفر' }, { val: 3, label: 'ربيع الأول' },
-                                                            { val: 4, label: 'ربيع الثاني' }, { val: 5, label: 'جمادى الأولى' }, { val: 6, label: 'جمادى الآخرة' },
-                                                            { val: 7, label: 'رجب' }, { val: 8, label: 'شعبان' }, { val: 9, label: 'رمضان' },
-                                                            { val: 10, label: 'شوال' }, { val: 11, label: 'ذو القعدة' }, { val: 12, label: 'ذو الحجة' }
-                                                        ].map(m => <Select.Option key={m.val} value={m.val}>{m.label}</Select.Option>)}
-                                                    </Select>
-                                                </Col>
-                                            </>
-                                        )}
-                                        <Col xs={24} md={3} className="flex items-end">
-                                            <Space className="w-full" direction="vertical">
-                                                <Button type="primary" icon={<SearchOutlined />} onClick={handleGenerateReport} loading={loading} block>
-                                                    عرض التقرير
-                                                </Button>
-                                            </Space>
-                                        </Col>
-                                    </Row>
-                                </Card>
+                                <div className="sticky z-30 mb-6 bg-white rounded-2xl shadow-sm border-t-4" style={{ borderTopColor: reportTypes.find(r => r.key === selectedReport)?.color, position: 'sticky', top: '16px', zIndex: 100 }}>
+                                    <Collapse defaultActiveKey={['1']} ghost expandIconPosition="end">
+                                        <Collapse.Panel header={<span className="font-bold text-base text-primary font-cairo">🔍 لوحة الفلترة والبحث المتقدمة</span>} key="1">
+                                            <div className="p-4 space-y-4">
+                                                {/* Matrix Row */}
+                                                <Row gutter={[16, 16]}>
+                                                    <Col xs={24} md={6}>
+                                                        <Text type="secondary" className="block mb-1 font-cairo">المدينة</Text>
+                                                        <Select
+                                                            mode="multiple"
+                                                            placeholder="كل المدن"
+                                                            value={filterCity}
+                                                            onChange={(val) => { setFilterCity(val); setFilterBuilding([]); }}
+                                                            allowClear
+                                                            className="w-full"
+                                                        >
+                                                            {filteredCities.map(c => <Select.Option key={c.id} value={c.id}>{c.name_ar}</Select.Option>)}
+                                                        </Select>
+                                                    </Col>
+                                                    <Col xs={24} md={6}>
+                                                        <Text type="secondary" className="block mb-1 font-cairo">العقار</Text>
+                                                        <Select
+                                                            mode="multiple"
+                                                            placeholder="كل العقارات"
+                                                            value={filterBuilding}
+                                                            onChange={setFilterBuilding}
+                                                            allowClear
+                                                            className="w-full"
+                                                        >
+                                                            {filteredBuildingOptions.map(b => <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>)}
+                                                        </Select>
+                                                    </Col>
+                                                    <Col xs={24} md={4}>
+                                                        <Text type="secondary" className="block mb-1 font-cairo">نظام التقويم</Text>
+                                                        <antd.Radio.Group value={calendarMode} onChange={e => setCalendarMode(e.target.value)} className="w-full">
+                                                            <antd.Radio.Button value="Gregorian" className="w-1/2 text-center text-xs font-cairo">ميلادي</antd.Radio.Button>
+                                                            <antd.Radio.Button value="Hijri" className="w-1/2 text-center text-xs font-cairo">هجري</antd.Radio.Button>
+                                                        </antd.Radio.Group>
+                                                    </Col>
+                                                    {calendarMode === 'Gregorian' ? (
+                                                        <Col xs={24} md={8}>
+                                                            <Text type="secondary" className="block mb-1 font-cairo">النطاق الزمني</Text>
+                                                            <DatePicker.RangePicker className="w-full" value={gregorianRange} onChange={setGregorianRange} />
+                                                        </Col>
+                                                    ) : (
+                                                        <>
+                                                            <Col xs={12} md={4}>
+                                                                <Text type="secondary" className="block mb-1 font-cairo">السنة الهجرية</Text>
+                                                                <Select value={hijriYear} onChange={setHijriYear} placeholder="السنة" className="w-full">
+                                                                    {[1445, 1446, 1447, 1448, 1449, 1450].map(y => <Select.Option key={y} value={y}>{y} هـ</Select.Option>)}
+                                                                </Select>
+                                                            </Col>
+                                                            <Col xs={12} md={4}>
+                                                                <Text type="secondary" className="block mb-1 font-cairo">الشهر</Text>
+                                                                <Select value={hijriMonth} onChange={setHijriMonth} className="w-full">
+                                                                    <Select.Option value="all">الكل</Select.Option>
+                                                                    {[
+                                                                        { val: 1, label: 'محرم' }, { val: 2, label: 'صفر' }, { val: 3, label: 'ربيع الأول' },
+                                                                        { val: 4, label: 'ربيع الثاني' }, { val: 5, label: 'جمادى الأولى' }, { val: 6, label: 'جمادى الآخرة' },
+                                                                        { val: 7, label: 'رجب' }, { val: 8, label: 'شعبان' }, { val: 9, label: 'رمضان' },
+                                                                        { val: 10, label: 'شوال' }, { val: 11, label: 'ذو القعدة' }, { val: 12, label: 'ذو الحجة' }
+                                                                    ].map(m => <Select.Option key={m.val} value={m.val}>{m.label}</Select.Option>)}
+                                                                </Select>
+                                                            </Col>
+                                                        </>
+                                                    )}
+                                                </Row>
+
+                                                {/* Second Row: Specific selectors & sliders */}
+                                                <Row gutter={[16, 16]} className="items-center">
+                                                    {/* Alphanumeric text search */}
+                                                    <Col xs={24} md={6}>
+                                                        <Text type="secondary" className="block mb-1 font-cairo">البحث السريع في البيانات</Text>
+                                                        <Input 
+                                                            placeholder="ابحث بالاسم، الرقم، العقار..." 
+                                                            value={searchVal} 
+                                                            onChange={e => setSearchVal(e.target.value)} 
+                                                            allowClear
+                                                            className="font-cairo"
+                                                        />
+                                                    </Col>
+
+                                                    {/* Monetary Range Slider */}
+                                                    {selectedReport !== 'occupancy' && (
+                                                        <Col xs={24} md={8}>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <Text type="secondary" className="font-cairo">تصفية حسب القيمة</Text>
+                                                                <Text className="text-xs font-semibold text-primary font-cairo">
+                                                                    {sarFormatter(filterAmountRange[0])} - {sarFormatter(filterAmountRange[1])}
+                                                                </Text>
+                                                            </div>
+                                                            <antd.Slider 
+                                                                range 
+                                                                min={0} 
+                                                                max={maxAmountInDataset} 
+                                                                value={filterAmountRange} 
+                                                                onChange={setFilterAmountRange}
+                                                                tipFormatter={(val) => sarFormatter(val)}
+                                                            />
+                                                        </Col>
+                                                    )}
+
+                                                    {/* Payment & Direction Tags */}
+                                                    <Col xs={24} md={10}>
+                                                        <Space wrap size={[8, 8]} className="w-full">
+                                                            {/* Directions (Receipts / Expenses) - for Financial only */}
+                                                            {selectedReport === 'financial' && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Text type="secondary" className="text-xs font-cairo">النوع:</Text>
+                                                                    {['Receipt', 'Expense'].map(dir => {
+                                                                        const label = dir === 'Receipt' ? 'سند قبض' : 'سند صرف';
+                                                                        const active = filterDirections.includes(dir);
+                                                                        return (
+                                                                            <antd.Tag.CheckableTag
+                                                                                key={dir}
+                                                                                checked={active}
+                                                                                onChange={(checked) => {
+                                                                                    setFilterDirections(checked ? [...filterDirections, dir] : filterDirections.filter(d => d !== dir));
+                                                                                }}
+                                                                                className={`px-3 py-1 text-xs border rounded-full transition-all duration-300 font-cairo ${active ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-50 border-gray-200'}`}
+                                                                            >
+                                                                                {label}
+                                                                            </antd.Tag.CheckableTag>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Payment methods - for Financial, Collection, Expenses */}
+                                                            {['financial', 'collection', 'expenses'].includes(selectedReport) && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Text type="secondary" className="text-xs font-cairo">الدفع:</Text>
+                                                                    {['Cash', 'Bank Transfer'].map(method => {
+                                                                        const label = method === 'Cash' ? 'نقدي' : 'تحويل بنكي';
+                                                                        const active = filterPaymentMethods.includes(method);
+                                                                        return (
+                                                                            <antd.Tag.CheckableTag
+                                                                                key={method}
+                                                                                checked={active}
+                                                                                onChange={(checked) => {
+                                                                                    setFilterPaymentMethods(checked ? [...filterPaymentMethods, method] : filterPaymentMethods.filter(m => m !== method));
+                                                                                }}
+                                                                                className={`px-3 py-1 text-xs border rounded-full transition-all duration-300 font-cairo ${active ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-50 border-gray-200'}`}
+                                                                            >
+                                                                                {label}
+                                                                            </antd.Tag.CheckableTag>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Resolution filter tags - for leases only */}
+                                                            {selectedReport === 'leases' && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Text type="secondary" className="text-xs font-cairo">التسوية:</Text>
+                                                                    {[
+                                                                        { value: 'Rolled_Over', label: 'تم الترحيل للعقد الجديد' },
+                                                                        { value: 'Waived', label: 'إسقاط المبالغ / إعفاء' },
+                                                                        { value: 'Settled', label: 'تمت التسوية نقدياً' },
+                                                                        { value: 'Pending', label: 'معلّق (لم تتم التسوية)' }
+                                                                    ].map(item => {
+                                                                        const active = filterResolutions.includes(item.value);
+                                                                        return (
+                                                                            <antd.Tag.CheckableTag
+                                                                                key={item.value}
+                                                                                checked={active}
+                                                                                onChange={(checked) => {
+                                                                                    setFilterResolutions(checked ? [...filterResolutions, item.value] : filterResolutions.filter(r => r !== item.value));
+                                                                                }}
+                                                                                className={`px-3 py-1 text-xs border rounded-full transition-all duration-300 font-cairo ${active ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-50 border-gray-200'}`}
+                                                                            >
+                                                                                {item.label}
+                                                                            </antd.Tag.CheckableTag>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </Space>
+                                                    </Col>
+                                                </Row>
+
+                                                {/* Submit Button */}
+                                                <Row>
+                                                    <Col span={24} className="text-left mt-2">
+                                                        <Button type="primary" icon={<SearchOutlined />} onClick={handleGenerateReport} loading={loading} className="bg-primary hover:bg-opacity-90 font-cairo">
+                                                            تحميل وتحديث بيانات التقرير 🔄
+                                                        </Button>
+                                                    </Col>
+                                                </Row>
+                                            </div>
+                                        </Collapse.Panel>
+                                    </Collapse>
+                                </div>
                             )}
 
+                            {/* KPI Dynamic Summary Cards Banner */}
+                            <KPISummaryBanner />
+
                             {/* Preview Table */}
-                            {previewData.length > 0 && (
+                            {processedData.length > 0 && (
                                 <Card
                                     className="shadow-sm"
                                     title={
                                         <div className="flex justify-between items-center">
-                                            <span className="font-bold text-primary">
+                                            <span className="font-bold text-primary font-cairo">
                                                 {reportTypes.find(r => r.key === selectedReport)?.icon} {reportTypes.find(r => r.key === selectedReport)?.title}
-                                                <Tag color="blue" className="mr-3">{previewData.length} سجل</Tag>
+                                                <Tag color="blue" className="mr-3 font-cairo">{processedData.length} سجل</Tag>
                                             </span>
                                             <Button
                                                 type="primary"
                                                 icon={<FileTextOutlined />}
                                                 onClick={exportStyledExcel}
-                                                className="bg-primary"
+                                                className="bg-primary font-cairo"
                                             >
                                                 تصدير إلى إكسيل 📥
                                             </Button>
@@ -4560,23 +5099,24 @@
                                 >
                                     <Table
                                         columns={previewColumns}
-                                        dataSource={previewData}
+                                        dataSource={processedData}
                                         rowKey="key"
                                         bordered
                                         size="small"
                                         pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
                                         scroll={{ x: 'max-content' }}
                                         summary={() => renderSummary()}
+                                        onChange={handleTableChange}
                                         locale={{ emptyText: 'لا توجد بيانات مطابقة للفلاتر المحددة' }}
                                     />
                                 </Card>
                             )}
 
                             {/* Empty state */}
-                            {selectedReport && previewData.length === 0 && !loading && (
+                            {selectedReport && processedData.length === 0 && !loading && (
                                 <div className="text-center py-16 text-gray-400">
                                     <div className="text-5xl mb-4">📊</div>
-                                    <Title level={5} type="secondary">اختر الفلاتر ثم اضغط "عرض التقرير" لعرض البيانات</Title>
+                                    <Title level={5} type="secondary" className="font-cairo">لا توجد بيانات مطابقة للفلاتر المحددة. اختر الفلاتر ثم اضغط "عرض التقرير" لعرض البيانات</Title>
                                 </div>
                             )}
                         </div>
