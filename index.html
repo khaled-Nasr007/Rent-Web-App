@@ -306,7 +306,8 @@
             Typography, Statistic, Row, Col, Modal, Form,
             Input, InputNumber, Select, message, Spin,
             ConfigProvider, theme, Result, Drawer, Descriptions, Collapse,
-            Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker, Radio
+            Divider, Empty, Tooltip, Dropdown, Avatar, Checkbox, Popconfirm, DatePicker, Radio,
+            Alert
         } = antd;
 
         // Safe icon loader - creates a placeholder if an icon doesn't exist
@@ -975,7 +976,60 @@
             );
         };
 
-        const Dashboard = ({ stats }) => {
+        const Dashboard = ({ stats, profile, onNavigateToUnit }) => {
+            const alerts = useMemo(() => {
+                if (!stats.units) return [];
+                const today = dayjs().startOf('day');
+                
+                return stats.units
+                    .filter(u => u.is_rented && u.period_end)
+                    .map(u => {
+                        const expiryDate = dayjs(u.period_end).startOf('day');
+                        const diffDays = expiryDate.diff(today, 'day');
+                        
+                        // strictly bound target records to <= 7 days
+                        if (diffDays > 7) return null;
+                        
+                        const remainingBalance = (u.monthly_rent || 0) - (u.amount_paid || 0);
+                        const buildingName = stats.buildingSummaries?.find(b => b.id === u.building_id)?.name || 'عمارة غير معروفة';
+                        
+                        let alertType = 'warning'; // yellow (Amber Alert)
+                        let alertTitle = 'ينتهي خلال أسبوع أو أقل';
+                        
+                        if (diffDays < 0) {
+                            alertType = 'error'; // red (Red Alert)
+                            alertTitle = 'عقد منتهي';
+                        }
+                        
+                        let countdownText = '';
+                        if (diffDays < 0) {
+                            const absDays = Math.abs(diffDays);
+                            countdownText = `منتهي منذ ${absDays === 1 ? 'يوم' : absDays === 2 ? 'يومين' : `${absDays} أيام`}`;
+                        } else if (diffDays === 0) {
+                            countdownText = 'ينتهي اليوم (أقل من 24 ساعة)';
+                        } else if (diffDays === 1) {
+                            countdownText = 'ينتهي غداً';
+                        } else if (diffDays === 2) {
+                            countdownText = 'ينتهي بعد يومين';
+                        } else {
+                            countdownText = `ينتهي خلال ${diffDays} أيام`;
+                        }
+
+                        return {
+                            id: u.id,
+                            unitNumber: u.unit_number,
+                            buildingName,
+                            remainingBalance,
+                            alertType,
+                            alertTitle,
+                            countdownText,
+                            periodEnd: u.period_end
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => new Date(a.periodEnd) - new Date(b.periodEnd));
+            }, [stats.units, stats.buildingSummaries]);
+
             return (
                 <div className="space-y-6">
                     <Row gutter={[16, 16]}>
@@ -1041,6 +1095,50 @@
                         </Col>
                     </Row>
 
+                    {/* Expiry alerts section */}
+                    {alerts.length > 0 && (
+                        <Card 
+                            title={<span className="text-red-700 font-bold flex items-center gap-2">⚠️ نظام إشعارات العقود والمديونيات ({alerts.length})</span>} 
+                            className="shadow-sm border-red-200"
+                        >
+                            <div className="space-y-3">
+                                {alerts.map(alert => {
+                                    const alertMessage = (
+                                        <div className="flex justify-between items-center w-full flex-wrap gap-2 text-sm">
+                                            <span>
+                                                <strong>[{alert.alertTitle}]</strong> - العمارة: {alert.buildingName} | الوحدة رقم: {alert.unitNumber} | المتبقي غير المسدد: <span className="font-bold text-red-600">{sarFormatter(alert.remainingBalance)}</span>
+                                            </span>
+                                            <Tag color={alert.alertType === 'error' ? 'red' : 'gold'} className="font-semibold m-0">
+                                                {alert.countdownText}
+                                            </Tag>
+                                        </div>
+                                    );
+                                    
+                                    return (
+                                        <Alert
+                                            key={alert.id}
+                                            message={alertMessage}
+                                            type={alert.alertType}
+                                            showIcon
+                                            className="rounded-lg shadow-sm border border-slate-100"
+                                            action={
+                                                <Button 
+                                                    type="primary" 
+                                                    size="small" 
+                                                    ghost
+                                                    onClick={() => onNavigateToUnit(alert.id)}
+                                                    className="hover:bg-primary hover:text-white"
+                                                >
+                                                    عرض الملف المالي
+                                                </Button>
+                                            }
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </Card>
+                    )}
+
                     <Card title="ملخص المباني والوحدات" className="shadow-sm">
                         <Table
                             dataSource={stats.buildingSummaries}
@@ -1063,7 +1161,7 @@
         };
 
 
-        const BuildingManager = ({ profile, cities }) => {
+        const BuildingManager = ({ profile, cities, targetBuildingId, targetUnitId, onClearRoute }) => {
             const [buildings, setBuildings] = useState([]);
             const [loading, setLoading] = useState(true);
             const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1135,6 +1233,15 @@
                     loadBuilding();
                 }
             }, []);
+
+            useEffect(() => {
+                if (targetBuildingId && buildings.length > 0) {
+                    const found = buildings.find(b => b.id === targetBuildingId);
+                    if (found) {
+                        setSelectedBuilding({ ...found, viewUnits: true });
+                    }
+                }
+            }, [targetBuildingId, buildings]);
 
             const handleSave = async (values) => {
                 let cityId = values.city_id;
@@ -1317,9 +1424,13 @@
                             building={selectedBuilding}
                             profile={profile}
                             cities={cities}
+                            targetUnitId={targetUnitId}
+                            onClearRoute={onClearRoute}
                             onBack={() => {
                                 setSelectedBuilding(null);
                                 fetchBuildings();
+                                if (onClearRoute) onClearRoute();
+                                window.history.pushState(null, '', '/');
                             }}
                         />
                     )}
@@ -1327,7 +1438,7 @@
             );
         };
 
-        const UnitLedger = ({ building, onBack, profile, cities }) => {
+        const UnitLedger = ({ building, onBack, profile, cities, targetUnitId, onClearRoute }) => {
             const [units, setUnits] = useState([]);
             const [loading, setLoading] = useState(true);
             const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1423,6 +1534,15 @@
             }, [building.id, fetchFinancialData]);
 
             useEffect(() => { fetchUnits(); }, [fetchUnits]);
+
+            useEffect(() => {
+                if (targetUnitId && units.length > 0) {
+                    const foundUnit = units.find(u => u.id === targetUnitId);
+                    if (foundUnit) {
+                        showUnitProfile(foundUnit);
+                    }
+                }
+            }, [targetUnitId, units]);
 
             const onFormValuesChange = (changedValues) => {
                 if (changedValues.rent_period) {
@@ -2825,7 +2945,11 @@
                     <Drawer
                         title={`ملف وتفاصيل الوحدة: ${selectedUnit?.unit_number}`}
                         placement="right"
-                        onClose={() => setUnitProfileOpen(false)}
+                        onClose={() => {
+                            setUnitProfileOpen(false);
+                            if (onClearRoute) onClearRoute();
+                            window.history.pushState(null, '', '/');
+                        }}
                         open={unitProfileOpen}
                         width="60%"
                     >
@@ -6572,7 +6696,44 @@
             const [activeTab, setActiveTab] = useState('dashboard');
             const [cities, setCities] = useState([]);
             const [selectedCity, setSelectedCity] = useState(null);
-            const [stats, setStats] = useState({ totalBuildings: 0, totalUnits: 0, totalPaid: 0, collectionRate: 0, cityStats: [] });
+            const [stats, setStats] = useState({ totalBuildings: 0, totalUnits: 0, totalPaid: 0, collectionRate: 0, cityStats: [], units: [] });
+            const [targetUnitId, setTargetUnitId] = useState(null);
+            const [targetBuildingId, setTargetBuildingId] = useState(null);
+
+            const handleNavigateToUnit = useCallback(async (unitId) => {
+                const { data, error } = await supabase.from('units').select('building_id').eq('id', unitId).single();
+                if (error || !data) {
+                    message.error("تعذر العثور على الوحدة المطلوبة");
+                    return;
+                }
+                window.history.pushState({ unitId }, '', `/units/${unitId}`);
+                setTargetUnitId(unitId);
+                setTargetBuildingId(data.building_id);
+                setActiveTab('properties');
+            }, []);
+
+            const handlePopState = useCallback(async () => {
+                const path = window.location.pathname;
+                const match = path.match(/\/units\/([a-zA-Z0-9-]+)/);
+                if (match) {
+                    const unitId = match[1];
+                    setTargetUnitId(unitId);
+                    const { data, error } = await supabase.from('units').select('building_id').eq('id', unitId).single();
+                    if (!error && data) {
+                        setTargetBuildingId(data.building_id);
+                        setActiveTab('properties');
+                    }
+                } else {
+                    setTargetUnitId(null);
+                    setTargetBuildingId(null);
+                }
+            }, []);
+
+            useEffect(() => {
+                window.addEventListener('popstate', handlePopState);
+                handlePopState();
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, [handlePopState]);
             const [allUsers, setAllUsers] = useState([]);
             const [allBuildings, setAllBuildings] = useState([]);
 
@@ -6688,7 +6849,8 @@
                     collectedBank,
                     collectionRate: Math.round((totalPaid / totalExpected) * 100),
                     cityStats,
-                    buildingSummaries
+                    buildingSummaries,
+                    units: uData
                 });
 
                 if (prof && prof.role === 'admin') {
@@ -6790,6 +6952,9 @@
                                             handleLogout();
                                         } else {
                                             setActiveTab(key);
+                                            setTargetUnitId(null);
+                                            setTargetBuildingId(null);
+                                            window.history.pushState(null, '', '/');
                                         }
                                     }}
                                     className="border-none mt-4"
@@ -6812,11 +6977,23 @@
                                     </Space>
                                 </Header>
                                 <Content className="p-6 overflow-auto">
-                                    {activeTab === 'dashboard' && <Dashboard stats={stats} />}
+                                    {activeTab === 'dashboard' && (
+                                        <Dashboard 
+                                            stats={stats} 
+                                            profile={profile} 
+                                            onNavigateToUnit={handleNavigateToUnit} 
+                                        />
+                                    )}
                                     {activeTab === 'properties' && (
                                         <BuildingManager
                                             cities={cities}
                                             profile={profile}
+                                            targetBuildingId={targetBuildingId}
+                                            targetUnitId={targetUnitId}
+                                            onClearRoute={() => {
+                                                setTargetUnitId(null);
+                                                setTargetBuildingId(null);
+                                            }}
                                         />
                                     )}
                                     {activeTab === 'vouchers' && (
