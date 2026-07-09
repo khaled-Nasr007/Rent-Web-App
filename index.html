@@ -3363,7 +3363,7 @@
                     }
 
                     // Step 2: Call the RPC function to securely update the target user
-                    const targetEmail = newUsername ? (newUsername.includes('@') ? newUsername : `${newUsername}@gmail.com`) : null;
+                    const targetEmail = newUsername || null;
                     const { error: updateError } = await supabase.rpc('admin_update_user_credentials', {
                         target_user_id: credentialRecord.id,
                         new_email: targetEmail,
