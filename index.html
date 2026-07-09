@@ -57,6 +57,15 @@
             font-family: 'Cairo', sans-serif !important;
         }
 
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+        .shake-effect {
+            animation: shake 0.5s ease-in-out;
+        }
+
         .glass-card {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
@@ -714,8 +723,32 @@
         const ExpenseVoucherModal = ({ voucher, visible, onClose }) => {
             const { can_report, role } = useAppSession();
             const canPrint = role === 'admin' || can_report;
+            const [fetchedVoucher, setFetchedVoucher] = useState(null);
 
-            if (!voucher) return null;
+            useEffect(() => {
+                if (visible && voucher?.id) {
+                    const fetchVoucher = async () => {
+                        const { data, error } = await supabase
+                            .from('vouchers_expense')
+                            .select(`
+                                *,
+                                buildings ( name ),
+                                units ( unit_number )
+                            `)
+                            .eq('id', voucher.id)
+                            .single();
+                        if (!error && data) {
+                            setFetchedVoucher(data);
+                        }
+                    };
+                    fetchVoucher();
+                } else {
+                    setFetchedVoucher(null);
+                }
+            }, [visible, voucher?.id]);
+
+            const activeVoucher = fetchedVoucher || voucher;
+            if (!activeVoucher) return null;
 
             const handlePrint = () => {
                 window.print();
@@ -730,6 +763,9 @@
                     default: return cat; // Custom categories stored directly
                 }
             };
+
+            const displayBuilding = activeVoucher.buildings?.name || activeVoucher.building_name || 'العمارة بالكامل';
+            const displayUnit = activeVoucher.units?.unit_number || activeVoucher.unit_number || (activeVoucher.unit_id ? '-' : 'مصروف تشغيلي عام');
 
             return (
                 <Modal
@@ -747,12 +783,12 @@
                     <div className="print-receipt-section p-6">
                         <div className="voucher-card voucher-border-accent">
                             {/* Status Banner */}
-                            {voucher.approval_status === 'pending' && (
+                            {activeVoucher.approval_status === 'pending' && (
                                 <div className="bg-amber-500 text-white text-center py-2 font-bold text-sm border-b border-amber-600">
                                     ⚠️ هذا السند قيد المراجعة والاعتماد ولم يتم ترحيله للحسابات بعد
                                 </div>
                             )}
-                            {voucher.approval_status === 'rejected' && (
+                            {activeVoucher.approval_status === 'rejected' && (
                                 <div className="bg-red-600 text-white text-center py-2 font-bold text-sm border-b border-red-700">
                                     ❌ هذا السند مرفوض وغير معتمد ماليّاً
                                 </div>
@@ -768,10 +804,10 @@
                                     <p className="text-red-100 text-xs mt-1 mb-0">بوابة تحصيل الإيجارات السعودية</p>
                                 </div>
                                 <div className="text-left" style={{ textAlign: 'left' }}>
-                                    <div className="text-sm font-bold">رقم السند: {voucher.voucher_number}</div>
+                                    <div className="text-sm font-bold">رقم السند: {activeVoucher.voucher_number}</div>
                                     <div className="text-xs text-red-100 mt-1">
-                                        التاريخ: {voucher.created_at ? dayjs(voucher.created_at).format('YYYY-MM-DD م') : ''}
-                                        {voucher.created_at ? ` | ${toHijriShort(voucher.created_at)} هـ` : ''}
+                                        التاريخ: {activeVoucher.created_at ? dayjs(activeVoucher.created_at).format('YYYY-MM-DD م') : ''}
+                                        {activeVoucher.created_at ? ` | ${toHijriShort(activeVoucher.created_at)} هـ` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -783,16 +819,16 @@
                                     <Col span={12}>
                                         <Card size="small" title="تفاصيل العقار والوحدة" bordered={false} className="bg-slate-50">
                                             <Descriptions column={1} size="small">
-                                                <Descriptions.Item label="العقار">{voucher.building_name || '-'}</Descriptions.Item>
-                                                <Descriptions.Item label="رقم الوحدة">{voucher.unit_number || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="العقار">{displayBuilding}</Descriptions.Item>
+                                                <Descriptions.Item label="رقم الوحدة">{displayUnit}</Descriptions.Item>
                                             </Descriptions>
                                         </Card>
                                     </Col>
                                     <Col span={12}>
                                         <Card size="small" title="تفاصيل التصنيف والعملية" bordered={false} className="bg-slate-50">
                                             <Descriptions column={1} size="small">
-                                                <Descriptions.Item label="بند المصروف">{translateCategory(voucher.category)}</Descriptions.Item>
-                                                <Descriptions.Item label="طريقة الدفع">{voucher.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'نقدي / كاش'}</Descriptions.Item>
+                                                <Descriptions.Item label="بند المصروف">{translateCategory(activeVoucher.category)}</Descriptions.Item>
+                                                <Descriptions.Item label="طريقة الدفع">{activeVoucher.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'نقدي / كاش'}</Descriptions.Item>
                                             </Descriptions>
                                         </Card>
                                     </Col>
@@ -801,7 +837,7 @@
                                 {/* Row 2: Description */}
                                 <Card size="small" title="البيان والتفاصيل" bordered={false} className="bg-slate-50">
                                     <div className="text-sm text-gray-700 min-h-[60px]">
-                                        {voucher.description || '-'}
+                                        {activeVoucher.description || '-'}
                                     </div>
                                 </Card>
 
@@ -811,23 +847,23 @@
                                         <Col span={24}>
                                             <div className="text-xs text-gray-500">المبلغ المنصرف (ر.س)</div>
                                             <div className="text-3xl font-extrabold text-red-700 mt-1">
-                                                {sarFormatter(voucher.amount || 0)}
+                                                {sarFormatter(activeVoucher.amount || 0)}
                                             </div>
                                             <div className="text-xs text-gray-400 mt-1">
-                                                المبلغ رقماً وكتابةً: {voucher.amount ? voucher.amount : 0} ريال سعودي فقط لا غير.
+                                                المبلغ رقماً وكتابةً: {activeVoucher.amount ? activeVoucher.amount : 0} ريال سعودي فقط لا غير.
                                             </div>
                                         </Col>
                                     </Row>
                                 </div>
 
                                 {/* Row 4: Manager Approval Stamp */}
-                                {voucher.approved_by && (
+                                {activeVoucher.approved_by && (
                                     <div className="mt-4 p-3 rounded-lg border-2 border-amber-400 bg-amber-50 flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white text-lg flex-shrink-0">🔏</div>
                                         <div>
                                             <div className="text-[10px] text-amber-700 font-bold uppercase tracking-widest">اعتماد رسمي — معتمد من المسؤول</div>
-                                            <div className="text-sm font-bold text-amber-900 mt-0.5">{voucher.approved_by}</div>
-                                            <div className="text-[10px] text-amber-600 mt-0.5">وافق وأعتمد صرف هذا المبلغ بتاريخ {voucher.created_at ? dayjs(voucher.created_at).format('YYYY-MM-DD HH:mm') : ''}</div>
+                                            <div className="text-sm font-bold text-amber-900 mt-0.5">{activeVoucher.approved_by}</div>
+                                            <div className="text-[10px] text-amber-600 mt-0.5">وافق وأعتمد صرف هذا المبلغ بتاريخ {activeVoucher.created_at ? dayjs(activeVoucher.created_at).format('YYYY-MM-DD HH:mm') : ''}</div>
                                         </div>
                                     </div>
                                 )}
@@ -845,7 +881,7 @@
                                         </Col>
                                         <Col span={8}>
                                             <div className="text-[10px] text-amber-700 font-bold mb-1">🔏 المسؤول المعتمِد</div>
-                                            <div className="text-xs text-amber-900 font-semibold mb-8">{voucher.approved_by || 'مدير العقار / المالك'}</div>
+                                            <div className="text-xs text-amber-900 font-semibold mb-8">{activeVoucher.approved_by || 'مدير العقار / المالك'}</div>
                                             <div className="border-t-2 border-amber-400 w-3/4 mx-auto pt-1 text-xs text-amber-700">الاعتماد والتوقيع الرسمي</div>
                                         </Col>
                                     </Row>
@@ -855,11 +891,11 @@
                                 <div className="flex justify-between items-center text-xs text-gray-400 pt-2 border-t border-gray-100">
                                     <div>
                                         <span>سند صرف معتمد رقمياً وبشكل رسمي</span>
-                                        <div className="mt-1">بواسطة: {displayUsername(voucher.created_by_email)}</div>
+                                        <div className="mt-1">بواسطة: {displayUsername(activeVoucher.created_by_email)}</div>
                                     </div>
                                     <div className="text-left" style={{ textAlign: 'left' }}>
                                         <span>تاريخ الإصدار: </span>
-                                        <span>{voucher.created_at ? dayjs(voucher.created_at).format('YYYY-MM-DD HH:mm:ss') : ''}</span>
+                                        <span>{activeVoucher.created_at ? dayjs(activeVoucher.created_at).format('YYYY-MM-DD HH:mm:ss') : ''}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1316,6 +1352,7 @@
             // Receipt States
             const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
             const [selectedUnitReceipts, setSelectedUnitReceipts] = useState([]);
+            const [selectedUnitExpenses, setSelectedUnitExpenses] = useState([]);
             const [activeReceipt, setActiveReceipt] = useState(null);
             const [receiptModalVisible, setReceiptModalVisible] = useState(false);
 
@@ -1690,6 +1727,10 @@
             };
 
             const showUnitProfile = async (unit) => {
+                if (!isAssignedBuilding(profile, unit.building_id)) {
+                    message.error("غير مصرح لك بالوصول إلى بيانات هذه الوحدة");
+                    return;
+                }
                 setLoading(true);
                 try {
                     setSelectedUnit(unit);
@@ -1702,6 +1743,15 @@
                         .order('created_at', { ascending: false });
                     if (recsErr) throw recsErr;
                     setSelectedUnitReceipts(recs || []);
+
+                    // Fetch expenses
+                    const { data: exps, error: expsErr } = await supabase
+                        .from('vouchers_expense')
+                        .select('*')
+                        .eq('unit_id', unit.id)
+                        .order('created_at', { ascending: false });
+                    if (expsErr) throw expsErr;
+                    setSelectedUnitExpenses(exps || []);
 
                     // Fetch history archive (with fallback to log warning but allow normal UI)
                     let archs = [];
@@ -2881,43 +2931,101 @@
                                         ]}
                                     />
                                 </Collapse.Panel>
-                                {selectedUnit?.is_rented && (
-                                    <Collapse.Panel header={<span className="font-bold text-primary">💵 سجل سندات القبض للوحدة</span>} key="2">
-                                        <Table
-                                            dataSource={selectedUnitReceipts}
-                                            rowKey="id"
-                                            size="small"
-                                            columns={[
-                                                { title: 'رقم السند', dataIndex: 'receipt_number', key: 'receipt_number' },
-                                                { title: 'المبلغ المستلم', dataIndex: 'amount_received', key: 'amount_received', render: v => sarFormatter(v) },
-                                                { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
-                                                { title: 'تاريخ التحصيل', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD') },
-                                                {
-                                                    title: 'إجراءات',
-                                                    key: 'actions',
-                                                    render: (_, record) => (
-                                                        <Space>
-                                                            <Button size="small" type="link" onClick={() => {
-                                                                setActiveReceipt(record);
-                                                                setReceiptModalVisible(true);
-                                                            }}>عرض السند</Button>
-                                                            {(profile?.role === 'admin' || profile?.can_edit || profile?.can_delete) && (
-                                                                <>
-                                                                    {(profile?.role === 'admin' || profile?.can_edit) && (
-                                                                        <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
+                                <Collapse.Panel header={<span className="font-bold text-primary">💵 السندات والعمليات المالية للوحدة (Financial Transactions)</span>} key="2">
+                                    <antd.Tabs defaultActiveKey="receipts" items={[
+                                        {
+                                            key: 'receipts',
+                                            label: 'سندات القبض (Receipts & Collections)',
+                                            children: (
+                                                <Table
+                                                    dataSource={selectedUnitReceipts}
+                                                    rowKey="id"
+                                                    size="small"
+                                                    locale={{ emptyText: 'لا توجد سندات قبض لهذه الوحدة' }}
+                                                    columns={[
+                                                        { title: 'رقم السند', dataIndex: 'receipt_number', key: 'receipt_number' },
+                                                        { title: 'المبلغ المستلم', dataIndex: 'amount_received', key: 'amount_received', render: v => sarFormatter(v) },
+                                                        { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
+                                                        { title: 'تاريخ التحصيل', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD') },
+                                                        {
+                                                            title: 'إجراءات',
+                                                            key: 'actions',
+                                                            render: (_, record) => (
+                                                                <Space>
+                                                                    <Button size="small" type="link" onClick={() => {
+                                                                        setActiveReceipt(record);
+                                                                        setReceiptModalVisible(true);
+                                                                    }}>عرض السند</Button>
+                                                                    {(profile?.role === 'admin' || profile?.can_edit || profile?.can_delete) && (
+                                                                        <>
+                                                                            {(profile?.role === 'admin' || profile?.can_edit) && (
+                                                                                <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
+                                                                            )}
+                                                                            {(profile?.role === 'admin' || profile?.can_delete) && (
+                                                                                <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
+                                                                            )}
+                                                                        </>
                                                                     )}
-                                                                    {(profile?.role === 'admin' || profile?.can_delete) && (
-                                                                        <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                        </Space>
-                                                    )
-                                                }
-                                            ]}
-                                        />
-                                    </Collapse.Panel>
-                                )}
+                                                                </Space>
+                                                            )
+                                                        }
+                                                    ]}
+                                                />
+                                            )
+                                        },
+                                        {
+                                            key: 'expenses',
+                                            label: 'سندات الصرف (Expense Vouchers)',
+                                            children: (
+                                                <Table
+                                                    dataSource={selectedUnitExpenses}
+                                                    rowKey="id"
+                                                    size="small"
+                                                    locale={{ emptyText: 'لا توجد سندات صرف لهذه الوحدة' }}
+                                                    columns={[
+                                                        { title: 'التاريخ', dataIndex: 'created_at', key: 'date', render: v => dayjs(v).format('YYYY-MM-DD') },
+                                                        { title: 'رقم السند', dataIndex: 'voucher_number', key: 'voucher_number' },
+                                                        { title: 'المبلغ', dataIndex: 'amount', key: 'amount', render: v => <span className="text-red-600 font-semibold">{sarFormatter(v)}</span> },
+                                                        { 
+                                                            title: 'البيان والنوع', 
+                                                            key: 'category_details', 
+                                                            render: (_, r) => {
+                                                                const translateCategoryLocal = (cat) => {
+                                                                    if (!cat) return '-';
+                                                                    switch(cat) {
+                                                                        case 'Maintenance': return 'صيانة';
+                                                                        case 'Utilities': return 'خدمات';
+                                                                        case 'General': return 'أخرى';
+                                                                        default: return cat;
+                                                                    }
+                                                                };
+                                                                const translatedCat = translateCategoryLocal(r.category);
+                                                                return (
+                                                                    <div>
+                                                                        <Tag color="orange" style={{ marginInlineEnd: 8 }}>{translatedCat}</Tag>
+                                                                        {r.description && <span className="text-xs text-gray-500">{r.description}</span>}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        },
+                                                        {
+                                                            title: 'الإجراءات',
+                                                            key: 'actions',
+                                                            render: (_, record) => (
+                                                                <Space>
+                                                                    <Button size="small" type="link" onClick={() => {
+                                                                        setActiveExpense(record);
+                                                                        setExpensePreviewVisible(true);
+                                                                    }}>عرض السند</Button>
+                                                                </Space>
+                                                            )
+                                                        }
+                                                    ]}
+                                                />
+                                            )
+                                        }
+                                    ]} />
+                                </Collapse.Panel>
                             </Collapse>
                         </div>
                     </Drawer>
@@ -3119,6 +3227,23 @@
             const [selectedUser, setSelectedUser] = useState(null);
             const [form] = Form.useForm();
 
+            const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(false);
+            const [currentPassword, setCurrentPassword] = useState('');
+            const [newPassword, setNewPassword] = useState('');
+            const [confirmPassword, setConfirmPassword] = useState('');
+            const [formLocked, setFormLocked] = useState(false);
+            const [shake, setShake] = useState(false);
+            const [resetForm] = Form.useForm();
+
+            const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
+            const [credentialRecord, setCredentialRecord] = useState(null);
+            const [adminPassword, setAdminPassword] = useState('');
+            const [newUsername, setNewUsername] = useState('');
+            const [newUserPassword, setNewUserPassword] = useState('');
+            const [credentialFormLocked, setCredentialFormLocked] = useState(false);
+            const [credentialShake, setCredentialShake] = useState(false);
+            const [credentialForm] = Form.useForm();
+
             const [localUsers, setLocalUsers] = useState(users);
             const [loadingRows, setLoadingRows] = useState({});
             const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -3136,6 +3261,147 @@
                     setAssignSelectedIds([]);
                 }
             }, [assignRecord]);
+
+            const handleResetMyPassword = async () => {
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    message.warning("الرجاء تعبئة جميع الحقول");
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    message.error("كلمة المرور الجديدة وتأكيدها غير متطابقتين.");
+                    return;
+                }
+
+                // Password standards check (min 8 chars, numbers, symbols)
+                const hasNumber = /\d/.test(newPassword);
+                const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+                if (newPassword.length < 8 || !hasNumber || !hasSymbol) {
+                    message.error("يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل، وتحتوي على أرقام ورموز.");
+                    return;
+                }
+
+                try {
+                    // Step 1: Verify current password via sign in
+                    const { data, error: authError } = await supabase.auth.signInWithPassword({
+                        email: currentProfile.email,
+                        password: currentPassword
+                    });
+
+                    if (authError) {
+                        setFormLocked(true);
+                        setShake(true);
+                        setTimeout(() => setShake(false), 500);
+                        message.error("عذراً، كلمة المرور الحالية غير صحيحة. لا يمكن إتمام العملية.");
+                        return;
+                    }
+
+                    // Step 2: Update password via auth helper
+                    const { error: updateError } = await supabase.auth.updateUser({
+                        password: newPassword
+                    });
+
+                    if (updateError) {
+                        message.error("فشل تحديث كلمة المرور: " + updateError.message);
+                        return;
+                    }
+
+                    // Write log to system_logs
+                    await logActivity('UPDATE', 'AUTH', currentProfile.id, 'قام المستخدم بتحديث كلمة المرور الخاصة به وتأكيد الهوية');
+
+                    // Success sequence
+                    message.success("تم تحديث كلمة المرور بنجاح وبأمان.");
+                    setIsPasswordResetModalOpen(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setFormLocked(false);
+                    resetForm.resetFields();
+                } catch (err) {
+                    message.error("حدث خطأ أثناء المعالجة: " + err.message);
+                }
+            };
+
+            const handleCancelPasswordReset = () => {
+                setIsPasswordResetModalOpen(false);
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+                setFormLocked(false);
+                resetForm.resetFields();
+            };
+
+            const handleAdminOverwriteCredentials = async () => {
+                if (!adminPassword) {
+                    message.warning("الرجاء إدخال كلمة مرور المسؤول للتحقق من هويتك.");
+                    return;
+                }
+
+                if (!newUsername && !newUserPassword) {
+                    message.warning("لم يتم تعديل أي من الحقول (اسم المستخدم أو كلمة المرور).");
+                    return;
+                }
+
+                if (newUserPassword && newUserPassword.length < 8) {
+                    message.error("يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل.");
+                    return;
+                }
+
+                try {
+                    // Step 1: Super Admin Verification via sign in
+                    const { data, error: authError } = await supabase.auth.signInWithPassword({
+                        email: currentProfile.email,
+                        password: adminPassword
+                    });
+
+                    if (authError) {
+                        setCredentialFormLocked(true);
+                        setCredentialShake(true);
+                        setTimeout(() => setCredentialShake(false), 500);
+                        message.error("عذراً، كلمة مرور المسؤول غير صحيحة. تم رفض العملية لحماية النظام.");
+                        return;
+                    }
+
+                    // Step 2: Call the RPC function to securely update the target user
+                    const targetEmail = newUsername ? (newUsername.includes('@') ? newUsername : `${newUsername}@gmail.com`) : null;
+                    const { error: updateError } = await supabase.rpc('admin_update_user_credentials', {
+                        target_user_id: credentialRecord.id,
+                        new_email: targetEmail,
+                        new_password: newUserPassword || null
+                    });
+
+                    if (updateError) {
+                        message.error("فشل تحديث بيانات المستخدم: " + updateError.message);
+                        return;
+                    }
+
+                    // Audit Log Registration
+                    const finalUsername = targetEmail || credentialRecord.email;
+                    await logActivity('UPDATE', 'AUTH', credentialRecord.id, `قام المسؤول العام بتغيير بيانات الأمان والاعتماد للمستخدم: ${displayUsername(finalUsername)}`);
+
+                    // Success sequence
+                    message.success("تم تحديث بيانات الحساب والأمان للمستخدم بنجاح.");
+                    setIsCredentialModalOpen(false);
+                    setCredentialRecord(null);
+                    setAdminPassword('');
+                    setNewUsername('');
+                    setNewUserPassword('');
+                    setCredentialFormLocked(false);
+                    credentialForm.resetFields();
+                } catch (err) {
+                    message.error("حدث خطأ أثناء المعالجة: " + err.message);
+                }
+            };
+
+            const handleCancelCredentialModal = () => {
+                setIsCredentialModalOpen(false);
+                setCredentialRecord(null);
+                setAdminPassword('');
+                setNewUsername('');
+                setNewUserPassword('');
+                setCredentialFormLocked(false);
+                credentialForm.resetFields();
+            };
 
             const logAdminActivity = async (actionType, userId, description) => {
                 if (currentProfile?.email === SUPER_ADMIN_EMAIL) {
@@ -3336,7 +3602,16 @@
                 <div className="space-y-4">
                     <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
                         <Title level={4} className="!mb-0">إدارة المستخدمين والصلاحيات</Title>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedUser(null); form.resetFields(); setIsModalOpen(true); }}>دعوة مستخدم جديد</Button>
+                        <Space>
+                            <Button 
+                                icon={<LockOutlined />} 
+                                onClick={() => setIsPasswordResetModalOpen(true)}
+                                className="border-amber-600 text-amber-600 hover:text-amber-700 hover:border-amber-700 font-semibold"
+                            >
+                                تغيير كلمة المرور الخاصة بي
+                            </Button>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedUser(null); form.resetFields(); setIsModalOpen(true); }}>دعوة مستخدم جديد</Button>
+                        </Space>
                     </div>
 
                     <Card className="shadow-sm">
@@ -3419,14 +3694,11 @@
                                                 size="small"
                                                 disabled={loadingRows[record.id]}
                                                 onClick={() => {
-                                                    const newPass = prompt("أدخل كلمة المرور الجديدة للمستخدم:");
-                                                    if (newPass && newPass.length >= 6) {
-                                                        handleUpdatePassword(record.id, newPass);
-                                                    } else if (newPass) {
-                                                        message.warning("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
-                                                    }
+                                                    setCredentialRecord(record);
+                                                    setNewUsername(displayUsername(record.email));
+                                                    setIsCredentialModalOpen(true);
                                                 }}
-                                                title="تغيير كلمة المرور"
+                                                title="تغيير كلمة المرور والاعتمادات"
                                             />
                                             <Popconfirm
                                                 title="حذف المستخدم؟"
@@ -3618,6 +3890,131 @@
                                     );
                                 })}
                             </div>
+                        </div>
+                    </Modal>
+
+                    <Modal
+                        open={isPasswordResetModalOpen}
+                        onCancel={handleCancelPasswordReset}
+                        title={<div className="font-bold text-primary text-lg border-b pb-2 mb-4">🔐 تغيير كلمة المرور للمسؤول</div>}
+                        footer={[
+                            <Button key="cancel" onClick={handleCancelPasswordReset} className="no-print">إغلاق</Button>,
+                            <Button 
+                                key="submit" 
+                                type="primary" 
+                                danger 
+                                disabled={formLocked} 
+                                onClick={handleResetMyPassword}
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                            >
+                                تحديث كلمة المرور
+                            </Button>
+                        ]}
+                        width={480}
+                    >
+                        <div className={shake ? "shake-effect" : ""}>
+                            <Form
+                                layout="vertical"
+                                form={resetForm}
+                                disabled={formLocked}
+                            >
+                                <Form.Item label="كلمة المرور الحالية" required>
+                                    <Input.Password
+                                        value={currentPassword}
+                                        onChange={e => setCurrentPassword(e.target.value)}
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        placeholder="أدخل كلمة المرور الحالية للتحقق من هويتك"
+                                        visibilityToggle
+                                    />
+                                </Form.Item>
+                                <Form.Item label="كلمة المرور الجديدة" required>
+                                    <Input.Password
+                                        value={newPassword}
+                                        onChange={e => setNewPassword(e.target.value)}
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        placeholder="كلمة المرور الجديدة (8 خانات على الأقل، أرقام ورموز)"
+                                        visibilityToggle
+                                    />
+                                </Form.Item>
+                                <Form.Item label="تأكيد كلمة المرور الجديدة" required>
+                                    <Input.Password
+                                        value={confirmPassword}
+                                        onChange={e => setConfirmPassword(e.target.value)}
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        placeholder="أعد إدخال كلمة المرور الجديدة للتأكيد"
+                                        visibilityToggle
+                                    />
+                                </Form.Item>
+                                {formLocked && (
+                                    <div className="text-center text-red-600 font-semibold mt-2 border border-red-200 bg-red-50 p-2 rounded">
+                                        🔒 تم قفل النموذج بسبب فشل التحقق. الرجاء إغلاق النافذة والمحاولة مجدداً.
+                                    </div>
+                                )}
+                            </Form>
+                        </div>
+                    </Modal>
+
+                    <Modal
+                        open={isCredentialModalOpen}
+                        onCancel={handleCancelCredentialModal}
+                        title={<div className="font-bold text-primary text-lg border-b pb-2 mb-4">🔐 تعديل بيانات الحساب والأمان للمستخدم</div>}
+                        footer={[
+                            <Button key="cancel" onClick={handleCancelCredentialModal} className="no-print">إغلاق</Button>,
+                            <Button 
+                                key="submit" 
+                                type="primary" 
+                                danger 
+                                disabled={credentialFormLocked} 
+                                onClick={handleAdminOverwriteCredentials}
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                            >
+                                حفظ التغييرات
+                            </Button>
+                        ]}
+                        width={480}
+                    >
+                        <div className={credentialShake ? "shake-effect" : ""}>
+                            <Form
+                                layout="vertical"
+                                form={credentialForm}
+                                disabled={credentialFormLocked}
+                            >
+                                <Form.Item label="تأكيد كلمة مرور المسؤول الحالي" required>
+                                    <Input.Password
+                                        value={adminPassword}
+                                        onChange={e => setAdminPassword(e.target.value)}
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        placeholder="أدخل كلمة مرور حسابك الحالي كمسؤول لتأكيد العملية"
+                                        visibilityToggle
+                                    />
+                                </Form.Item>
+                                <Form.Item label="اسم المستخدم الجديد (اختياري)">
+                                    <Input
+                                        value={newUsername}
+                                        onChange={e => setNewUsername(e.target.value)}
+                                        placeholder="اسم المستخدم (البريد الإلكتروني)"
+                                    />
+                                </Form.Item>
+                                <Form.Item label="كلمة المرور الجديدة للمستخدم (اختياري)">
+                                    <Input.Password
+                                        value={newUserPassword}
+                                        onChange={e => setNewUserPassword(e.target.value)}
+                                        onPaste={(e) => e.preventDefault()}
+                                        onCopy={(e) => e.preventDefault()}
+                                        placeholder="كلمة مرور جديدة (8 خانات على الأقل)"
+                                        visibilityToggle
+                                    />
+                                </Form.Item>
+                                {credentialFormLocked && (
+                                    <div className="text-center text-red-600 font-semibold mt-2 border border-red-200 bg-red-50 p-2 rounded">
+                                        🔒 تم قفل النموذج بسبب فشل التحقق. الرجاء إغلاق النافذة والمحاولة مجدداً.
+                                    </div>
+                                )}
+                            </Form>
                         </div>
                     </Modal>
                 </div>

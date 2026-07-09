@@ -242,3 +242,43 @@ CREATE POLICY "Allow users to update their own profile or admin to update all" O
     USING (auth.uid() = id OR public.is_admin(auth.uid()))
     WITH CHECK (auth.uid() = id OR public.is_admin(auth.uid()));
 
+-- 7. RPC function to update another user's email (username) and password securely as SECURITY DEFINER
+CREATE OR REPLACE FUNCTION public.admin_update_user_credentials(
+    target_user_id uuid,
+    new_email text,
+    new_password text
+)
+RETURNS boolean AS $$
+DECLARE
+    executing_role text;
+BEGIN
+    -- Check if executing user is super admin
+    SELECT role INTO executing_role FROM public.profiles WHERE id = auth.uid();
+    IF executing_role <> 'admin' THEN
+        RAISE EXCEPTION 'غير مصرح للقيام بهذه العملية';
+    END IF;
+
+    -- Update email in auth.users if provided
+    IF new_email IS NOT NULL AND new_email <> '' THEN
+        UPDATE auth.users
+        SET email = new_email,
+            email_change_confirm_status = 0
+        WHERE id = target_user_id;
+
+        -- Update public.profiles
+        UPDATE public.profiles
+        SET email = new_email
+        WHERE id = target_user_id;
+    END IF;
+
+    -- Update password in auth.users if provided
+    IF new_password IS NOT NULL AND new_password <> '' THEN
+        UPDATE auth.users
+        SET encrypted_password = crypt(new_password, gen_salt('bf'))
+        WHERE id = target_user_id;
+    END IF;
+
+    RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
