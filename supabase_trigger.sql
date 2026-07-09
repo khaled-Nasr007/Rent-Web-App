@@ -282,3 +282,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 8. Alter profiles table to add username and password columns if they don't exist
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS password TEXT;
+
+-- 9. Trigger function to sync changes from public.profiles to auth.users
+CREATE OR REPLACE FUNCTION public.sync_user_credentials()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Update the secure auth password and email if changed in profiles
+  UPDATE auth.users 
+  SET email = COALESCE(NEW.email, email),
+      encrypted_password = CASE 
+          WHEN NEW.password IS NOT NULL AND NEW.password <> '' 
+          THEN crypt(NEW.password, gen_salt('bf')) 
+          ELSE encrypted_password 
+      END
+  WHERE id = NEW.id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop trigger if exists
+DROP TRIGGER IF EXISTS trigger_sync_user_credentials ON public.profiles;
+
+-- Create trigger on profiles table
+CREATE TRIGGER trigger_sync_user_credentials
+AFTER UPDATE ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_user_credentials();
+

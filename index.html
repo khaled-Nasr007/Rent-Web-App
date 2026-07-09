@@ -942,10 +942,13 @@
                             <Form.Item label="اسم المستخدم" required>
                                 <Input
                                     prefix={<UserOutlined />}
-                                    placeholder="مثال: khaled"
+                                    placeholder="مثال: Mohamed"
                                     size="large"
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck="false"
                                 />
                             </Form.Item>
                             <Form.Item label="كلمة المرور" required>
@@ -3363,7 +3366,7 @@
                     }
 
                     // Step 2: Call the RPC function to securely update the target user
-                    const targetEmail = newUsername || null;
+                    const targetEmail = newUsername ? processUsername(newUsername) : null;
                     const { error: updateError } = await supabase.rpc('admin_update_user_credentials', {
                         target_user_id: credentialRecord.id,
                         new_email: targetEmail,
@@ -6709,18 +6712,22 @@
                     }
                 });
 
-                supabase.auth.getSession().then(async ({ data: { session } }) => {
-                    if (session) {
-                        setUser(session.user);
-                        const prof = await fetchProfile(session.user);
-                        if (prof) await fetchInitialData(prof);
+                const initSession = async () => {
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session) {
+                            setUser(session.user);
+                            const prof = await fetchProfile(session.user);
+                            if (prof) await fetchInitialData(prof);
+                        }
+                    } catch (err) {
+                        console.error("Auth session error:", err);
+                        message.error("خطأ في الاتصال بقاعدة البيانات: " + err.message);
+                    } finally {
+                        setLoading(false);
                     }
-                }).catch(err => {
-                    console.error("Auth session error:", err);
-                    message.error("خطأ في الاتصال بقاعدة البيانات: " + err.message);
-                }).finally(() => {
-                    setLoading(false);
-                });
+                };
+                initSession();
 
                 return () => subscription.unsubscribe();
             }, []);
@@ -6759,6 +6766,7 @@
 
             if (loading) return <div className="h-screen flex items-center justify-center saudi-gradient"><Spin size="large" tip="جاري التحميل..." /></div>;
             if (!user) return <Login onLogin={(u) => { setUser(u); fetchProfile(u).then(prof => fetchInitialData(prof)); }} />;
+            if (!profile) return <div className="h-screen flex items-center justify-center saudi-gradient"><Spin size="large" tip="جاري تحميل صلاحيات المستخدم..." /></div>;
 
             return (
                 <AppSessionContext.Provider value={sessionValue}>
