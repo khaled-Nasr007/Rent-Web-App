@@ -477,6 +477,11 @@
     <script>
         // Global error handler - show errors visually instead of blank page
         window.onerror = function(msg, src, line, col, err) {
+            // Ignore generic cross-origin script load errors with no line number
+            if ((msg === 'Script error.' || msg === 'Script error') && (!line || line === 0)) {
+                console.warn('Ignored generic cross-origin script error:', msg, src);
+                return;
+            }
             var el = document.getElementById('error-display');
             var det = document.getElementById('error-details');
             if (el && det) {
@@ -776,7 +781,7 @@
         // --- Components ---
 
         const ReceiptModal = ({ receipt, visible, onClose }) => {
-            const { can_report, role } = useAppSession();
+            const { can_report, role, isMobile } = useAppSession();
             const canPrint = role === 'admin' || can_report;
 
             if (!receipt) return null;
@@ -822,8 +827,8 @@
                             {/* Body */}
                             <div className="p-6 space-y-6 relative z-10">
                                 {/* Row 1: Tenant & Property */}
-                                <Row gutter={[24, 16]}>
-                                    <Col span={12}>
+                                <Row gutter={[16, 16]}>
+                                    <Col xs={24} sm={12}>
                                         <Card size="small" title="بيانات المستأجر" bordered={false} className="bg-slate-50">
                                             <Descriptions column={1} size="small">
                                                 <Descriptions.Item label="الاسم">{receipt.tenant_name || '-'}</Descriptions.Item>
@@ -832,7 +837,7 @@
                                             </Descriptions>
                                         </Card>
                                     </Col>
-                                    <Col span={12}>
+                                    <Col xs={24} sm={12}>
                                         <Card size="small" title="بيانات العقار والعقد" bordered={false} className="bg-slate-50">
                                             <Descriptions column={1} size="small">
                                                 <Descriptions.Item label="العقار">{receipt.building_name || '-'}</Descriptions.Item>
@@ -845,14 +850,14 @@
 
                                 {/* Row 2: Contract dates */}
                                 <Card size="small" title="فترة الإيجار المغطاة بالعقد" bordered={false} className="bg-slate-50">
-                                    <Row gutter={16}>
-                                        <Col span={12}>
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} sm={12}>
                                             <Descriptions column={1} size="small">
                                                 <Descriptions.Item label="بداية العقد">{receipt.period_start || '-'} م</Descriptions.Item>
                                                 <Descriptions.Item label="بداية العقد (هجري)">{receipt.period_start_hijri || '-'}</Descriptions.Item>
                                             </Descriptions>
                                         </Col>
-                                        <Col span={12}>
+                                        <Col xs={24} sm={12}>
                                             <Descriptions column={1} size="small">
                                                 <Descriptions.Item label="نهاية العقد">{receipt.period_end || '-'} م</Descriptions.Item>
                                                 <Descriptions.Item label="نهاية العقد (هجري)">{receipt.period_end_hijri || '-'}</Descriptions.Item>
@@ -863,8 +868,8 @@
 
                                 {/* Row 3: Payment details */}
                                 <div className="receipt-table-summary">
-                                    <Row gutter={16} align="middle">
-                                        <Col span={16}>
+                                    <Row gutter={[16, 16]} align="middle">
+                                        <Col xs={24} sm={16}>
                                             <div className="text-xs text-gray-500">المبلغ المستلم (ر.س)</div>
                                             <div className="text-3xl font-extrabold text-primary mt-1">
                                                 {sarFormatter(receipt.amount_received || 0)}
@@ -873,21 +878,21 @@
                                                 المبلغ رقماً وكتابةً: {receipt.amount_received ? receipt.amount_received : 0} ريال سعودي فقط لا غير.
                                             </div>
                                         </Col>
-                                        <Col span={8} className="text-left" style={{ textAlign: 'left' }}>
+                                        <Col xs={24} sm={8} className="text-left mobile-text-right" style={{ textAlign: isMobile ? 'right' : 'left' }}>
                                             <Tag color="success" className="text-sm px-3 py-1 receipt-badge-gold">
                                                 {receipt.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'نقدي / كاش'}
                                             </Tag>
                                         </Col>
                                     </Row>
                                     <Divider className="my-3" />
-                                    <Row gutter={16}>
-                                        <Col span={12}>
+                                    <Row gutter={[12, 8]}>
+                                        <Col xs={24} sm={12}>
                                             <Text type="secondary">قيمة الايجار بالعقد: </Text>
                                             <Text className="font-bold">{sarFormatter(receipt.monthly_rent || 0)}</Text>
                                         </Col>
-                                        <Col span={12} className="text-left" style={{ textAlign: 'left' }}>
+                                        <Col xs={24} sm={12} className="text-left mobile-text-right" style={{ textAlign: isMobile ? 'right' : 'left' }}>
                                             <Text type="secondary">المتبقي من العقد: </Text>
-                                            <Text className="font-bold text-red-500">{sarFormatter(receipt.remaining_balance || 0)}</Text>
+                                            <Text className="font-bold text-red-550">{sarFormatter(receipt.remaining_balance || 0)}</Text>
                                         </Col>
                                     </Row>
                                 </div>
@@ -1005,8 +1010,8 @@
                             {/* Body */}
                             <div className="p-6 space-y-6 relative z-10">
                                 {/* Row 1: Property and Unit */}
-                                <Row gutter={[24, 16]}>
-                                    <Col span={12}>
+                                <Row gutter={[16, 16]}>
+                                    <Col xs={24} sm={12}>
                                         <Card size="small" title="تفاصيل العقار والوحدة" bordered={false} className="bg-slate-50">
                                             <Descriptions column={1} size="small">
                                                 <Descriptions.Item label="العقار">{displayBuilding}</Descriptions.Item>
@@ -1014,7 +1019,7 @@
                                             </Descriptions>
                                         </Card>
                                     </Col>
-                                    <Col span={12}>
+                                    <Col xs={24} sm={12}>
                                         <Card size="small" title="تفاصيل التصنيف والعملية" bordered={false} className="bg-slate-50">
                                             <Descriptions column={1} size="small">
                                                 <Descriptions.Item label="بند المصروف">{translateCategory(activeVoucher.category)}</Descriptions.Item>
@@ -1060,18 +1065,18 @@
 
                                 {/* Row 5: Signature Lines */}
                                 <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
-                                    <Row gutter={24} className="text-center">
-                                        <Col span={8}>
-                                            <div className="text-xs text-gray-400 mb-10">المستلم / المستفيد</div>
+                                    <Row gutter={[16, 24]} className="text-center">
+                                        <Col xs={24} sm={8}>
+                                            <div className="text-xs text-gray-400 mb-6">المستلم / المستفيد</div>
                                             <div className="border-t border-gray-300 w-3/4 mx-auto pt-1 text-xs text-gray-500">التوقيع والاسم</div>
                                         </Col>
-                                        <Col span={8}>
-                                            <div className="text-xs text-gray-400 mb-10">المحاسب</div>
+                                        <Col xs={24} sm={8}>
+                                            <div className="text-xs text-gray-400 mb-6 font-cairo">المحاسب</div>
                                             <div className="border-t border-gray-300 w-3/4 mx-auto pt-1 text-xs text-gray-500">التوقيع والاسم</div>
                                         </Col>
-                                        <Col span={8}>
+                                        <Col xs={24} sm={8}>
                                             <div className="text-[10px] text-amber-700 font-bold mb-1">🔏 المسؤول المعتمِد</div>
-                                            <div className="text-xs text-amber-900 font-semibold mb-8">{activeVoucher.approved_by || 'مدير العقار / المالك'}</div>
+                                            <div className="text-xs text-amber-900 font-semibold mb-4">{activeVoucher.approved_by || 'مدير العقار / المالك'}</div>
                                             <div className="border-t-2 border-amber-400 w-3/4 mx-auto pt-1 text-xs text-amber-700">الاعتماد والتوقيع الرسمي</div>
                                         </Col>
                                     </Row>
@@ -1253,7 +1258,7 @@
                     </Row>
 
                     <Row gutter={[16, 16]}>
-                        <Col xs={24} md={8}>
+                        <Col xs={24} sm={12} md={6}>
                             <Card className="shadow-sm hover:shadow-md transition-shadow">
                                 <Statistic
                                     title="إجمالي المحصل"
@@ -1263,7 +1268,7 @@
                                 />
                             </Card>
                         </Col>
-                        <Col xs={24} md={8}>
+                        <Col xs={24} sm={12} md={6}>
                             <Card className="shadow-sm hover:shadow-md transition-shadow">
                                 <Statistic
                                     title="المحصل كاش"
@@ -1273,7 +1278,7 @@
                                 />
                             </Card>
                         </Col>
-                        <Col xs={24} md={8}>
+                        <Col xs={24} sm={12} md={6}>
                             <Card className="shadow-sm hover:shadow-md transition-shadow">
                                 <Statistic
                                     title="المحصل بتحويل بنكي"
@@ -1283,51 +1288,18 @@
                                 />
                             </Card>
                         </Col>
+                        <Col xs={24} sm={12} md={6}>
+                            <Card className="shadow-sm hover:shadow-md transition-shadow">
+                                <Statistic
+                                    title="الرصيد النقدي"
+                                    value={stats.globalCashBalance}
+                                    formatter={sarFormatter}
+                                    prefix={<WalletOutlined className="text-amber-500" />}
+                                    valueStyle={{ color: stats.globalCashBalance >= 0 ? '#006B3F' : '#cf222e', fontWeight: 'bold' }}
+                                />
+                            </Card>
+                        </Col>
                     </Row>
-
-                    {/* Expiry alerts section */}
-                    {alerts.length > 0 && (
-                        <Card 
-                            title={<span className="text-red-700 font-bold flex items-center gap-2">⚠️ نظام إشعارات العقود والمديونيات ({alerts.length})</span>} 
-                            className="shadow-sm border-red-200"
-                        >
-                            <div className="space-y-3">
-                                {alerts.map(alert => {
-                                    const alertMessage = (
-                                        <div className="flex justify-between items-center w-full flex-wrap gap-2 text-sm">
-                                            <span>
-                                                <strong>[{alert.alertTitle}]</strong> - العمارة: {alert.buildingName} | الوحدة رقم: {alert.unitNumber} | المتبقي غير المسدد: <span className="font-bold text-red-600">{sarFormatter(alert.remainingBalance)}</span>
-                                            </span>
-                                            <Tag color={alert.alertType === 'error' ? 'red' : 'gold'} className="font-semibold m-0">
-                                                {alert.countdownText}
-                                            </Tag>
-                                        </div>
-                                    );
-                                    
-                                    return (
-                                        <Alert
-                                            key={alert.id}
-                                            message={alertMessage}
-                                            type={alert.alertType}
-                                            showIcon
-                                            className="rounded-lg shadow-sm border border-slate-100"
-                                            action={
-                                                <Button 
-                                                    type="primary" 
-                                                    size="small" 
-                                                    ghost
-                                                    onClick={() => onNavigateToUnit(alert.id)}
-                                                    className="hover:bg-primary hover:text-white"
-                                                >
-                                                    عرض الملف المالي
-                                                </Button>
-                                            }
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </Card>
-                    )}
 
                     <Card title="ملخص المباني والوحدات" className="shadow-sm">
                         {isMobile ? (
@@ -1362,6 +1334,10 @@
                                                 </Text>
                                             </span>
                                         </div>
+                                        <div className="mobile-card-row">
+                                            <span className="mobile-card-label">الرصيد النقدي:</span>
+                                            <span className="mobile-card-value text-emerald-600 font-bold">{sarFormatter(b.cashBalance || 0)}</span>
+                                        </div>
                                     </div>
                                 ))}
                                 {(!stats.buildingSummaries || stats.buildingSummaries.length === 0) && (
@@ -1382,7 +1358,8 @@
                                         { title: 'شاغرة', dataIndex: 'vacantCount', key: 'vacantCount', render: v => <Tag color="error">{v}</Tag> },
                                         { title: 'الإيجار', dataIndex: 'expected', key: 'expected', render: v => sarFormatter(v) },
                                         { title: 'المحصل', dataIndex: 'paid', key: 'paid', render: v => sarFormatter(v) },
-                                        { title: 'المتبقى', dataIndex: 'remaining', key: 'remaining', render: v => <Text type={v > 0 ? 'danger' : 'success'}>{sarFormatter(v)}</Text> }
+                                        { title: 'المتبقى', dataIndex: 'remaining', key: 'remaining', render: v => <Text type={v > 0 ? 'danger' : 'success'}>{sarFormatter(v)}</Text> },
+                                        { title: 'الرصيد النقدي', dataIndex: 'cashBalance', key: 'cashBalance', render: v => <span className="font-bold text-emerald-600">{sarFormatter(v)}</span> }
                                     ]}
                                 />
                             </div>
@@ -2636,14 +2613,18 @@
 
             return (
                 <Drawer
-                    title={`إدارة شؤون وحسابات عقار: ${building.name}`}
+                    title={isMobile ? (
+                        <div className="text-right text-base font-bold font-cairo text-slate-800">
+                            إدارة شؤون عقار: {building.name}
+                        </div>
+                    ) : `إدارة شؤون وحسابات عقار: ${building.name}`}
                     placement="left"
                     onClose={onBack}
                     open={true}
-                    width="90%"
+                    width={isMobile ? "100%" : "90%"}
                     extra={
-                        <Space>
-                            {(profile?.can_add || profile?.role === 'admin') && (
+                        !isMobile && (profile?.can_add || profile?.role === 'admin') ? (
+                            <Space>
                                 <Button type="primary" icon={<PlusOutlined />} onClick={() => { 
                                     setSelectedUnit(null); 
                                     setLiveStartDate(null);
@@ -2651,8 +2632,8 @@
                                     form.resetFields(); 
                                     setIsModalOpen(true); 
                                 }}>إضافة وحدة جديدة</Button>
-                            )}
-                        </Space>
+                            </Space>
+                        ) : null
                     }
                 >
                     {/* Financial Summary Dashboard */}
@@ -2701,6 +2682,23 @@
                             label: 'جدول الوحدات والتحصيل',
                             children: isMobile ? (
                                 <div className="space-y-3">
+                                    {(profile?.can_add || profile?.role === 'admin') && (
+                                        <Button 
+                                            type="primary" 
+                                            icon={<PlusOutlined />} 
+                                            block
+                                            className="mb-4 tap-scale font-semibold font-cairo"
+                                            onClick={() => { 
+                                                setSelectedUnit(null); 
+                                                setLiveStartDate(null);
+                                                setLiveEndDate(null);
+                                                form.resetFields(); 
+                                                setIsModalOpen(true); 
+                                            }}
+                                        >
+                                            إضافة وحدة جديدة
+                                        </Button>
+                                    )}
                                     {units.map(record => {
                                         const remaining = record.is_rented ? Math.max(0, (record.monthly_rent || 0) - (record.amount_paid || 0)) : 0;
                                         let statusColor = 'error';
@@ -2754,7 +2752,7 @@
                                                             </span>
                                                         </div>
                                                         <div className="mobile-card-row">
-                                                            <span className="mobile-card-label">قيمة العقد المتوقعة:</span>
+                                                            <span className="mobile-card-label">قيمة العقد:</span>
                                                             <span className="mobile-card-value font-semibold">{sarFormatter(record.monthly_rent || 0)}</span>
                                                         </div>
                                                         <div className="mobile-card-row">
@@ -2780,13 +2778,13 @@
 
                                                 <Divider className="my-3" />
 
-                                                <div className="flex justify-between items-center gap-2 flex-wrap">
+                                                <div className="grid grid-cols-2 gap-2 w-full mt-3">
                                                     <Button 
                                                         type="primary" 
                                                         ghost 
                                                         icon={<FileTextOutlined />} 
                                                         onClick={() => showUnitProfile(record)}
-                                                        className="tap-scale flex-1 flex items-center justify-center text-xs"
+                                                        className="tap-scale flex items-center justify-center text-xs font-bold font-cairo"
                                                         style={{ height: 38 }}
                                                     >
                                                         ملف الوحدة
@@ -2797,52 +2795,60 @@
                                                             danger 
                                                             icon={<ArrowUpOutlined />} 
                                                             onClick={() => handleOpenExpenseModal(record)}
-                                                            className="tap-scale flex-1 flex items-center justify-center text-xs border-red-200 text-red-500 hover:text-red-600 hover:border-red-500"
+                                                            className="tap-scale flex items-center justify-center text-xs font-bold font-cairo border-red-200 text-red-500 hover:text-red-650 hover:border-red-500"
                                                             style={{ height: 38 }}
                                                         >
                                                             صرف مصروف
                                                         </Button>
                                                     )}
+                                                </div>
+                                                <div className="flex gap-2 mt-2 w-full">
+                                                    {(profile?.can_edit || profile?.role === 'admin') && (
+                                                        <Button 
+                                                            icon={<EditOutlined />} 
+                                                            onClick={() => {
+                                                                setSelectedUnit(record);
+                                                                setLiveStartDate(record.period_start ? new Date(record.period_start) : null);
+                                                                setLiveEndDate(record.period_end ? new Date(record.period_end) : null);
+                                                                form.setFieldsValue({
+                                                                    ...record,
+                                                                    rent_period: record.period_start ? [dayjs(record.period_start), dayjs(record.period_end)] : null,
+                                                                    amount_received: 0
+                                                                });
+                                                                setIsModalOpen(true);
+                                                            }} 
+                                                            className="tap-scale flex-1 flex items-center justify-center text-xs border border-gray-200"
+                                                            style={{ height: 38 }}
+                                                        >
+                                                            تعديل الوحدة
+                                                        </Button>
+                                                    )}
 
-                                                    <Space size={4} className="flex-shrink-0">
-                                                        {(profile?.can_edit || profile?.role === 'admin') && (
+                                                    {(profile?.can_delete || profile?.role === 'admin') && (
+                                                        <Popconfirm
+                                                            title="هل أنت متأكد من حذف هذه الوحدة؟"
+                                                            onConfirm={async () => {
+                                                                const { error } = await supabase.from('units').delete().eq('id', record.id);
+                                                                if (error) message.error(error.message);
+                                                                else {
+                                                                    message.success("تم الحذف");
+                                                                    logActivity('DELETE', 'UNITS', record.id, `تم حذف الوحدة رقم: ${record.unit_number} من عمارة ${building.name}`);
+                                                                    fetchUnits();
+                                                                }
+                                                            }}
+                                                            okText="نعم"
+                                                            cancelText="لا"
+                                                        >
                                                             <Button 
-                                                                icon={<EditOutlined />} 
-                                                                onClick={() => {
-                                                                    setSelectedUnit(record);
-                                                                    setLiveStartDate(record.period_start ? new Date(record.period_start) : null);
-                                                                    setLiveEndDate(record.period_end ? new Date(record.period_end) : null);
-                                                                    form.setFieldsValue({
-                                                                        ...record,
-                                                                        rent_period: record.period_start ? [dayjs(record.period_start), dayjs(record.period_end)] : null,
-                                                                        amount_received: 0
-                                                                    });
-                                                                    setIsModalOpen(true);
-                                                                }} 
-                                                                className="tap-scale flex items-center justify-center"
-                                                                style={{ width: 38, height: 38 }}
-                                                            />
-                                                        )}
-
-                                                        {(profile?.can_delete || profile?.role === 'admin') && (
-                                                            <Popconfirm
-                                                                title="هل أنت متأكد من حذف هذه الوحدة؟"
-                                                                onConfirm={async () => {
-                                                                    const { error } = await supabase.from('units').delete().eq('id', record.id);
-                                                                    if (error) message.error(error.message);
-                                                                    else {
-                                                                        message.success("تم الحذف");
-                                                                        logActivity('DELETE', 'UNITS', record.id, `تم حذف الوحدة رقم: ${record.unit_number} من عمارة ${building.name}`);
-                                                                        fetchUnits();
-                                                                    }
-                                                                }}
-                                                                okText="نعم"
-                                                                cancelText="لا"
+                                                                danger 
+                                                                icon={<DeleteOutlined />} 
+                                                                className="tap-scale flex-1 flex items-center justify-center text-xs"
+                                                                style={{ height: 38 }}
                                                             >
-                                                                <Button danger icon={<DeleteOutlined />} className="tap-scale flex items-center justify-center" style={{ width: 38, height: 38 }} />
-                                                            </Popconfirm>
-                                                        )}
-                                                    </Space>
+                                                                حذف الوحدة
+                                                            </Button>
+                                                        </Popconfirm>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -2902,7 +2908,7 @@
                                                     return <Tag color="success">مؤجرة</Tag>;
                                                 }
                                             },
-                                            { title: 'قيمة العقد المتوقعة', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => sarFormatter(v) },
+                                            { title: 'قيمة العقد', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => sarFormatter(v) },
                                             { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', render: (v, record) => sarFormatter(record.is_rented ? v : 0) },
                                             {
                                                 title: 'المتبقى',
@@ -3619,28 +3625,85 @@
                             {/* Current Lease Details */}
                             {selectedUnit?.is_rented ? (
                                 <Card title="العقد والمستأجر الحالي" className="shadow-sm border-emerald-100" headStyle={{ borderBottom: '1px solid #f0f2f5', fontWeight: 'bold' }}>
-                                    <Descriptions bordered column={2} size="small">
-                                        <Descriptions.Item label="المستأجر" span={2}>{selectedUnit.tenant_name}</Descriptions.Item>
-                                        <Descriptions.Item label="رقم الهوية">{selectedUnit.id_number}</Descriptions.Item>
-                                        <Descriptions.Item label="رقم الجوال">{selectedUnit.phone_number || '-'}</Descriptions.Item>
-                                        <Descriptions.Item label="رقم العقد" span={2}>{selectedUnit.contract_number}</Descriptions.Item>
-                                        <Descriptions.Item label="بداية العقد">
-                                            <div>{selectedUnit.period_start} م</div>
-                                            <div className="text-[10px] text-gray-400">{toHijri(selectedUnit.period_start)} هـ</div>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="نهاية العقد">
-                                            <div>{selectedUnit.period_end} م</div>
-                                            <div className="text-[10px] text-gray-400">{toHijri(selectedUnit.period_end)} هـ</div>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="قيمة العقد">{sarFormatter(selectedUnit.monthly_rent || 0)}</Descriptions.Item>
-                                        <Descriptions.Item label="المحصل">{sarFormatter(selectedUnit.amount_paid || 0)}</Descriptions.Item>
-                                        <Descriptions.Item label="المتبقي">
-                                            <span className={(selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0) > 0 ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}>
-                                                {sarFormatter(Math.max(0, (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0)))}
-                                            </span>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="طريقة الدفع">{selectedUnit.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</Descriptions.Item>
-                                    </Descriptions>
+                    {isMobile ? (
+                                        <div className="space-y-3 font-cairo">
+                                            <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                <div className="text-gray-400 text-xs mb-1">المستأجر</div>
+                                                <div className="font-bold text-slate-800 text-sm">{selectedUnit.tenant_name}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">رقم الهوية</div>
+                                                    <div className="font-semibold text-slate-800 text-xs">{selectedUnit.id_number}</div>
+                                                </div>
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">رقم الجوال</div>
+                                                    <div className="font-semibold text-slate-800 text-xs">{selectedUnit.phone_number || '-'}</div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                <div className="text-gray-400 text-xs mb-1">رقم العقد</div>
+                                                <div className="font-semibold text-slate-800 text-xs">{selectedUnit.contract_number}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">بداية العقد</div>
+                                                    <div className="text-slate-800 text-xs font-semibold">{selectedUnit.period_start} م</div>
+                                                    <div className="text-[10px] text-gray-400 font-semibold">{toHijri(selectedUnit.period_start)}</div>
+                                                </div>
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">نهاية العقد</div>
+                                                    <div className="text-slate-800 text-xs font-semibold">{selectedUnit.period_end} م</div>
+                                                    <div className="text-[10px] text-gray-400 font-semibold">{toHijri(selectedUnit.period_end)}</div>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">قيمة العقد</div>
+                                                    <div className="font-bold text-slate-800 text-xs">{sarFormatter(selectedUnit.monthly_rent || 0)}</div>
+                                                </div>
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">طريقة الدفع</div>
+                                                    <div className="font-semibold text-slate-800 text-xs">{selectedUnit.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</div>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">المحصل</div>
+                                                    <div className="font-bold text-emerald-600 text-xs">{sarFormatter(selectedUnit.amount_paid || 0)}</div>
+                                                </div>
+                                                <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
+                                                    <div className="text-gray-400 text-xs mb-1">المتبقي</div>
+                                                    <div className={"font-bold text-xs " + ((selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0) > 0 ? "text-red-650" : "text-emerald-600")}>
+                                                        {sarFormatter(Math.max(0, (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0)))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Descriptions bordered column={2} size="small">
+                                            <Descriptions.Item label="المستأجر" span={2}>{selectedUnit.tenant_name}</Descriptions.Item>
+                                            <Descriptions.Item label="رقم الهوية">{selectedUnit.id_number}</Descriptions.Item>
+                                            <Descriptions.Item label="رقم الجوال">{selectedUnit.phone_number || '-'}</Descriptions.Item>
+                                            <Descriptions.Item label="رقم العقد" span={2}>{selectedUnit.contract_number}</Descriptions.Item>
+                                            <Descriptions.Item label="بداية العقد">
+                                                <div>{selectedUnit.period_start} م</div>
+                                                <div className="text-[10px] text-gray-400">{toHijri(selectedUnit.period_start)} هـ</div>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="نهاية العقد">
+                                                <div>{selectedUnit.period_end} م</div>
+                                                <div className="text-[10px] text-gray-400">{toHijri(selectedUnit.period_end)} هـ</div>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="قيمة العقد">{sarFormatter(selectedUnit.monthly_rent || 0)}</Descriptions.Item>
+                                            <Descriptions.Item label="المحصل">{sarFormatter(selectedUnit.amount_paid || 0)}</Descriptions.Item>
+                                            <Descriptions.Item label="المتبقي">
+                                                <span className={(selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0) > 0 ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}>
+                                                    {sarFormatter(Math.max(0, (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0)))}
+                                                </span>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="طريقة الدفع">{selectedUnit.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</Descriptions.Item>
+                                        </Descriptions>
+                                    )}
                                 </Card>
                             ) : (
                                 <Card className="shadow-sm border-gray-200 bg-gray-50/50 text-center py-4">
@@ -5181,16 +5244,16 @@
             return (
                 <div className="space-y-6">
                     <Card className="shadow-sm">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center mb-6">
                             <div>
-                                <Title level={4}>سجل العمليات والمراقبة العام (Audit Trail)</Title>
+                                <Title level={4} style={{ margin: 0 }}>سجل العمليات والمراقبة العام (Audit Trail)</Title>
                                 <Text type="secondary">تتبع ومراقبة جميع العمليات المالية والإدارية التي تمت على النظام بالتفصيل.</Text>
                             </div>
-                            <div className="flex gap-2">
-                                <Button type="primary" onClick={exportLogsToCSV} icon={<FileTextOutlined />}>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <Button type="primary" onClick={exportLogsToCSV} icon={<FileTextOutlined />} className="flex-1 sm:flex-none">
                                     تصدير إلى CSV
                                 </Button>
-                                <Button onClick={fetchLogs} loading={loading} icon={<ReloadOutlined />}>
+                                <Button onClick={fetchLogs} loading={loading} icon={<ReloadOutlined />} className="flex-1 sm:flex-none">
                                     تحديث
                                 </Button>
                             </div>
@@ -6782,22 +6845,43 @@
                                 <Card
                                     className="shadow-sm"
                                     title={
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold text-primary font-cairo">
-                                                {reportTypes.find(r => r.key === selectedReport)?.icon} {reportTypes.find(r => r.key === selectedReport)?.title}
-                                                <Tag color="blue" className="mr-3 font-cairo">{processedData.length} سجل</Tag>
-                                            </span>
-                                            <Button
-                                                type="primary"
-                                                icon={<FileTextOutlined />}
-                                                onClick={exportStyledExcel}
-                                                className="bg-primary font-cairo"
-                                            >
-                                                تصدير إلى إكسيل 📥
-                                            </Button>
-                                        </div>
+                                        isMobile ? (
+                                            <div className="text-right font-bold text-primary font-cairo text-sm flex items-center justify-between w-full">
+                                                <span>
+                                                    {reportTypes.find(r => r.key === selectedReport)?.icon} {reportTypes.find(r => r.key === selectedReport)?.title}
+                                                </span>
+                                                <Tag color="blue" className="mr-2 font-cairo">{processedData.length} سجل</Tag>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-bold text-primary font-cairo">
+                                                    {reportTypes.find(r => r.key === selectedReport)?.icon} {reportTypes.find(r => r.key === selectedReport)?.title}
+                                                    <Tag color="blue" className="mr-3 font-cairo">{processedData.length} سجل</Tag>
+                                                </span>
+                                                <Button
+                                                    type="primary"
+                                                    icon={<FileTextOutlined />}
+                                                    onClick={exportStyledExcel}
+                                                    className="bg-primary font-cairo"
+                                                >
+                                                    تصدير إلى إكسيل 📥
+                                                </Button>
+                                            </div>
+                                        )
                                     }
                                 >
+                                    {isMobile && (
+                                        <Button
+                                            type="primary"
+                                            icon={<FileTextOutlined />}
+                                            onClick={exportStyledExcel}
+                                            block
+                                            className="mb-4 bg-primary font-cairo font-semibold tap-scale"
+                                            style={{ height: 40 }}
+                                        >
+                                            تصدير التقرير إلى إكسيل 📥
+                                        </Button>
+                                    )}
                                     {isMobile ? (
                                         renderMobileReportCards()
                                     ) : (
@@ -8215,7 +8299,6 @@
                 const totalBuildings = bData.length;
                 const totalUnits = uData.length;
                 const rentedUnitsData = uData.filter(u => u.is_rented);
-                const totalPaid = rentedUnitsData.reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
                 const totalExpected = rentedUnitsData.reduce((acc, u) => acc + (u.monthly_rent || 0), 0) || 1;
 
                 const cityStats = uniqueCities?.map(c => {
@@ -8234,16 +8317,27 @@
                 const rentedUnits = rentedUnitsData.length;
                 const vacantUnits = uData.filter(u => !u.is_rented).length;
                 const { data: rDataRaw } = await supabase.from('receipts').select('amount_received, payment_method, building_id');
-                // RBAC: Filter receipts by assigned buildings
+                const { data: eDataRaw } = await supabase.from('vouchers_expense').select('amount, building_id, approval_status');
+                // RBAC: Filter receipts and expenses by assigned buildings
                 const rData = (rDataRaw || []).filter(r => bIds.includes(r.building_id));
+                const eData = (eDataRaw || []).filter(e => bIds.includes(e.building_id) && e.approval_status === 'approved');
+                
+                // Cumulative receipt metrics (current + previous periods)
                 const collectedCash = rData.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0);
                 const collectedBank = rData.filter(r => r.payment_method === 'Bank Transfer').reduce((acc, r) => acc + (r.amount_received || 0), 0);
+                const totalPaid = collectedCash + collectedBank;
+                const totalApprovedExpenses = eData.reduce((acc, e) => acc + (e.amount || 0), 0);
+                const globalCashBalance = collectedCash - totalApprovedExpenses;
+                const activePaid = rentedUnitsData.reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
 
                 const buildingSummaries = bData.map(b => {
                     const bUnits = uData.filter(u => u.building_id === b.id);
                     const rentedUnits = bUnits.filter(u => u.is_rented);
                     const expected = rentedUnits.reduce((acc, u) => acc + (u.monthly_rent || 0), 0);
                     const paid = rentedUnits.reduce((acc, u) => acc + (u.amount_paid || 0), 0);
+                    const bReceipts = rData.filter(r => r.building_id === b.id);
+                    const bExpenses = eData.filter(e => e.building_id === b.id).reduce((acc, e) => acc + (e.amount || 0), 0);
+                    const cashBalance = bReceipts.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0) - bExpenses;
                     return {
                         id: b.id,
                         key: b.id,
@@ -8254,7 +8348,8 @@
                         vacantCount: bUnits.filter(u => !u.is_rented).length,
                         expected: expected,
                         paid: paid,
-                        remaining: expected - paid
+                        remaining: expected - paid,
+                        cashBalance: cashBalance
                     };
                 });
 
@@ -8265,7 +8360,8 @@
                     totalPaid,
                     collectedCash,
                     collectedBank,
-                    collectionRate: Math.round((totalPaid / totalExpected) * 100),
+                    globalCashBalance,
+                    collectionRate: Math.round((activePaid / totalExpected) * 100),
                     cityStats,
                     buildingSummaries,
                     units: uData
