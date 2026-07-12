@@ -4583,28 +4583,39 @@
 
             return (
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
-                        <Title level={4} className="!mb-0">إدارة المستخدمين والصلاحيات</Title>
-                        <Space>
+                    <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center bg-white p-4 rounded-lg shadow-sm">
+                        <Title level={4} className="!mb-0 font-cairo" style={{ margin: 0 }}>إدارة المستخدمين والصلاحيات</Title>
+                        <Space direction={isMobile ? "vertical" : "horizontal"} className="w-full sm:w-auto" size={10}>
                             <Button 
                                 icon={<LockOutlined />} 
                                 onClick={() => setIsPasswordResetModalOpen(true)}
-                                className="border-amber-600 text-amber-600 hover:text-amber-700 hover:border-amber-700 font-semibold"
+                                className="border-amber-600 text-amber-600 hover:text-amber-700 hover:border-amber-700 font-semibold font-cairo tap-scale"
+                                block={isMobile}
+                                style={{ height: 38 }}
                             >
                                 تغيير كلمة المرور الخاصة بي
                             </Button>
-                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedUser(null); form.resetFields(); setIsModalOpen(true); }}>دعوة مستخدم جديد</Button>
+                            <Button 
+                                type="primary" 
+                                icon={<PlusOutlined />} 
+                                onClick={() => { setSelectedUser(null); form.resetFields(); setIsModalOpen(true); }}
+                                className="font-semibold font-cairo tap-scale"
+                                block={isMobile}
+                                style={{ height: 38 }}
+                            >
+                                دعوة مستخدم جديد
+                            </Button>
                         </Space>
                     </div>
 
-                    <Card className="shadow-sm">
-                        {isMobile ? (
-                            <div className="space-y-3">
-                                {localUsers.map(record => {
-                                    const count = (record.assigned_buildings || []).length;
-                                    const isMainAdmin = record.role === 'admin';
-                                    return (
-                                        <div key={record.id} className="mobile-list-card">
+                    <Card className="shadow-sm border-gray-100" bodyStyle={{ padding: isMobile ? '12px' : '24px' }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {localUsers.map(record => {
+                                const count = (record.assigned_buildings || []).length;
+                                const isMainAdmin = record.role === 'admin';
+                                return (
+                                    <div key={record.id} className="mobile-list-card hover:shadow-md hover:border-primary/30 transition-all duration-200 !mb-0 flex flex-col justify-between">
+                                        <div>
                                             <div className="flex justify-between items-center mb-3">
                                                 <div className="flex items-center gap-2">
                                                     {loadingRows[record.id] && <Spin size="small" />}
@@ -4631,7 +4642,7 @@
                                                     </Space>
                                                 </div>
 
-                                                <Divider className="my-1.5" />
+                                                <Divider className="my-1.5" style={{ margin: '8px 0' }} />
 
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-gray-500 font-semibold">العمارات المخصصة:</span>
@@ -4650,8 +4661,10 @@
                                                     </Space>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <Divider className="my-2.5" />
+                                        <div>
+                                            <Divider className="my-2.5" style={{ margin: '10px 0' }} />
 
                                             <div className="flex gap-2 justify-end">
                                                 <Button
@@ -4661,7 +4674,7 @@
                                                     disabled={loadingRows[record.id]}
                                                     onClick={() => handleOpenAssignBuildings(record)}
                                                     title="تعديل المستخدم"
-                                                    className="tap-scale flex-1 flex items-center justify-center"
+                                                    className="tap-scale flex-1 flex items-center justify-center text-xs"
                                                 >
                                                     تخصيص
                                                 </Button>
@@ -4675,7 +4688,7 @@
                                                         setIsCredentialModalOpen(true);
                                                     }}
                                                     title="تغيير كلمة المرور والاعتمادات"
-                                                    className="tap-scale flex-1 flex items-center justify-center"
+                                                    className="tap-scale flex-1 flex items-center justify-center text-xs"
                                                 >
                                                     الأمان
                                                 </Button>
@@ -4700,120 +4713,12 @@
                                                 </Popconfirm>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                                {localUsers.length === 0 && (
-                                    <Empty description="لا يوجد مستخدمون حالياً" />
-                                )}
-                            </div>
-                        ) : (
-                            <Table
-                                dataSource={localUsers}
-                                rowKey="id"
-                                scroll={{ x: 800 }}
-                                columns={[
-                                    {
-                                        title: 'اسم المستخدم',
-                                        dataIndex: 'email',
-                                        key: 'email',
-                                        fixed: 'left',
-                                        render: (v, record) => (
-                                            <Space>
-                                                {loadingRows[record.id] && <Spin size="small" />}
-                                                {displayUsername(v)}
-                                            </Space>
-                                        )
-                                    },
-                                    {
-                                        title: 'الدور',
-                                        dataIndex: 'role',
-                                        key: 'role',
-                                        render: (role, record) => (
-                                            <Select
-                                                value={role}
-                                                disabled={loadingRows[record.id]}
-                                                onChange={(val) => handleRoleChange(record.id, val)}
-                                                options={[{ label: 'مسؤول', value: 'admin' }, { label: 'مستخدم', value: 'user' }]}
-                                            />
-                                        )
-                                    },
-                                    { title: 'إضافة', key: 'can_add', render: (_, r) => <PermissionToggle field="can_add" record={r} /> },
-                                    { title: 'تعديل', key: 'can_edit', render: (_, r) => <PermissionToggle field="can_edit" record={r} /> },
-                                    { title: 'حذف', key: 'can_delete', render: (_, r) => <PermissionToggle field="can_delete" record={r} /> },
-                                    { title: 'تقارير', key: 'can_report', render: (_, r) => <PermissionToggle field="can_report" record={r} /> },
-                                    {
-                                        title: 'العمارات المخصصة',
-                                        key: 'assigned_buildings',
-                                        width: 180,
-                                        render: (_, record) => {
-                                            const count = (record.assigned_buildings || []).length;
-                                            const isMainAdmin = record.role === 'admin';
-                                            
-                                            return (
-                                                <Space 
-                                                    className={isMainAdmin ? "" : "cursor-pointer"} 
-                                                    onClick={() => handleOpenAssignBuildings(record)}
-                                                >
-                                                    {isMainAdmin ? (
-                                                        <Tag color="green" className="m-0">جميع العمارات</Tag>
-                                                    ) : (
-                                                        <Tag color={count > 0 ? 'green' : 'red'} className="m-0">
-                                                            {count > 0 ? `تم تخصيص ${count} عمارات` : 'لم يتم التخصيص'}
-                                                        </Tag>
-                                                    )}
-                                                    {!isMainAdmin && <EditOutlined className="text-gray-400 hover:text-primary" />}
-                                                </Space>
-                                            );
-                                        }
-                                    },
-                                    {
-                                        title: 'إجراءات',
-                                        key: 'actions',
-                                        fixed: 'right',
-                                        width: 150,
-                                        render: (_, record) => (
-                                            <Space>
-                                                <Button
-                                                    icon={<EditOutlined />}
-                                                    size="small"
-                                                    style={{ color: '#006B3F', borderColor: '#006B3F' }}
-                                                    disabled={loadingRows[record.id]}
-                                                    onClick={() => handleOpenAssignBuildings(record)}
-                                                    title="تعديل المستخدم"
-                                                />
-                                                <Button
-                                                    icon={<LockOutlined />}
-                                                    size="small"
-                                                    disabled={loadingRows[record.id]}
-                                                    onClick={() => {
-                                                        setCredentialRecord(record);
-                                                        setNewUsername(displayUsername(record.email));
-                                                        setIsCredentialModalOpen(true);
-                                                    }}
-                                                    title="تغيير كلمة المرور والاعتمادات"
-                                                />
-                                                <Popconfirm
-                                                    title="حذف المستخدم؟"
-                                                    description="لا يمكن التراجع عن هذا الإجراء."
-                                                    disabled={loadingRows[record.id]}
-                                                    onConfirm={() => handleDeleteUser(record.id)}
-                                                    okText="نعم"
-                                                    cancelText="لا"
-                                                    okButtonProps={{ danger: true }}
-                                                >
-                                                    <Button
-                                                        danger
-                                                        icon={<DeleteOutlined />}
-                                                        size="small"
-                                                        disabled={loadingRows[record.id]}
-                                                        title="حذف المستخدم"
-                                                    />
-                                                </Popconfirm>
-                                            </Space>
-                                        )
-                                    }
-                                ]}
-                            />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {localUsers.length === 0 && (
+                            <Empty description="لا يوجد مستخدمون حالياً" />
                         )}
                     </Card>
 
