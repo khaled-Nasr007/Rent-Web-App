@@ -52,7 +52,7 @@ SET unit_count = (
 CREATE TABLE IF NOT EXISTS public.vouchers_expense (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     voucher_number text NOT NULL UNIQUE,
-    unit_id uuid REFERENCES public.units(id) ON DELETE SET NULL,
+    unit_id uuid REFERENCES public.units(id) ON DELETE CASCADE,
     building_id uuid REFERENCES public.buildings(id) ON DELETE CASCADE,
     user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
     category text NOT NULL, -- 'Maintenance' / 'Utilities' / 'General' / custom text
@@ -312,3 +312,46 @@ AFTER UPDATE ON public.profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.sync_user_credentials();
 
+-- ============================================================================
+-- 10. MIGRATION: Fix Foreign Key Cascade Rules & Clean Orphaned Records
+-- ============================================================================
+-- Problem: unit_id FK on vouchers_expense was ON DELETE SET NULL, causing
+-- orphaned expense vouchers when units are deleted. These orphans show as
+-- "عام للمبنى" with null unit_id and corrupt financial metrics (negative balances).
+--
+-- IMPORTANT: Cleanup MUST run BEFORE constraint changes, otherwise Postgres
+-- rejects the new FK because orphaned rows already violate it.
+-- ============================================================================
+
+-- Step 1: Clean up existing orphaned expense vouchers (unit was already deleted)
+DELETE FROM public.vouchers_expense
+WHERE unit_id IS NOT NULL
+AND unit_id NOT IN (SELECT id FROM public.units);
+
+-- Step 2: Clean up existing orphaned receipts (unit was already deleted)
+DELETE FROM public.receipts
+WHERE unit_id IS NOT NULL
+AND unit_id NOT IN (SELECT id FROM public.units);
+
+-- Step 3: Also clean vouchers/receipts with NULL unit_id that have no valid building
+DELETE FROM public.vouchers_expense
+WHERE unit_id IS NULL
+AND building_id IS NOT NULL
+AND building_id NOT IN (SELECT id FROM public.buildings);
+
+DELETE FROM public.receipts
+WHERE unit_id IS NULL
+AND building_id IS NOT NULL
+AND building_id NOT IN (SELECT id FROM public.buildings);
+
+-- Step 4: Now safe to fix vouchers_expense.unit_id → ON DELETE CASCADE
+ALTER TABLE public.vouchers_expense
+DROP CONSTRAINT IF EXISTS vouchers_expense_unit_id_fkey,
+ADD CONSTRAINT vouchers_expense_unit_id_fkey
+FOREIGN KEY (unit_id) REFERENCES public.units(id) ON DELETE CASCADE;
+
+-- Step 5: Fix receipts.unit_id → ON DELETE CASCADE
+ALTER TABLE public.receipts
+DROP CONSTRAINT IF EXISTS receipts_unit_id_fkey,
+ADD CONSTRAINT receipts_unit_id_fkey
+FOREIGN KEY (unit_id) REFERENCES public.units(id) ON DELETE CASCADE;

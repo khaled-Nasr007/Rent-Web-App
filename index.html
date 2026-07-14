@@ -1519,22 +1519,48 @@
                 }
             };
 
+            const isAuthorizedToDelete = profile?.email === SUPER_ADMIN_EMAIL || profile?.role === 'admin';
+
             const handleDelete = async (id) => {
+                const targetBuilding = buildings.find(b => b.id === id);
+                const bName = targetBuilding?.name || id;
+                const roleName = profile?.email === SUPER_ADMIN_EMAIL ? 'المسؤول العام' : 'مدير النظام';
                 Modal.confirm({
-                    title: 'هل أنت متأكد من الحذف؟',
-                    content: 'سيتم حذف المبنى وجميع الوحدات المرتبطة به.',
-                    okText: 'نعم، احذف',
+                    title: <span className="font-cairo" style={{ color: '#cf222e', fontWeight: 'bold', fontSize: '16px' }}>⚠️ تحذير أمني حرج</span>,
+                    content: (
+                        <div className="font-cairo" dir="rtl" style={{ lineHeight: '2', fontSize: '15px' }}>
+                            تحذير أمني حرج: القيام بحذف هذه العمارة سيؤدي لحذف كافة الوحدات التابعة لها، وجميع سندات القبض والصرف المرتبطة بها نهائياً. سيتم تعديل الرصيد الإجمالي للصندوق فوراً. هل أنت متأكد؟
+                            <br />
+                            <span className="text-gray-400 text-xs" style={{ marginTop: 8, display: 'block' }}>العمارة: {bName}</span>
+                        </div>
+                    ),
+                    okText: 'نعم، احذف نهائياً',
                     okType: 'danger',
                     cancelText: 'إلغاء',
+                    className: 'font-cairo',
                     onOk: async () => {
-                        const targetBuilding = buildings.find(b => b.id === id);
-                        const bName = targetBuilding?.name || id;
-                        const { error } = await supabase.from('buildings').delete().eq('id', id);
-                        if (error) message.error(error.message);
-                        else {
-                            message.success("تم الحذف");
-                            logActivity('DELETE', 'REAL_ESTATE', id, `تم حذف عمارة: ${bName}`);
+                        try {
+                            // Cascade Step 1: Delete all receipts for this building
+                            const { error: rErr } = await supabase.from('receipts').delete().eq('building_id', id);
+                            if (rErr) throw rErr;
+
+                            // Cascade Step 2: Delete all expense vouchers for this building
+                            const { error: eErr } = await supabase.from('vouchers_expense').delete().eq('building_id', id);
+                            if (eErr) throw eErr;
+
+                            // Cascade Step 3: Delete all units for this building
+                            const { error: uErr } = await supabase.from('units').delete().eq('building_id', id);
+                            if (uErr) throw uErr;
+
+                            // Cascade Step 4: Delete the building itself
+                            const { error: bErr } = await supabase.from('buildings').delete().eq('id', id);
+                            if (bErr) throw bErr;
+
+                            message.success("تم حذف العقار وتصفية السندات وتحديث الأثر المحاسبي بنجاح");
+                            logActivity('DELETE', 'REAL_ESTATE', id, `قام ${roleName} بحذف عمارة: ${bName} وتم تصفية كافة السندات المالية التابعة لها وإعادة توازن الصندوق`);
                             fetchBuildings();
+                        } catch (e) {
+                            message.error("فشل حذف العمارة: " + e.message);
                         }
                     }
                 });
@@ -1566,7 +1592,7 @@
                                             {(profile?.can_edit || profile?.role === 'admin') && (
                                                 <Button size="small" icon={<EditOutlined />} onClick={() => { setSelectedBuilding(record); form.setFieldsValue(record); setIsModalOpen(true); }} className="tap-scale flex items-center justify-center" style={{ width: 36, height: 36 }} />
                                             )}
-                                            {(profile?.can_delete || profile?.role === 'admin') && (
+                                            {isAuthorizedToDelete && (
                                                 <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} className="tap-scale flex items-center justify-center" style={{ width: 36, height: 36 }} />
                                             )}
                                         </div>
@@ -1644,7 +1670,7 @@
                                                     <Button icon={<EditOutlined />} onClick={() => { setSelectedBuilding(record); form.setFieldsValue(record); setIsModalOpen(true); }} />
                                                 )}
                                                 <Button icon={<HomeOutlined />} onClick={() => setSelectedBuilding({ ...record, viewUnits: true })}>الوحدات</Button>
-                                                {(profile?.can_delete || profile?.role === 'admin') && (
+                                                {isAuthorizedToDelete && (
                                                     <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
                                                 )}
                                             </Space>
@@ -1939,12 +1965,23 @@
             };
 
             const handleDeleteExpense = async (voucher) => {
+                if (profile?.role !== 'admin' && profile?.email !== SUPER_ADMIN_EMAIL) {
+                    message.error("عذراً، هذا الإجراء متاح للمسؤولين فقط.");
+                    return;
+                }
                 Modal.confirm({
-                    title: 'تأكيد حذف سند الصرف',
-                    content: `هل أنت متأكد من حذف سند الصرف رقم ${voucher.voucher_number} بقيمة ${sarFormatter(voucher.amount)}؟ لا يمكن التراجع عن هذا الإجراء.`,
+                    title: <span className="font-cairo">تأكيد حذف سند الصرف</span>,
+                    content: (
+                        <div className="font-cairo" dir="rtl">
+                            هل أنت متأكد من حذف هذا السند نهائياً؟ هذا الإجراء سيقوم بتعديل الحسابات المالية وصندوق الصندوق فوراً ولا يمكن التراجع عنه.
+                            <br />
+                            <span className="text-gray-400 text-xs">رقم السند: {voucher.voucher_number} | المبلغ: {sarFormatter(voucher.amount)}</span>
+                        </div>
+                    ),
                     okText: 'نعم، احذف',
                     cancelText: 'إلغاء',
                     okType: 'danger',
+                    className: 'font-cairo',
                     onOk: async () => {
                         try {
                             const { error } = await supabase
@@ -1952,9 +1989,12 @@
                                 .delete()
                                 .eq('id', voucher.id);
                             if (error) throw error;
-                            message.success("تم حذف سند الصرف بنجاح");
-                            logActivity('DELETE', 'EXPENSES', voucher.id, `تم حذف سند الصرف رقم: ${voucher.voucher_number} بقيمة ${voucher.amount} ر.س`);
+                            message.success("تم حذف السند وتحديث الدفاتر المالية بنجاح");
+                            logActivity('DELETE', 'EXPENSES', voucher.id, `قام المسؤول العام بحذف سند صرف رقم: ${voucher.voucher_number} بقيمة: ${voucher.amount} ر.س`);
                             fetchUnits();
+                            if (selectedUnit) {
+                                showUnitProfile(selectedUnit);
+                            }
                         } catch (e) {
                             message.error("فشل حذف سند الصرف: " + e.message);
                         }
@@ -2017,6 +2057,47 @@
                 });
             };
 
+            const isAuthorizedToDelete = profile?.email === SUPER_ADMIN_EMAIL || profile?.role === 'admin';
+
+            const handleDeleteUnit = async (record) => {
+                const unitNum = record.unit_number || record.id;
+                const roleName = profile?.email === SUPER_ADMIN_EMAIL ? 'المسؤول العام' : 'مدير النظام';
+                Modal.confirm({
+                    title: <span className="font-cairo" style={{ color: '#cf222e', fontWeight: 'bold', fontSize: '16px' }}>⚠️ تنبيه حذف وحدة</span>,
+                    content: (
+                        <div className="font-cairo" dir="rtl" style={{ lineHeight: '2', fontSize: '15px' }}>
+                            تنبيه: حذف هذه الوحدة سيقوم بحذف كافة سندات القبض والصرف الخاصة بها نهائياً وتحديث الحسابات الإجمالية لحظياً. هل تود الاستمرار؟
+                            <br />
+                            <span className="text-gray-400 text-xs" style={{ marginTop: 8, display: 'block' }}>الوحدة: {unitNum} | العمارة: {building.name}</span>
+                        </div>
+                    ),
+                    okText: 'نعم، احذف نهائياً',
+                    okType: 'danger',
+                    cancelText: 'إلغاء',
+                    className: 'font-cairo',
+                    onOk: async () => {
+                        try {
+                            // Cascade Step 1: Delete all receipts for this unit
+                            const { error: rErr } = await supabase.from('receipts').delete().eq('unit_id', record.id);
+                            if (rErr) throw rErr;
+
+                            // Cascade Step 2: Delete all expense vouchers for this unit
+                            const { error: eErr } = await supabase.from('vouchers_expense').delete().eq('unit_id', record.id);
+                            if (eErr) throw eErr;
+
+                            // Cascade Step 3: Delete the unit itself
+                            const { error: uErr } = await supabase.from('units').delete().eq('id', record.id);
+                            if (uErr) throw uErr;
+
+                            message.success("تم حذف العقار وتصفية السندات وتحديث الأثر المحاسبي بنجاح");
+                            logActivity('DELETE', 'UNITS', record.id, `قام ${roleName} بحذف وحدة: ${unitNum} من عمارة ${building.name} وتم تصفية كافة السندات المالية التابعة لها وإعادة توازن الصندوق`);
+                            fetchUnits();
+                        } catch (e) {
+                            message.error("فشل حذف الوحدة: " + e.message);
+                        }
+                    }
+                });
+            };
 
             const handleSave = async (values) => {
                 const { rent_period, amount_received, ...rest } = values;
@@ -2464,12 +2545,23 @@
                 }
             };
             const handleDeleteReceipt = async (receipt) => {
+                if (profile?.role !== 'admin' && profile?.email !== SUPER_ADMIN_EMAIL) {
+                    message.error("عذراً، هذا الإجراء متاح للمسؤولين فقط.");
+                    return;
+                }
                 Modal.confirm({
-                    title: 'تأكيد حذف السند',
-                    content: `هل أنت متأكد من حذف السند رقم ${receipt.receipt_number}؟ سيتم خصم مبلغ ${sarFormatter(receipt.amount_received)} من إجمالي المحصل للوحدة.`,
+                    title: <span className="font-cairo">تأكيد حذف السند</span>,
+                    content: (
+                        <div className="font-cairo" dir="rtl">
+                            هل أنت متأكد من حذف هذا السند نهائياً؟ هذا الإجراء سيقوم بتعديل الحسابات المالية وصندوق الصندوق فوراً ولا يمكن التراجع عنه.
+                            <br />
+                            <span className="text-gray-400 text-xs">رقم السند: {receipt.receipt_number} | المبلغ: {sarFormatter(receipt.amount_received)}</span>
+                        </div>
+                    ),
                     okText: 'نعم، احذف',
                     cancelText: 'إلغاء',
                     okType: 'danger',
+                    className: 'font-cairo',
                     onOk: async () => {
                         try {
                             const { data: curUnit, error: fetchErr } = await supabase
@@ -2494,8 +2586,8 @@
                                 .eq('id', receipt.id);
                             if (delErr) throw delErr;
 
-                            message.success("تم حذف السند وتحديث المحصل للوحدة بنجاح");
-                            logActivity('DELETE', 'RECEIPTS', receipt.id, `تم حذف سند قبض رقم: ${receipt.receipt_number} للمستأجر: ${receipt.tenant_name}`);
+                            message.success("تم حذف السند وتحديث الدفاتر المالية بنجاح");
+                            logActivity('DELETE', 'RECEIPTS', receipt.id, `قام المسؤول العام بحذف سند قبض رقم: ${receipt.receipt_number} بقيمة: ${receipt.amount_received} ر.س`);
                             
                             fetchUnits();
                             showReceiptHistory(selectedUnit || { id: receipt.unit_id });
@@ -2824,30 +2916,16 @@
                                                         </Button>
                                                     )}
 
-                                                    {(profile?.can_delete || profile?.role === 'admin') && (
-                                                        <Popconfirm
-                                                            title="هل أنت متأكد من حذف هذه الوحدة؟"
-                                                            onConfirm={async () => {
-                                                                const { error } = await supabase.from('units').delete().eq('id', record.id);
-                                                                if (error) message.error(error.message);
-                                                                else {
-                                                                    message.success("تم الحذف");
-                                                                    logActivity('DELETE', 'UNITS', record.id, `تم حذف الوحدة رقم: ${record.unit_number} من عمارة ${building.name}`);
-                                                                    fetchUnits();
-                                                                }
-                                                            }}
-                                                            okText="نعم"
-                                                            cancelText="لا"
+                                                    {isAuthorizedToDelete && (
+                                                        <Button 
+                                                            danger 
+                                                            icon={<DeleteOutlined />} 
+                                                            onClick={() => handleDeleteUnit(record)}
+                                                            className="tap-scale flex-1 flex items-center justify-center text-xs"
+                                                            style={{ height: 38 }}
                                                         >
-                                                            <Button 
-                                                                danger 
-                                                                icon={<DeleteOutlined />} 
-                                                                className="tap-scale flex-1 flex items-center justify-center text-xs"
-                                                                style={{ height: 38 }}
-                                                            >
-                                                                حذف الوحدة
-                                                            </Button>
-                                                        </Popconfirm>
+                                                            حذف الوحدة
+                                                        </Button>
                                                     )}
                                                 </div>
                                             </div>
@@ -2930,23 +3008,8 @@
                                                 key: 'actions',
                                                 render: (_, record) => (
                                                     <Space>
-                                                        {(profile?.can_delete || profile?.role === 'admin') && (
-                                                            <Popconfirm
-                                                                title="هل أنت متأكد من حذف هذه الوحدة؟"
-                                                                onConfirm={async () => {
-                                                                    const { error } = await supabase.from('units').delete().eq('id', record.id);
-                                                                    if (error) message.error(error.message);
-                                                                    else {
-                                                                        message.success("تم الحذف");
-                                                                        logActivity('DELETE', 'UNITS', record.id, `تم حذف الوحدة رقم: ${record.unit_number} من عمارة ${building.name}`);
-                                                                        fetchUnits();
-                                                                    }
-                                                                }}
-                                                                okText="نعم"
-                                                                cancelText="لا"
-                                                            >
-                                                                <Button danger icon={<DeleteOutlined />} />
-                                                            </Popconfirm>
+                                                        {isAuthorizedToDelete && (
+                                                            <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteUnit(record)} />
                                                         )}
                                                         {(profile?.can_edit || profile?.role === 'admin') && (
                                                             <Button icon={<EditOutlined />} onClick={() => {
@@ -3267,7 +3330,7 @@
                                                                 </>
                                                             )}
 
-                                                            {(profile?.role === 'admin') && (
+                                                            {isAuthorizedToDelete && (
                                                                 <Button 
                                                                     size="small" 
                                                                     danger 
@@ -3356,7 +3419,7 @@
                                                                         <Button size="small" type="text" danger className="font-semibold" onClick={() => handleRejectExpense(record)}>رفض</Button>
                                                                     </>
                                                                 )}
-                                                                {(profile?.role === 'admin') && (
+                                                                {isAuthorizedToDelete && (
                                                                     <Button size="small" danger type="text" onClick={() => handleDeleteExpense(record)}>حذف</Button>
                                                                 )}
                                                             </Space>
@@ -3860,7 +3923,7 @@
                                                                     {(profile?.role === 'admin' || profile?.can_edit) && (
                                                                         <Button size="small" className="text-blue-500 hover:text-blue-600 tap-scale" onClick={() => handleEditReceiptAmount(record)}>تعديل</Button>
                                                                     )}
-                                                                    {(profile?.role === 'admin' || profile?.can_delete) && (
+                                                                    {isAuthorizedToDelete && (
                                                                         <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)} className="tap-scale">حذف</Button>
                                                                     )}
                                                                 </div>
@@ -3896,7 +3959,7 @@
                                                                                 {(profile?.role === 'admin' || profile?.can_edit) && (
                                                                                     <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
                                                                                 )}
-                                                                                {(profile?.role === 'admin' || profile?.can_delete) && (
+                                                                                {isAuthorizedToDelete && (
                                                                                     <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
                                                                                 )}
                                                                             </>
@@ -3943,11 +4006,14 @@
                                                                         </span>
                                                                     </div>
                                                                     <Divider className="my-2" />
-                                                                    <div className="flex justify-end">
+                                                                    <div className="flex gap-2 justify-end">
                                                                         <Button size="small" type="primary" ghost onClick={() => {
                                                                             setActiveExpense(record);
                                                                             setExpensePreviewVisible(true);
-                                                                        }} className="tap-scale w-full text-xs">عرض السند</Button>
+                                                                        }} className="tap-scale flex-1 text-xs">عرض السند</Button>
+                                                                        {isAuthorizedToDelete && (
+                                                                            <Button size="small" danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteExpense(record)} className="tap-scale" />
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -3998,6 +4064,9 @@
                                                                             setActiveExpense(record);
                                                                             setExpensePreviewVisible(true);
                                                                         }}>عرض السند</Button>
+                                                                        {isAuthorizedToDelete && (
+                                                                            <Button size="small" danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteExpense(record)} />
+                                                                        )}
                                                                     </Space>
                                                                 )
                                                             }
@@ -6941,6 +7010,93 @@
                     }, 350);
                 }
             }, [printOnLoad, receiptModalVisible, expensePreviewVisible]);
+
+            const handleDeleteReceipt = async (receipt) => {
+                if (profile?.role !== 'admin' && profile?.email !== SUPER_ADMIN_EMAIL) {
+                    message.error("عذراً، هذا الإجراء متاح للمسؤولين فقط.");
+                    return;
+                }
+                Modal.confirm({
+                    title: <span className="font-cairo">تأكيد حذف السند</span>,
+                    content: (
+                        <div className="font-cairo" dir="rtl">
+                            هل أنت متأكد من حذف هذا السند نهائياً؟ هذا الإجراء سيقوم بتعديل الحسابات المالية وصندوق الصندوق فوراً ولا يمكن التراجع عنه.
+                            <br />
+                            <span className="text-gray-400 text-xs">رقم السند: {receipt.receipt_number} | المبلغ: {sarFormatter(receipt.amount_received)}</span>
+                        </div>
+                    ),
+                    okText: 'نعم، احذف',
+                    cancelText: 'إلغاء',
+                    okType: 'danger',
+                    className: 'font-cairo',
+                    onOk: async () => {
+                        try {
+                            const { data: curUnit, error: fetchErr } = await supabase
+                                .from('units')
+                                .select('amount_paid')
+                                .eq('id', receipt.unit_id)
+                                .single();
+                            if (fetchErr) throw fetchErr;
+
+                            const curPaid = curUnit.amount_paid || 0;
+                            const newPaid = Math.max(0, curPaid - (receipt.amount_received || 0));
+
+                            const { error: updateErr } = await supabase
+                                .from('units')
+                                .update({ amount_paid: newPaid })
+                                .eq('id', receipt.unit_id);
+                            if (updateErr) throw updateErr;
+
+                            const { error: delErr } = await supabase
+                                .from('receipts')
+                                .delete()
+                                .eq('id', receipt.id);
+                            if (delErr) throw delErr;
+
+                            message.success("تم حذف السند وتحديث الدفاتر المالية بنجاح");
+                            logActivity('DELETE', 'RECEIPTS', receipt.id, `قام المسؤول العام بحذف سند قبض رقم: ${receipt.receipt_number} بقيمة: ${receipt.amount_received} ر.س`);
+                            fetchData();
+                        } catch (e) {
+                            message.error("فشل حذف السند: " + e.message);
+                        }
+                    }
+                });
+            };
+
+            const handleDeleteExpense = async (voucher) => {
+                if (profile?.role !== 'admin' && profile?.email !== SUPER_ADMIN_EMAIL) {
+                    message.error("عذراً، هذا الإجراء متاح للمسؤولين فقط.");
+                    return;
+                }
+                Modal.confirm({
+                    title: <span className="font-cairo">تأكيد حذف سند الصرف</span>,
+                    content: (
+                        <div className="font-cairo" dir="rtl">
+                            هل أنت متأكد من حذف هذا السند نهائياً؟ هذا الإجراء سيقوم بتعديل الحسابات المالية وصندوق الصندوق فوراً ولا يمكن التراجع عنه.
+                            <br />
+                            <span className="text-gray-400 text-xs">رقم السند: {voucher.voucher_number} | المبلغ: {sarFormatter(voucher.amount)}</span>
+                        </div>
+                    ),
+                    okText: 'نعم، احذف',
+                    cancelText: 'إلغاء',
+                    okType: 'danger',
+                    className: 'font-cairo',
+                    onOk: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('vouchers_expense')
+                                .delete()
+                                .eq('id', voucher.id);
+                            if (error) throw error;
+                            message.success("تم حذف السند وتحديث الدفاتر المالية بنجاح");
+                            logActivity('DELETE', 'EXPENSES', voucher.id, `قام المسؤول العام بحذف سند صرف رقم: ${voucher.voucher_number} بقيمة: ${voucher.amount} ر.س`);
+                            fetchData();
+                        } catch (e) {
+                            message.error("فشل حذف سند الصرف: " + e.message);
+                        }
+                    }
+                });
+            };
 
             // Reset dependent cascading filters
             const handleCityChange = (val) => {
