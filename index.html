@@ -327,11 +327,11 @@
         }
 
 
-        /* Print styling for Receipts & Expense Vouchers */
+        /* Print styling for Receipts & Expense Vouchers (A5 Fitted) */
         @media print {
             @page {
-                size: auto;
-                margin: 8mm;
+                size: A5 portrait;
+                margin: 4mm;
             }
 
             /* Retain full color backgrounds & badges when printing */
@@ -389,20 +389,83 @@
                 border: none !important;
             }
 
-            /* Relative positioning guarantees height is computed properly by printer */
+            /* A5 Paper Fitting for Receipts & Vouchers */
             .print-receipt-section {
                 position: relative !important;
                 display: block !important;
                 top: 0 !important;
                 left: 0 !important;
                 width: 100% !important;
-                max-width: 100% !important;
+                max-width: 138mm !important;
                 height: auto !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
                 overflow: visible !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .receipt-card,
+            .voucher-card {
+                border-radius: 8px !important;
+                box-shadow: none !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .receipt-header-band,
+            .voucher-header-band {
+                padding: 10px 14px !important;
+            }
+
+            .receipt-header-band h2,
+            .voucher-header-band h2 {
+                font-size: 1.1rem !important;
+            }
+
+            .receipt-card .p-6,
+            .voucher-card .p-6 {
+                padding: 10px 12px !important;
+            }
+
+            .receipt-watermark,
+            .voucher-watermark {
+                font-size: 46px !important;
+            }
+
+            .ant-card-small > .ant-card-head {
+                min-height: 26px !important;
+                padding: 0 8px !important;
+                font-size: 11px !important;
+            }
+
+            .ant-card-small > .ant-card-body {
+                padding: 6px 8px !important;
+            }
+
+            .ant-descriptions-item-label,
+            .ant-descriptions-item-content {
+                font-size: 10.5px !important;
+                padding-bottom: 2px !important;
+            }
+
+            .receipt-table-summary {
+                padding: 8px 10px !important;
+            }
+
+            .receipt-table-summary .text-3xl {
+                font-size: 1.35rem !important;
+            }
+
+            .receipt-table-summary .my-3 {
+                margin-top: 6px !important;
+                margin-bottom: 6px !important;
+            }
+
+            .space-y-6 > * + * {
+                margin-top: 8px !important;
             }
 
             body {
