@@ -327,11 +327,11 @@
         }
 
 
-        /* Print styling for Receipts & Expense Vouchers (A5 Fitted) */
+        /* Print styling - Responsive Fit to Printable Area */
         @media print {
             @page {
-                size: A5 portrait;
-                margin: 4mm;
+                size: auto;
+                margin: 6mm;
             }
 
             /* Retain full color backgrounds & badges when printing */
@@ -340,6 +340,7 @@
             *::after {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                box-sizing: border-box !important;
             }
 
             body * {
@@ -389,14 +390,14 @@
                 border: none !important;
             }
 
-            /* A5 Paper Fitting for Receipts & Vouchers */
+            /* Responsive Fit to Printable Area */
             .print-receipt-section {
                 position: relative !important;
                 display: block !important;
                 top: 0 !important;
                 left: 0 !important;
                 width: 100% !important;
-                max-width: 138mm !important;
+                max-width: 100% !important;
                 height: auto !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
@@ -409,6 +410,8 @@
 
             .receipt-card,
             .voucher-card {
+                width: 100% !important;
+                max-width: 100% !important;
                 border-radius: 8px !important;
                 box-shadow: none !important;
                 page-break-inside: avoid !important;
@@ -417,55 +420,80 @@
 
             .receipt-header-band,
             .voucher-header-band {
-                padding: 10px 14px !important;
+                padding: 14px 20px !important;
             }
 
             .receipt-header-band h2,
             .voucher-header-band h2 {
-                font-size: 1.1rem !important;
+                font-size: 1.25rem !important;
             }
 
             .receipt-card .p-6,
             .voucher-card .p-6 {
-                padding: 10px 12px !important;
+                padding: 14px 18px !important;
             }
 
             .receipt-watermark,
             .voucher-watermark {
-                font-size: 46px !important;
+                font-size: 54px !important;
             }
 
             .ant-card-small > .ant-card-head {
-                min-height: 26px !important;
-                padding: 0 8px !important;
-                font-size: 11px !important;
+                min-height: 28px !important;
+                padding: 0 10px !important;
+                font-size: 12px !important;
             }
 
             .ant-card-small > .ant-card-body {
-                padding: 6px 8px !important;
+                padding: 8px 12px !important;
             }
 
             .ant-descriptions-item-label,
             .ant-descriptions-item-content {
-                font-size: 10.5px !important;
-                padding-bottom: 2px !important;
+                font-size: 11px !important;
+                padding-bottom: 3px !important;
             }
 
             .receipt-table-summary {
-                padding: 8px 10px !important;
+                padding: 10px 14px !important;
             }
 
             .receipt-table-summary .text-3xl {
-                font-size: 1.35rem !important;
+                font-size: 1.6rem !important;
             }
 
             .receipt-table-summary .my-3 {
-                margin-top: 6px !important;
-                margin-bottom: 6px !important;
+                margin-top: 8px !important;
+                margin-bottom: 8px !important;
             }
 
             .space-y-6 > * + * {
-                margin-top: 8px !important;
+                margin-top: 10px !important;
+            }
+
+            /* Force 2-column layout grid to stay side-by-side across all paper sizes */
+            .print-receipt-section .ant-row {
+                display: flex !important;
+                flex-flow: row wrap !important;
+                width: 100% !important;
+            }
+
+            .print-receipt-section .ant-col-sm-12 {
+                display: block !important;
+                flex: 0 0 50% !important;
+                max-width: 50% !important;
+            }
+
+            .print-receipt-section .ant-col-sm-16 {
+                display: block !important;
+                flex: 0 0 66.666667% !important;
+                max-width: 66.666667% !important;
+            }
+
+            .print-receipt-section .ant-col-sm-8 {
+                display: block !important;
+                flex: 0 0 33.333333% !important;
+                max-width: 33.333333% !important;
             }
 
             body {
