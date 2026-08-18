@@ -51,7 +51,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             max-width: 100vw;
             overflow-x: hidden;
             margin: 0;
@@ -71,6 +72,7 @@
             letter-spacing: -0.02em;
             color: #006B3F;
         }
+
         .ant-statistic-content-value {
             font-size: clamp(1.25rem, 4vw, 2rem) !important;
             font-weight: 700 !important;
@@ -82,6 +84,7 @@
         .p-mobile-first {
             padding: 12px;
         }
+
         @media (min-width: 768px) {
             .p-mobile-first {
                 padding: 24px;
@@ -95,18 +98,22 @@
             -webkit-overflow-scrolling: touch;
             display: block;
         }
-        
+
         .responsive-table-container .ant-table {
             min-width: 650px;
         }
 
         /* Touch Targets for Accessibility */
-        .touch-target, .ant-btn {
+        .touch-target,
+        .ant-btn {
             min-width: 44px !important;
             min-height: 44px !important;
         }
 
-        .touch-target, .ant-btn, .ant-menu-item, .ant-tabs-tab {
+        .touch-target,
+        .ant-btn,
+        .ant-menu-item,
+        .ant-tabs-tab {
             min-height: 44px !important;
             display: inline-flex;
             align-items: center;
@@ -114,7 +121,8 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
 
-        .ant-btn:active, .touch-target:active {
+        .ant-btn:active,
+        .touch-target:active {
             transform: scale(0.96);
         }
 
@@ -174,10 +182,28 @@
         }
 
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
-            20%, 40%, 60%, 80% { transform: translateX(10px); }
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10%,
+            30%,
+            50%,
+            70%,
+            90% {
+                transform: translateX(-10px);
+            }
+
+            20%,
+            40%,
+            60%,
+            80% {
+                transform: translateX(10px);
+            }
         }
+
         .shake-effect {
             animation: shake 0.5s ease-in-out;
         }
@@ -306,7 +332,7 @@
             body * {
                 visibility: hidden;
             }
-            
+
             /* Hide the main app and other page layouts entirely */
             #root,
             .ant-modal-mask,
@@ -316,7 +342,7 @@
             .no-print {
                 display: none !important;
             }
-            
+
             /* Override visibility for the modal content path */
             .ant-modal-root,
             .ant-modal-wrap,
@@ -327,14 +353,14 @@
             .print-receipt-section * {
                 visibility: visible !important;
             }
-            
+
             /* Reset modal wrapping layout */
             .ant-modal-wrap {
                 position: static !important;
                 overflow: visible !important;
                 display: block !important;
             }
-            
+
             .ant-modal {
                 position: static !important;
                 width: 100% !important;
@@ -345,14 +371,14 @@
                 box-shadow: none !important;
                 background: transparent !important;
             }
-            
+
             .ant-modal-content {
                 background: transparent !important;
                 box-shadow: none !important;
                 padding: 0 !important;
                 border: none !important;
             }
-            
+
             .ant-modal-body {
                 padding: 0 !important;
             }
@@ -367,7 +393,7 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            
+
             body {
                 background-color: #ffffff !important;
                 padding: 0 !important;
@@ -376,18 +402,33 @@
         }
 
         @keyframes borderPulse {
-            0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
-            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-            100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            0% {
+                border-color: rgba(239, 68, 68, 0.4);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+            }
+
+            50% {
+                border-color: rgba(239, 68, 68, 1);
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                border-color: rgba(239, 68, 68, 0.4);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
         }
+
         .animate-overdraft-pulse {
             animation: borderPulse 2s infinite ease-in-out;
         }
+
         .row-lease-expired {
-            background-color: rgba(254, 243, 199, 0.45) !important; /* amber-50 */
+            background-color: rgba(254, 243, 199, 0.45) !important;
+            /* amber-50 */
             border-right: 4px solid #d97706 !important;
         }
-        .row-lease-expired:hover > td {
+
+        .row-lease-expired:hover>td {
             background-color: rgba(254, 243, 199, 0.7) !important;
         }
 
@@ -401,10 +442,12 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .mobile-list-card:active {
             transform: scale(0.985);
             background: #f8fafc;
         }
+
         .mobile-card-row {
             display: flex;
             justify-content: space-between;
@@ -412,30 +455,37 @@
             padding: 10px 0;
             border-bottom: 1px dashed #f1f5f9;
         }
+
         .mobile-card-row:last-child {
             border-bottom: none;
             padding-bottom: 0;
         }
+
         .mobile-card-row:first-child {
             padding-top: 0;
         }
+
         .mobile-card-label {
             color: #64748b;
             font-size: 13px;
             font-weight: 500;
         }
+
         .mobile-card-value {
             font-weight: 600;
             font-size: 13px;
             color: #1e293b;
             text-align: left;
         }
+
         .tap-scale {
             transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .tap-scale:active {
             transform: scale(0.96) !important;
         }
+
         .mobile-filter-panel {
             background: #f8fafc;
             border-radius: 16px;
@@ -444,6 +494,7 @@
             overflow: hidden;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
+
         .mobile-filter-header {
             padding: 14px 16px;
             display: flex;
@@ -455,9 +506,11 @@
             user-select: none;
             transition: background-color 0.2s ease;
         }
+
         .mobile-filter-header:hover {
             background-color: #f1f5f9;
         }
+
         .mobile-filter-body {
             padding: 16px;
             border-top: 1px solid #e2e8f0;
@@ -468,15 +521,17 @@
 
 <body>
     <div id="root"></div>
-    <div id="error-display" style="display:none;direction:rtl;font-family:Cairo,sans-serif;padding:40px;text-align:center;">
+    <div id="error-display"
+        style="display:none;direction:rtl;font-family:Cairo,sans-serif;padding:40px;text-align:center;">
         <h2 style="color:#c00;">⚠️ حدث خطأ في تحميل التطبيق</h2>
-        <pre id="error-details" style="background:#fff3f3;padding:20px;border-radius:8px;text-align:left;direction:ltr;overflow:auto;max-height:300px;"></pre>
+        <pre id="error-details"
+            style="background:#fff3f3;padding:20px;border-radius:8px;text-align:left;direction:ltr;overflow:auto;max-height:300px;"></pre>
         <p>يرجى تحديث الصفحة أو التواصل مع الدعم الفني.</p>
     </div>
 
     <script>
         // Global error handler - show errors visually instead of blank page
-        window.onerror = function(msg, src, line, col, err) {
+        window.onerror = function (msg, src, line, col, err) {
             // Ignore generic cross-origin script load errors with no line number
             if ((msg === 'Script error.' || msg === 'Script error') && (!line || line === 0)) {
                 console.warn('Ignored generic cross-origin script error:', msg, src);
@@ -552,7 +607,7 @@
         const SUPABASE_URL = "https://hifpzldubwoetexqjnau.supabase.co";
         const SUPABASE_KEY = "sb_publishable_LED-vbACqUUvZ6tm1aUDtQ_I2F_iMQX";
         const libSupabase = window.supabase;
-        
+
         // Safe storage check to support local file:// protocol
         const getSafeStorage = () => {
             try {
@@ -694,7 +749,7 @@
             const daysOffset = (year - refHijri) * 354.367;
             const approxStart = new Date(refGregorian.getTime() + daysOffset * 24 * 60 * 60 * 1000);
             const searchStart = new Date(approxStart.getTime() - 60 * 24 * 60 * 60 * 1000);
-            
+
             for (let d = 0; d < 450; d++) {
                 const currentDate = new Date(searchStart.getTime() + d * 24 * 60 * 60 * 1000);
                 try {
@@ -706,7 +761,7 @@
                     const [m, day, y] = parts.split('/');
                     const curY = parseInt(y, 10);
                     const curM = parseInt(m, 10);
-                    
+
                     if (curY === year) {
                         if (monthIndex === null || monthIndex === undefined || curM === monthIndex) {
                             if (!startDate) {
@@ -715,7 +770,7 @@
                             endDate = new Date(currentDate);
                         }
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
             if (startDate) startDate.setHours(0, 0, 0, 0);
             if (endDate) endDate.setHours(23, 59, 59, 999);
@@ -797,7 +852,7 @@
                     footer={[
                         <Button key="close" onClick={onClose} className="no-print">إغلاق</Button>,
                         canPrint && (
-                            <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-primary hover:bg-opacity-90 no-print">طباعة السند / حفظ PDF</Button>
+                            <Button key="print" type="primary" icon={<span style={{ marginInlineEnd: 8 }}>🖨️</span>} onClick={handlePrint} className="bg-primary hover:bg-opacity-90 no-print">طباعة السند / حفظ PDF</Button>
                         )
                     ].filter(Boolean)}
                     width={750}
@@ -806,7 +861,7 @@
                     <div className="print-receipt-section p-6">
                         <div className="receipt-card receipt-border-accent">
                             <div className="receipt-watermark">سند قبض</div>
-                            
+
                             {/* Header Band */}
                             <div className="receipt-header-band flex justify-between items-center">
                                 <div>
@@ -951,7 +1006,7 @@
 
             const translateCategory = (cat) => {
                 if (!cat) return '-';
-                switch(cat) {
+                switch (cat) {
                     case 'Maintenance': return 'صيانة';
                     case 'Utilities': return 'خدمات';
                     case 'General': return 'أخرى';
@@ -969,7 +1024,7 @@
                     footer={[
                         <Button key="close" onClick={onClose} className="no-print">إغلاق</Button>,
                         canPrint && (
-                            <Button key="print" type="primary" icon={<span style={{marginInlineEnd: 8}}>🖨️</span>} onClick={handlePrint} className="bg-red-600 hover:bg-opacity-90 no-print border-red-600">طباعة السند / حفظ PDF</Button>
+                            <Button key="print" type="primary" icon={<span style={{ marginInlineEnd: 8 }}>🖨️</span>} onClick={handlePrint} className="bg-red-600 hover:bg-opacity-90 no-print border-red-600">طباعة السند / حفظ PDF</Button>
                         )
                     ].filter(Boolean)}
                     width={750}
@@ -989,7 +1044,7 @@
                                 </div>
                             )}
                             <div className="voucher-watermark">سند صرف</div>
-                            
+
                             {/* Header Band */}
                             <div className="voucher-header-band flex justify-between items-center">
                                 <div>
@@ -1109,9 +1164,9 @@
             const handleLogin = async () => {
                 setLoading(true);
                 const processedEmail = processUsername(email);
-                const { data, error } = await supabase.auth.signInWithPassword({ 
-                    email: processedEmail, 
-                    password 
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: processedEmail,
+                    password
                 });
                 if (error) {
                     message.error("خطأ في تسجيل الدخول: " + error.message);
@@ -1175,27 +1230,27 @@
             const alerts = useMemo(() => {
                 if (!stats.units) return [];
                 const today = dayjs().startOf('day');
-                
+
                 return stats.units
                     .filter(u => u.is_rented && u.period_end)
                     .map(u => {
                         const expiryDate = dayjs(u.period_end).startOf('day');
                         const diffDays = expiryDate.diff(today, 'day');
-                        
+
                         // strictly bound target records to <= 7 days
                         if (diffDays > 7) return null;
-                        
+
                         const remainingBalance = (u.monthly_rent || 0) - (u.amount_paid || 0);
                         const buildingName = stats.buildingSummaries?.find(b => b.id === u.building_id)?.name || 'عمارة غير معروفة';
-                        
+
                         let alertType = 'warning'; // yellow (Amber Alert)
                         let alertTitle = 'ينتهي خلال أسبوع أو أقل';
-                        
+
                         if (diffDays < 0) {
                             alertType = 'error'; // red (Red Alert)
                             alertTitle = 'عقد منتهي';
                         }
-                        
+
                         let countdownText = '';
                         if (diffDays < 0) {
                             const absDays = Math.abs(diffDays);
@@ -1401,7 +1456,7 @@
 
                 if (!bError && bData && bData.length > 0) {
                     const bIds = bData.map(b => b.id);
-                    const { data: uData } = bIds.length > 0 
+                    const { data: uData } = bIds.length > 0
                         ? await supabase.from('units').select('building_id, monthly_rent, amount_paid, is_rented').in('building_id', bIds)
                         : { data: [] };
 
@@ -1468,8 +1523,8 @@
                         cityId = existingCities[0].id;
                         message.info(`المدينة "${trimmedName}" موجودة بالفعل وسيتم استخدامها.`);
                     } else {
-                        const newCityId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-                            ? crypto.randomUUID() 
+                        const newCityId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                            ? crypto.randomUUID()
                             : 'c-' + Date.now();
                         const newCityData = {
                             id: newCityId,
@@ -1509,10 +1564,10 @@
                     message.success("تم الحفظ بنجاح");
                     setIsModalOpen(false);
                     fetchBuildings();
-                    
+
                     const actionName = selectedBuilding ? 'UPDATE' : 'INSERT';
                     const cityName = cities.find(c => c.id === buildingValues.city_id)?.name_ar || '';
-                    const desc = selectedBuilding 
+                    const desc = selectedBuilding
                         ? `تم تعديل بيانات عمارة: ${buildingValues.name} (المدينة: ${cityName})`
                         : `تمت إضافة عمارة جديدة باسم: ${buildingValues.name} (المدينة: ${cityName})`;
                     logActivity(actionName, 'REAL_ESTATE', targetId, desc);
@@ -1628,10 +1683,10 @@
                                         </span>
                                     </div>
                                     <div className="mt-3">
-                                        <Button 
-                                            type="primary" 
-                                            block 
-                                            icon={<HomeOutlined />} 
+                                        <Button
+                                            type="primary"
+                                            block
+                                            icon={<HomeOutlined />}
                                             onClick={() => setSelectedBuilding({ ...record, viewUnits: true })}
                                             className="tap-scale bg-primary hover:bg-opacity-90 flex items-center justify-center gap-2"
                                             style={{ height: 44 }}
@@ -1701,22 +1756,22 @@
                                 <InputNumber className="w-full" min={1} />
                             </Form.Item>
                             <Form.Item name="city_id" label="المدينة" rules={[{ required: true }]}>
-                                <Select 
+                                <Select
                                     showSearch
                                     placeholder="اختر المدينة أو اختر إضافة مدينة جديدة"
                                     optionFilterProp="children"
                                     options={[
                                         ...cities.map(c => ({ label: c.name_ar, value: c.id })),
                                         { label: '➕ إضافة مدينة جديدة...', value: 'ADD_NEW_CITY' }
-                                    ]} 
+                                    ]}
                                 />
                             </Form.Item>
-                            
+
                             <Form.Item noStyle shouldUpdate={(prev, curr) => prev.city_id !== curr.city_id}>
                                 {({ getFieldValue }) => getFieldValue('city_id') === 'ADD_NEW_CITY' && (
-                                    <Form.Item 
-                                        name="new_city_name" 
-                                        label="اسم المدينة الجديدة" 
+                                    <Form.Item
+                                        name="new_city_name"
+                                        label="اسم المدينة الجديدة"
                                         rules={[{ required: true, message: 'الرجاء إدخال اسم المدينة الجديدة' }]}
                                     >
                                         <Input placeholder="مثال: مكة المكرمة" />
@@ -1818,27 +1873,31 @@
                     const s = String(unitNumStr || '').toLowerCase();
                     const num = parseNum(s);
 
-                    // Rank 1: Shops (محلات)
+                    // Rank 1: Shops (محلات من 1 إلى 7)
                     if (s.includes('محل') || s.includes('محلات') || s.includes('دكان') || s.includes('معرض')) {
                         return { rank: 1, num };
                     }
-                    // Rank 2: Family Apartments (شقق عوائل)
-                    if (s.includes('عوائل') || s.includes('عائلة') || s.includes('عائله') || s.includes('عائلي')) {
+                    // Rank 2: Apartments behind office (شقق خلف المكتب)
+                    if (s.includes('خلف المكتب') || s.includes('مكتب')) {
                         return { rank: 2, num };
                     }
-                    // Rank 3: Bachelor Apartments (شقق عزاب)
-                    if (s.includes('عزاب') || s.includes('عزب') || s.includes('عازب') || s.includes('عزابي')) {
+                    // Rank 3: Family Apartments (شقق عوائل من 1 إلى 24)
+                    if (s.includes('عوائل') || s.includes('عائلة') || s.includes('عائله') || s.includes('عائلي')) {
                         return { rank: 3, num };
                     }
-                    // Rank 4: Rooms (غرف)
-                    if (s.includes('غرفة') || s.includes('غرفه') || s.includes('غرف')) {
+                    // Rank 4: Bachelor Apartments (شقق عزاب من 1 إلى 8)
+                    if (s.includes('عزاب') || s.includes('عزب') || s.includes('عازب') || s.includes('عزابي')) {
                         return { rank: 4, num };
                     }
-                    // Rank 2 fallback for general apartments
-                    if (s.includes('شقة') || s.includes('شقه')) {
-                        return { rank: 2, num };
+                    // Rank 5: Rooms (غرف)
+                    if (s.includes('غرفة') || s.includes('غرفه') || s.includes('غرف')) {
+                        return { rank: 5, num };
                     }
-                    return { rank: 5, num };
+                    // Fallback for general apartments
+                    if (s.includes('شقة') || s.includes('شقه')) {
+                        return { rank: 3, num };
+                    }
+                    return { rank: 6, num };
                 };
 
                 return [...units].sort((a, b) => {
@@ -1875,7 +1934,7 @@
                     .from('receipts')
                     .select('*')
                     .eq('building_id', building.id);
-                
+
                 const { data: eData, error: eError } = await supabase
                     .from('vouchers_expense')
                     .select('*')
@@ -1966,9 +2025,9 @@
                             return;
                         }
                     }
-                    
+
                     const isAdmin = profile?.role === 'admin';
-                    
+
                     // Approval confirmation guard (only for admin)
                     if (isAdmin && !values.approval_confirmed) {
                         message.error('يجب تأكيد الاعتماد من المسؤول قبل الحفظ.');
@@ -2005,7 +2064,7 @@
                     message.success("تم تسجيل سند الصرف بنجاح");
                     logActivity('INSERT', 'EXPENSES', insertedVoucher?.id, `تم تسجيل سند صرف جديد برقم: ${insertedVoucher?.voucher_number} بقيمة ${values.amount} ر.س تحت بند: ${finalCategory}`);
                     setExpenseModalOpen(false);
-                    
+
                     const voucherForPrint = {
                         ...insertedVoucher,
                         building_name: building.name,
@@ -2191,7 +2250,7 @@
                             : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
                                 const r = Math.random() * 16 | 0;
                                 return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-                              });
+                            });
                         const { data, error } = await supabase.from('units').insert([{ id: newId, ...unitData }]).select().single();
                         if (error) throw error;
                         unitId = data.id;
@@ -2229,7 +2288,7 @@
 
                         message.success("تم حفظ الوحدة وإصدار السند بنجاح");
                         logActivity('INSERT', 'RECEIPTS', insertedReceipt?.id, `تم إصدار سند قبض جديد برقم: ${receiptNum} للمستأجر: ${values.tenant_name} بمبلغ ${finalReceived} ر.س`);
-                        
+
                         if (insertedReceipt) {
                             setActiveReceipt(insertedReceipt);
                             setReceiptModalVisible(true);
@@ -2240,7 +2299,7 @@
 
                     // Log unit insert/update
                     const actionName = selectedUnit ? 'UPDATE' : 'INSERT';
-                    const desc = selectedUnit 
+                    const desc = selectedUnit
                         ? `تم تعديل بيانات الوحدة رقم: ${values.unit_number} في عمارة ${building.name}`
                         : `تمت إضافة وحدة جديدة برقم: ${values.unit_number} في عمارة ${building.name}`;
                     logActivity(actionName, 'UNITS', unitId, desc);
@@ -2277,7 +2336,7 @@
                 setLoading(true);
                 try {
                     setSelectedUnit(unit);
-                    
+
                     // Fetch receipts
                     const { data: recs, error: recsErr } = await supabase
                         .from('receipts')
@@ -2333,7 +2392,7 @@
 
             const handleTerminateContract = async (unit) => {
                 const remaining = (unit.monthly_rent || 0) - (unit.amount_paid || 0);
-                
+
                 const performTermination = async () => {
                     setLoading(true);
                     try {
@@ -2355,13 +2414,13 @@
                                     settlement_status: remaining > 0 ? 'Waived' : null,
                                     final_carried_debt_amount: 0
                                 };
-                                
+
                                 const { data: existingArch } = await supabase
                                     .from('expired_contracts_archive')
                                     .select('id')
                                     .eq('unit_id', unit.id)
                                     .eq('contract_number', unit.contract_number);
-                                
+
                                 if (!existingArch || existingArch.length === 0) {
                                     const { error: archErr } = await supabase.from('expired_contracts_archive').insert([archiveData]);
                                     if (archErr) {
@@ -2389,7 +2448,7 @@
 
                         message.success("تم إنهاء العقد وتفريغ الوحدة بنجاح");
                         logActivity('UPDATE', 'CONTRACTS', unit.id, `تم إنهاء عقد الإيجار للوحدة رقم: ${unit.unit_number} للمستأجر: ${unit.tenant_name}`);
-                        
+
                         setUnitProfileOpen(false);
                         fetchUnits();
                     } catch (err) {
@@ -2401,7 +2460,7 @@
 
                 Modal.confirm({
                     title: 'تأكيد إنهاء العقد',
-                    content: remaining > 0 
+                    content: remaining > 0
                         ? `تنبيه: يوجد مبلغ متبقي غير محصل بقيمة ${sarFormatter(remaining)}. هل أنت متأكد من إنهاء العقد وإسقاط هذا المبلغ وتفريغ الوحدة؟`
                         : 'هل أنت متأكد من إنهاء عقد هذه الوحدة وتفريغها لاستقبال عقد جديد؟',
                     okText: 'نعم، أنهِ العقد',
@@ -2417,26 +2476,26 @@
                     const [start, end] = values.rent_period || [null, null];
                     const startDateStr = start ? start.format('YYYY-MM-DD') : null;
                     const endDateStr = end ? end.format('YYYY-MM-DD') : null;
-                    
+
                     const oldRemaining = (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0);
                     const isDebt = oldRemaining > 0;
                     const targetTotalRent = values.new_rent_value + (values.settlement_action === 'rollover' ? oldRemaining : 0);
-                    
+
                     let settlementStatus = null;
                     let finalCarriedDebtAmount = 0;
                     let oldContractFinalAmountPaid = selectedUnit.amount_paid || 0;
-                    
+
                     // Option A: Cash Settlement
                     if (isDebt && values.settlement_action === 'settle') {
                         settlementStatus = 'Settled';
                         finalCarriedDebtAmount = 0;
                         const settledAmount = values.settled_amount || oldRemaining;
                         oldContractFinalAmountPaid += settledAmount;
-                        
+
                         // Issue a final Receipt linked to the old contract number to bring its remaining balance to exactly zero
                         const settlementReceiptNum = await generateReceiptNumber();
                         const currentUser = (await supabase.auth.getUser()).data.user;
-                        
+
                         const settlementReceiptData = {
                             receipt_number: settlementReceiptNum,
                             unit_id: selectedUnit.id,
@@ -2465,12 +2524,12 @@
                             .insert([settlementReceiptData])
                             .select()
                             .single();
-                        
+
                         if (setRecError) throw setRecError;
-                        
+
                         logActivity('INSERT', 'RECEIPTS', insertedSettRec?.id, `تم إصدار سند قبض تسوية برقم: ${settlementReceiptNum} للمستأجر: ${selectedUnit.tenant_name} بمبلغ ${settledAmount} ر.س لتسوية العقد رقم ${selectedUnit.contract_number}`);
                     }
-                    
+
                     // Option B: Balance Rollover
                     if (isDebt && values.settlement_action === 'rollover') {
                         settlementStatus = 'Rolled_Over';
@@ -2500,18 +2559,18 @@
                             settlement_status: settlementStatus,
                             final_carried_debt_amount: finalCarriedDebtAmount
                         };
-                        
+
                         const { data: existingArch } = await supabase
                             .from('expired_contracts_archive')
                             .select('id')
                             .eq('unit_id', selectedUnit.id)
                             .eq('contract_number', selectedUnit.contract_number);
-                        
+
                         if (!existingArch || existingArch.length === 0) {
                             const { error: archErr } = await supabase
                                 .from('expired_contracts_archive')
                                 .insert([archiveData]);
-                            
+
                             if (archErr) {
                                 console.warn("Could not archive renewed lease: ", archErr.message);
                             }
@@ -2553,10 +2612,10 @@
                             .insert([receiptData])
                             .select()
                             .single();
-                        
+
                         if (recError) throw recError;
                         insertedReceipt = recData;
-                        
+
                         logActivity('INSERT', 'RECEIPTS', insertedReceipt?.id, `تم إصدار سند قبض جديد برقم: ${receiptNum} للمستأجر: ${values.tenant_name || selectedUnit.tenant_name} بمبلغ ${values.amount_received} ر.س`);
                     }
 
@@ -2578,12 +2637,12 @@
                         .from('units')
                         .update(updatedUnitData)
                         .eq('id', selectedUnit.id);
-                    
+
                     if (updateErr) throw updateErr;
 
                     // Show success message and receipt popup
                     message.success("تم تجديد العقد بنجاح وتوثيق التسوية/الترحيل المالي");
-                    
+
                     if (insertedReceipt) {
                         setActiveReceipt(insertedReceipt);
                         setReceiptModalVisible(true);
@@ -2645,7 +2704,7 @@
 
                             message.success("تم حذف السند وتحديث الدفاتر المالية بنجاح");
                             logActivity('DELETE', 'RECEIPTS', receipt.id, `قام المسؤول العام بحذف سند قبض رقم: ${receipt.receipt_number} بقيمة: ${receipt.amount_received} ر.س`);
-                            
+
                             fetchUnits();
                             showReceiptHistory(selectedUnit || { id: receipt.unit_id });
                             if (selectedUnit) {
@@ -2694,7 +2753,7 @@
 
                     message.success('تم تعديل مبلغ السند وتحديث المحصل بنجاح');
                     logActivity('UPDATE', 'RECEIPTS', receipt.id, `تم تعديل قيمة سند القبض رقم: ${receipt.receipt_number} من ${oldAmount} إلى ${newAmount} ر.س`);
-                    
+
                     fetchUnits();
                     showReceiptHistory(selectedUnit || { id: receipt.unit_id });
                     if (selectedUnit) {
@@ -2774,12 +2833,12 @@
                     extra={
                         !isMobile && (profile?.can_add || profile?.role === 'admin') ? (
                             <Space>
-                                <Button type="primary" icon={<PlusOutlined />} onClick={() => { 
-                                    setSelectedUnit(null); 
+                                <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+                                    setSelectedUnit(null);
                                     setLiveStartDate(null);
                                     setLiveEndDate(null);
-                                    form.resetFields(); 
-                                    setIsModalOpen(true); 
+                                    form.resetFields();
+                                    setIsModalOpen(true);
                                 }}>إضافة وحدة جديدة</Button>
                             </Space>
                         ) : null
@@ -2832,17 +2891,17 @@
                             children: isMobile ? (
                                 <div className="space-y-3">
                                     {(profile?.can_add || profile?.role === 'admin') && (
-                                        <Button 
-                                            type="primary" 
-                                            icon={<PlusOutlined />} 
+                                        <Button
+                                            type="primary"
+                                            icon={<PlusOutlined />}
                                             block
                                             className="mb-4 tap-scale font-semibold font-cairo"
-                                            onClick={() => { 
-                                                setSelectedUnit(null); 
+                                            onClick={() => {
+                                                setSelectedUnit(null);
                                                 setLiveStartDate(null);
                                                 setLiveEndDate(null);
-                                                form.resetFields(); 
-                                                setIsModalOpen(true); 
+                                                form.resetFields();
+                                                setIsModalOpen(true);
                                             }}
                                         >
                                             إضافة وحدة جديدة
@@ -2863,8 +2922,8 @@
                                         }
 
                                         return (
-                                            <div 
-                                                key={record.id} 
+                                            <div
+                                                key={record.id}
                                                 className={`mobile-list-card ${record.is_rented && isLeaseExpired(record.period_end) ? 'border-amber-400 bg-amber-50/5' : ''}`}
                                             >
                                                 <div className="flex justify-between items-center mb-3">
@@ -2928,10 +2987,10 @@
                                                 <Divider className="my-3" />
 
                                                 <div className="grid grid-cols-2 gap-2 w-full mt-3">
-                                                    <Button 
-                                                        type="primary" 
-                                                        ghost 
-                                                        icon={<FileTextOutlined />} 
+                                                    <Button
+                                                        type="primary"
+                                                        ghost
+                                                        icon={<FileTextOutlined />}
                                                         onClick={() => showUnitProfile(record)}
                                                         className="tap-scale flex items-center justify-center text-xs font-bold font-cairo"
                                                         style={{ height: 38 }}
@@ -2940,9 +2999,9 @@
                                                     </Button>
 
                                                     {(profile?.can_add || profile?.role === 'admin') && (
-                                                        <Button 
-                                                            danger 
-                                                            icon={<ArrowUpOutlined />} 
+                                                        <Button
+                                                            danger
+                                                            icon={<ArrowUpOutlined />}
                                                             onClick={() => handleOpenExpenseModal(record)}
                                                             className="tap-scale flex items-center justify-center text-xs font-bold font-cairo border-red-200 text-red-500 hover:text-red-650 hover:border-red-500"
                                                             style={{ height: 38 }}
@@ -2953,8 +3012,8 @@
                                                 </div>
                                                 <div className="flex gap-2 mt-2 w-full">
                                                     {(profile?.can_edit || profile?.role === 'admin') && (
-                                                        <Button 
-                                                            icon={<EditOutlined />} 
+                                                        <Button
+                                                            icon={<EditOutlined />}
                                                             onClick={() => {
                                                                 setSelectedUnit(record);
                                                                 setLiveStartDate(record.period_start ? new Date(record.period_start) : null);
@@ -2965,7 +3024,7 @@
                                                                     amount_received: 0
                                                                 });
                                                                 setIsModalOpen(true);
-                                                            }} 
+                                                            }}
                                                             className="tap-scale flex-1 flex items-center justify-center text-xs border border-gray-200"
                                                             style={{ height: 38 }}
                                                         >
@@ -2974,9 +3033,9 @@
                                                     )}
 
                                                     {isAuthorizedToDelete && (
-                                                        <Button 
-                                                            danger 
-                                                            icon={<DeleteOutlined />} 
+                                                        <Button
+                                                            danger
+                                                            icon={<DeleteOutlined />}
                                                             onClick={() => handleDeleteUnit(record)}
                                                             className="tap-scale flex-1 flex items-center justify-center text-xs"
                                                             style={{ height: 38 }}
@@ -3036,8 +3095,8 @@
                                             { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name', render: v => <span className="font-semibold text-slate-800 whitespace-nowrap">{v || '-'}</span> },
                                             { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number', render: v => <span className="font-mono text-xs whitespace-nowrap">{v || '-'}</span> },
                                             { title: 'رقم الجوال', dataIndex: 'phone_number', key: 'phone_number', render: (v) => v ? <a href={`tel:${v}`} className="whitespace-nowrap font-mono text-xs text-primary font-bold">{v}</a> : '-' },
-                                            { 
-                                                title: 'بداية العقد', 
+                                            {
+                                                title: 'بداية العقد',
                                                 key: 'period_start_full',
                                                 render: (_, record) => record.period_start ? (
                                                     <div className="whitespace-nowrap text-xs">
@@ -3046,8 +3105,8 @@
                                                     </div>
                                                 ) : '-'
                                             },
-                                            { 
-                                                title: 'نهاية العقد', 
+                                            {
+                                                title: 'نهاية العقد',
                                                 key: 'period_end_full',
                                                 render: (_, record) => record.period_end ? (
                                                     <div className="whitespace-nowrap text-xs">
@@ -3096,10 +3155,10 @@
                                                         </Tooltip>
                                                         {(profile?.can_add || profile?.role === 'admin') && (
                                                             <Tooltip title="إصدار سند صرف مصروفات">
-                                                                <Button 
+                                                                <Button
                                                                     size="small"
                                                                     className="border-red-200 text-red-500 hover:border-red-500 hover:text-red-500 px-2 text-xs"
-                                                                    icon={<ArrowUpOutlined className="text-red-500" />} 
+                                                                    icon={<ArrowUpOutlined className="text-red-500" />}
                                                                     onClick={() => handleOpenExpenseModal(record)}
                                                                 >
                                                                     سند صرف
@@ -3187,10 +3246,10 @@
                                                         </span>
                                                     </div>
                                                     <div className="mt-3">
-                                                        <Button 
-                                                            type="primary" 
-                                                            ghost 
-                                                            block 
+                                                        <Button
+                                                            type="primary"
+                                                            ghost
+                                                            block
                                                             onClick={() => {
                                                                 if (record.type === 'receipt') {
                                                                     setActiveReceipt(record.rawItem);
@@ -3224,9 +3283,9 @@
                                                 dataSource={computedLedger}
                                                 rowKey={(record) => `${record.type}-${record.id}`}
                                                 columns={[
-                                                    { 
-                                                        title: 'التاريخ', 
-                                                        dataIndex: 'date', 
+                                                    {
+                                                        title: 'التاريخ',
+                                                        dataIndex: 'date',
                                                         key: 'date',
                                                         render: (d) => (
                                                             <div>
@@ -3236,9 +3295,9 @@
                                                         )
                                                     },
                                                     { title: 'رقم المستند / السند', dataIndex: 'refNumber', key: 'refNumber' },
-                                                    { 
-                                                        title: 'النوع', 
-                                                        dataIndex: 'type', 
+                                                    {
+                                                        title: 'النوع',
+                                                        dataIndex: 'type',
                                                         key: 'type',
                                                         render: (type) => (
                                                             <Tag color={type === 'receipt' ? 'success' : 'error'}>
@@ -3249,21 +3308,21 @@
                                                     { title: 'التصنيف', dataIndex: 'category', key: 'category' },
                                                     { title: 'طريقة الدفع', dataIndex: 'paymentMethod', key: 'paymentMethod' },
                                                     { title: 'البيان والتفاصيل', dataIndex: 'description', key: 'description' },
-                                                    { 
-                                                        title: 'مقبوضات / إيرادات (+)', 
-                                                        dataIndex: 'income', 
+                                                    {
+                                                        title: 'مقبوضات / إيرادات (+)',
+                                                        dataIndex: 'income',
                                                         key: 'income',
                                                         render: (v) => v > 0 ? <span className="text-emerald-600 font-bold">+{sarFormatter(v)}</span> : '-'
                                                     },
-                                                    { 
-                                                        title: 'مدفوعات / مصروفات (-)', 
-                                                        dataIndex: 'expense', 
+                                                    {
+                                                        title: 'مدفوعات / مصروفات (-)',
+                                                        dataIndex: 'expense',
                                                         key: 'expense',
                                                         render: (v) => v > 0 ? <span className="text-red-600 font-bold">-{sarFormatter(v)}</span> : '-'
                                                     },
-                                                    { 
-                                                        title: 'الرصيد الجاري للعمليات', 
-                                                        dataIndex: 'balance', 
+                                                    {
+                                                        title: 'الرصيد الجاري للعمليات',
+                                                        dataIndex: 'balance',
                                                         key: 'balance',
                                                         render: (v) => <span className={`font-bold ${v >= 0 ? 'text-primary' : 'text-red-700'}`}>{sarFormatter(v)}</span>
                                                     },
@@ -3271,9 +3330,9 @@
                                                         title: 'إجراءات',
                                                         key: 'action',
                                                         render: (_, record) => (
-                                                            <Button 
+                                                            <Button
                                                                 size="small"
-                                                                type="link" 
+                                                                type="link"
                                                                 onClick={() => {
                                                                     if (record.type === 'receipt') {
                                                                         setActiveReceipt(record.rawItem);
@@ -3309,8 +3368,8 @@
                                     <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100">
                                         <Text strong className="text-lg text-red-700">سجل سندات صرف المصروفات</Text>
                                         {(profile?.can_add || profile?.role === 'admin') && (
-                                            <Button 
-                                                type="primary" 
+                                            <Button
+                                                type="primary"
                                                 danger
                                                 icon={<PlusOutlined />}
                                                 onClick={() => handleOpenExpenseModal(null)}
@@ -3377,10 +3436,10 @@
                                                         )}
                                                         <Divider className="my-3" />
                                                         <div className="flex gap-2 justify-between items-center flex-wrap">
-                                                            <Button 
-                                                                size="small" 
-                                                                type="primary" 
-                                                                ghost 
+                                                            <Button
+                                                                size="small"
+                                                                type="primary"
+                                                                ghost
                                                                 onClick={() => {
                                                                     setActiveExpense({
                                                                         ...record,
@@ -3398,20 +3457,20 @@
 
                                                             {(profile?.role === 'admin' && (!record.approval_status || record.approval_status === 'pending')) && (
                                                                 <>
-                                                                    <Button 
-                                                                        size="small" 
-                                                                        type="text" 
-                                                                        className="tap-scale flex-1 flex items-center justify-center text-emerald-600 hover:text-emerald-700 font-bold border border-emerald-200 bg-emerald-50/20" 
+                                                                    <Button
+                                                                        size="small"
+                                                                        type="text"
+                                                                        className="tap-scale flex-1 flex items-center justify-center text-emerald-600 hover:text-emerald-700 font-bold border border-emerald-200 bg-emerald-50/20"
                                                                         onClick={() => handleApproveExpense(record)}
                                                                         style={{ height: 38 }}
                                                                     >
                                                                         اعتماد
                                                                     </Button>
-                                                                    <Button 
-                                                                        size="small" 
-                                                                        type="text" 
-                                                                        danger 
-                                                                        className="tap-scale flex-1 flex items-center justify-center font-bold border border-red-250 bg-red-50/20" 
+                                                                    <Button
+                                                                        size="small"
+                                                                        type="text"
+                                                                        danger
+                                                                        className="tap-scale flex-1 flex items-center justify-center font-bold border border-red-250 bg-red-50/20"
                                                                         onClick={() => handleRejectExpense(record)}
                                                                         style={{ height: 38 }}
                                                                     >
@@ -3421,10 +3480,10 @@
                                                             )}
 
                                                             {isAuthorizedToDelete && (
-                                                                <Button 
-                                                                    size="small" 
-                                                                    danger 
-                                                                    type="text" 
+                                                                <Button
+                                                                    size="small"
+                                                                    danger
+                                                                    type="text"
                                                                     onClick={() => handleDeleteExpense(record)}
                                                                     className="tap-scale flex items-center justify-center"
                                                                     style={{ height: 38, width: 38 }}
@@ -3446,15 +3505,15 @@
                                                 rowKey="id"
                                                 columns={[
                                                     { title: 'رقم السند', dataIndex: 'voucher_number', key: 'voucher_number' },
-                                                    { 
-                                                        title: 'الوحدة المرتبطة', 
-                                                        dataIndex: 'unit_id', 
+                                                    {
+                                                        title: 'الوحدة المرتبطة',
+                                                        dataIndex: 'unit_id',
                                                         key: 'unit_id',
                                                         render: (uid) => units.find(u => u.id === uid)?.unit_number || 'عام للمبنى'
                                                     },
-                                                    { 
-                                                        title: 'بند المصروف', 
-                                                        dataIndex: 'category', 
+                                                    {
+                                                        title: 'بند المصروف',
+                                                        dataIndex: 'category',
                                                         key: 'category',
                                                         render: (cat) => cat === 'Maintenance' ? 'صيانة' : cat === 'Utilities' ? 'خدمات' : 'أخرى'
                                                     },
@@ -3600,8 +3659,8 @@
                                                             <Col span={12}>
                                                                 <div className="text-xs text-gray-500">المحصل سابقاً</div>
                                                                 {profile?.role === 'admin' ? (
-                                                                    <Button 
-                                                                        type="link" 
+                                                                    <Button
+                                                                        type="link"
                                                                         className="p-0 font-bold text-emerald-600 hover:text-emerald-700 underline"
                                                                         onClick={() => showReceiptHistory(selectedUnit)}
                                                                     >
@@ -3778,7 +3837,7 @@
                             {/* Current Lease Details */}
                             {selectedUnit?.is_rented ? (
                                 <Card title="العقد والمستأجر الحالي" className="shadow-sm border-emerald-100" headStyle={{ borderBottom: '1px solid #f0f2f5', fontWeight: 'bold' }}>
-                    {isMobile ? (
+                                    {isMobile ? (
                                         <div className="space-y-3 font-cairo">
                                             <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
                                                 <div className="text-gray-400 text-xs mb-1">المستأجر</div>
@@ -3925,8 +3984,8 @@
                                                     <div className="mobile-card-row">
                                                         <span className="mobile-card-label">حالة التسوية:</span>
                                                         <span className="mobile-card-value">
-                                                            {r.settlement_status === 'Settled' ? <Tag color="success">تسوية كاش</Tag> : 
-                                                             r.settlement_status === 'Rolled_Over' ? <Tag color="warning">ترحيل دين</Tag> : '-'}
+                                                            {r.settlement_status === 'Settled' ? <Tag color="success">تسوية كاش</Tag> :
+                                                                r.settlement_status === 'Rolled_Over' ? <Tag color="warning">ترحيل دين</Tag> : '-'}
                                                         </span>
                                                     </div>
                                                     {r.final_carried_debt_amount > 0 && (
@@ -3950,9 +4009,9 @@
                                                 columns={[
                                                     { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number' },
                                                     { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name' },
-                                                    { 
-                                                        title: 'الفترة', 
-                                                        key: 'period', 
+                                                    {
+                                                        title: 'الفترة',
+                                                        key: 'period',
                                                         render: (_, r) => (
                                                             <div className="text-xs">
                                                                 <div>من: {r.period_start}</div>
@@ -3962,9 +4021,9 @@
                                                     },
                                                     { title: 'القيمة', dataIndex: 'monthly_rent', render: v => sarFormatter(v) },
                                                     { title: 'المحصل', dataIndex: 'amount_paid', render: v => sarFormatter(v) },
-                                                    { 
-                                                        title: 'حالة التسوية', 
-                                                        dataIndex: 'settlement_status', 
+                                                    {
+                                                        title: 'حالة التسوية',
+                                                        dataIndex: 'settlement_status',
                                                         key: 'settlement_status',
                                                         render: (status) => {
                                                             if (status === 'Settled') return <Tag color="success">تسوية كاش</Tag>;
@@ -3972,61 +4031,61 @@
                                                             return '-';
                                                         }
                                                     },
-                                                    { 
-                                                        title: 'الدين المرحّل', 
-                                                        dataIndex: 'final_carried_debt_amount', 
-                                                        render: v => v ? sarFormatter(v) : '-' 
+                                                    {
+                                                        title: 'الدين المرحّل',
+                                                        dataIndex: 'final_carried_debt_amount',
+                                                        render: v => v ? sarFormatter(v) : '-'
                                                     },
                                                     { title: 'تاريخ الأرشفة', dataIndex: 'archived_at', render: v => dayjs(v).format('YYYY-MM-DD') }
                                                 ]}
                                             />
                                         </div>
                                     )}
-</Collapse.Panel>
+                                </Collapse.Panel>
                                 <Collapse.Panel header={<span className="font-bold text-primary">💵 السندات والعمليات المالية للوحدة (Financial Transactions)</span>} key="2">
                                     <antd.Tabs defaultActiveKey="receipts" items={[
                                         {
                                             key: 'receipts',
                                             label: 'سندات القبض (Receipts & Collections)',
                                             children: (isMobile ? (
-                                                    <div className="space-y-3">
-                                                        {selectedUnitReceipts.map(record => (
-                                                            <div key={record.id} className="mobile-list-card">
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                    <span className="font-bold text-slate-800 text-sm">📄 سند قبض: {record.receipt_number}</span>
-                                                                    <span className="text-xs text-gray-400">{dayjs(record.created_at).format('YYYY-MM-DD')}</span>
-                                                                </div>
-                                                                <div className="mobile-card-row">
-                                                                    <span className="mobile-card-label">المبلغ المستلم:</span>
-                                                                    <span className="mobile-card-value text-emerald-600 font-bold">{sarFormatter(record.amount_received || 0)}</span>
-                                                                </div>
-                                                                <div className="mobile-card-row">
-                                                                    <span className="mobile-card-label">طريقة الدفع:</span>
-                                                                    <span className="mobile-card-value">{record.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</span>
-                                                                </div>
-                                                                <Divider className="my-2" />
-                                                                <div className="flex gap-2 justify-end">
-                                                                    <Button size="small" type="primary" ghost onClick={() => {
-                                                                        setActiveReceipt(record);
-                                                                        setReceiptModalVisible(true);
-                                                                    }} className="tap-scale flex-1 text-xs">عرض السند</Button>
-                                                                    {(profile?.role === 'admin' || profile?.can_edit) && (
-                                                                        <Button size="small" className="text-blue-500 hover:text-blue-600 tap-scale" onClick={() => handleEditReceiptAmount(record)}>تعديل</Button>
-                                                                    )}
-                                                                    {isAuthorizedToDelete && (
-                                                                        <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)} className="tap-scale">حذف</Button>
-                                                                    )}
-                                                                </div>
+                                                <div className="space-y-3">
+                                                    {selectedUnitReceipts.map(record => (
+                                                        <div key={record.id} className="mobile-list-card">
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <span className="font-bold text-slate-800 text-sm">📄 سند قبض: {record.receipt_number}</span>
+                                                                <span className="text-xs text-gray-400">{dayjs(record.created_at).format('YYYY-MM-DD')}</span>
                                                             </div>
-                                                        ))}
-                                                        {selectedUnitReceipts.length === 0 && (
-                                                            <Empty description="لا توجد سندات قبض لهذه الوحدة" />
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="responsive-table-container">
-                                                        <Table
-                                                            dataSource={selectedUnitReceipts}
+                                                            <div className="mobile-card-row">
+                                                                <span className="mobile-card-label">المبلغ المستلم:</span>
+                                                                <span className="mobile-card-value text-emerald-600 font-bold">{sarFormatter(record.amount_received || 0)}</span>
+                                                            </div>
+                                                            <div className="mobile-card-row">
+                                                                <span className="mobile-card-label">طريقة الدفع:</span>
+                                                                <span className="mobile-card-value">{record.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</span>
+                                                            </div>
+                                                            <Divider className="my-2" />
+                                                            <div className="flex gap-2 justify-end">
+                                                                <Button size="small" type="primary" ghost onClick={() => {
+                                                                    setActiveReceipt(record);
+                                                                    setReceiptModalVisible(true);
+                                                                }} className="tap-scale flex-1 text-xs">عرض السند</Button>
+                                                                {(profile?.role === 'admin' || profile?.can_edit) && (
+                                                                    <Button size="small" className="text-blue-500 hover:text-blue-600 tap-scale" onClick={() => handleEditReceiptAmount(record)}>تعديل</Button>
+                                                                )}
+                                                                {isAuthorizedToDelete && (
+                                                                    <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)} className="tap-scale">حذف</Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {selectedUnitReceipts.length === 0 && (
+                                                        <Empty description="لا توجد سندات قبض لهذه الوحدة" />
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="responsive-table-container">
+                                                    <Table
+                                                        dataSource={selectedUnitReceipts}
                                                         rowKey="id"
                                                         size="small"
                                                         locale={{ emptyText: 'لا توجد سندات قبض لهذه الوحدة' }}
@@ -4059,63 +4118,63 @@
                                                             }
                                                         ]}
                                                     />
-                                                    </div>
-                                                ))
+                                                </div>
+                                            ))
                                         },
                                         {
                                             key: 'expenses',
                                             label: 'سندات الصرف (Expense Vouchers)',
                                             children: (isMobile ? (
-                                                    <div className="space-y-3">
-                                                        {selectedUnitExpenses.map(record => {
-                                                            const translateCategoryLocal = (cat) => {
-                                                                if (!cat) return '-';
-                                                                switch(cat) {
-                                                                    case 'Maintenance': return 'صيانة';
-                                                                    case 'Utilities': return 'خدمات';
-                                                                    case 'General': return 'أخرى';
-                                                                    default: return cat;
-                                                                }
-                                                            };
-                                                            const translatedCat = translateCategoryLocal(record.category);
-                                                            return (
-                                                                <div key={record.id} className="mobile-list-card">
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <span className="font-bold text-slate-800 text-sm">📄 سند صرف: {record.voucher_number}</span>
-                                                                        <span className="text-xs text-gray-400">{dayjs(record.created_at).format('YYYY-MM-DD')}</span>
-                                                                    </div>
-                                                                    <div className="mobile-card-row">
-                                                                        <span className="mobile-card-label">المبلغ:</span>
-                                                                        <span className="mobile-card-value text-red-600 font-bold">{sarFormatter(record.amount || 0)}</span>
-                                                                    </div>
-                                                                    <div className="mobile-card-row">
-                                                                        <span className="mobile-card-label">النوع والبيان:</span>
-                                                                        <span className="mobile-card-value">
-                                                                            <Tag color="orange" style={{ marginInlineEnd: 4 }}>{translatedCat}</Tag>
-                                                                            {record.description && <span className="text-xs text-gray-500">{record.description}</span>}
-                                                                        </span>
-                                                                    </div>
-                                                                    <Divider className="my-2" />
-                                                                    <div className="flex gap-2 justify-end">
-                                                                        <Button size="small" type="primary" ghost onClick={() => {
-                                                                            setActiveExpense(record);
-                                                                            setExpensePreviewVisible(true);
-                                                                        }} className="tap-scale flex-1 text-xs">عرض السند</Button>
-                                                                        {isAuthorizedToDelete && (
-                                                                            <Button size="small" danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteExpense(record)} className="tap-scale" />
-                                                                        )}
-                                                                    </div>
+                                                <div className="space-y-3">
+                                                    {selectedUnitExpenses.map(record => {
+                                                        const translateCategoryLocal = (cat) => {
+                                                            if (!cat) return '-';
+                                                            switch (cat) {
+                                                                case 'Maintenance': return 'صيانة';
+                                                                case 'Utilities': return 'خدمات';
+                                                                case 'General': return 'أخرى';
+                                                                default: return cat;
+                                                            }
+                                                        };
+                                                        const translatedCat = translateCategoryLocal(record.category);
+                                                        return (
+                                                            <div key={record.id} className="mobile-list-card">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <span className="font-bold text-slate-800 text-sm">📄 سند صرف: {record.voucher_number}</span>
+                                                                    <span className="text-xs text-gray-400">{dayjs(record.created_at).format('YYYY-MM-DD')}</span>
                                                                 </div>
-                                                            );
-                                                        })}
-                                                        {selectedUnitExpenses.length === 0 && (
-                                                            <Empty description="لا توجد سندات صرف لهذه الوحدة" />
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="responsive-table-container">
-                                                        <Table
-                                                            dataSource={selectedUnitExpenses}
+                                                                <div className="mobile-card-row">
+                                                                    <span className="mobile-card-label">المبلغ:</span>
+                                                                    <span className="mobile-card-value text-red-600 font-bold">{sarFormatter(record.amount || 0)}</span>
+                                                                </div>
+                                                                <div className="mobile-card-row">
+                                                                    <span className="mobile-card-label">النوع والبيان:</span>
+                                                                    <span className="mobile-card-value">
+                                                                        <Tag color="orange" style={{ marginInlineEnd: 4 }}>{translatedCat}</Tag>
+                                                                        {record.description && <span className="text-xs text-gray-500">{record.description}</span>}
+                                                                    </span>
+                                                                </div>
+                                                                <Divider className="my-2" />
+                                                                <div className="flex gap-2 justify-end">
+                                                                    <Button size="small" type="primary" ghost onClick={() => {
+                                                                        setActiveExpense(record);
+                                                                        setExpensePreviewVisible(true);
+                                                                    }} className="tap-scale flex-1 text-xs">عرض السند</Button>
+                                                                    {isAuthorizedToDelete && (
+                                                                        <Button size="small" danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteExpense(record)} className="tap-scale" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {selectedUnitExpenses.length === 0 && (
+                                                        <Empty description="لا توجد سندات صرف لهذه الوحدة" />
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="responsive-table-container">
+                                                    <Table
+                                                        dataSource={selectedUnitExpenses}
                                                         rowKey="id"
                                                         size="small"
                                                         locale={{ emptyText: 'لا توجد سندات صرف لهذه الوحدة' }}
@@ -4123,13 +4182,13 @@
                                                             { title: 'التاريخ', dataIndex: 'created_at', key: 'date', render: v => dayjs(v).format('YYYY-MM-DD') },
                                                             { title: 'رقم السند', dataIndex: 'voucher_number', key: 'voucher_number' },
                                                             { title: 'المبلغ', dataIndex: 'amount', key: 'amount', render: v => <span className="text-red-600 font-semibold">{sarFormatter(v)}</span> },
-                                                            { 
-                                                                title: 'البيان والنوع', 
-                                                                key: 'category_details', 
+                                                            {
+                                                                title: 'البيان والنوع',
+                                                                key: 'category_details',
                                                                 render: (_, r) => {
                                                                     const translateCategoryLocal = (cat) => {
                                                                         if (!cat) return '-';
-                                                                        switch(cat) {
+                                                                        switch (cat) {
                                                                             case 'Maintenance': return 'صيانة';
                                                                             case 'Utilities': return 'خدمات';
                                                                             case 'General': return 'أخرى';
@@ -4162,8 +4221,8 @@
                                                             }
                                                         ]}
                                                     />
-                                                    </div>
-                                                ))
+                                                </div>
+                                            ))
                                         }
                                     ]} />
                                 </Collapse.Panel>
@@ -4179,9 +4238,9 @@
                         onOk={() => renewalForm.submit()}
                         width={720}
                     >
-                        <Form 
-                            form={renewalForm} 
-                            layout="vertical" 
+                        <Form
+                            form={renewalForm}
+                            layout="vertical"
                             onFinish={handleRenewContract}
                             onValuesChange={(changedValues, allValues) => {
                                 if (changedValues.rent_period) {
@@ -4204,9 +4263,9 @@
                                         <div className="font-bold text-sm mb-3">
                                             تنبيه: يوجد مبلّغ متبقي غير محصل من العقد القديم بقيمة: {sarFormatter(oldRemaining)} ر.س. يرجى اختيار الإجراء المالي المناسب لإتمام التجديد.
                                         </div>
-                                        <Form.Item 
-                                            name="settlement_action" 
-                                            label={<span className="font-semibold">الإجراء المالي للمتبقي من العقد القديم</span>} 
+                                        <Form.Item
+                                            name="settlement_action"
+                                            label={<span className="font-semibold">الإجراء المالي للمتبقي من العقد القديم</span>}
                                             rules={[{ required: true, message: 'يرجى اختيار الإجراء المالي للمتابعة' }]}
                                         >
                                             <Radio.Group className="flex flex-col gap-2">
@@ -4227,9 +4286,9 @@
                                             <div className="mt-4 p-3 bg-white border border-gray-100 rounded-lg">
                                                 <Row gutter={16}>
                                                     <Col span={12}>
-                                                        <Form.Item 
-                                                            name="settled_amount" 
-                                                            label="المبلغ المسدد للتسوية (ر.س)" 
+                                                        <Form.Item
+                                                            name="settled_amount"
+                                                            label="المبلغ المسدد للتسوية (ر.س)"
                                                             initialValue={oldRemaining}
                                                             rules={[
                                                                 { required: true, message: 'يرجى إدخال مبلغ التسوية' },
@@ -4240,9 +4299,9 @@
                                                         </Form.Item>
                                                     </Col>
                                                     <Col span={12}>
-                                                        <Form.Item 
-                                                            name="settled_payment_method" 
-                                                            label="طريقة دفع التسوية" 
+                                                        <Form.Item
+                                                            name="settled_payment_method"
+                                                            label="طريقة دفع التسوية"
                                                             initialValue="Cash"
                                                             rules={[{ required: true }]}
                                                         >
@@ -4642,7 +4701,7 @@
                     form.resetFields();
                     return;
                 }
-                
+
                 try {
                     // Check if user already exists in profiles
                     const { data: existingUser } = await supabase
@@ -4745,8 +4804,8 @@
                     <div className="flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center bg-white p-4 rounded-lg shadow-sm">
                         <Title level={4} className="!mb-0 font-cairo" style={{ margin: 0 }}>إدارة المستخدمين والصلاحيات</Title>
                         <Space direction={isMobile ? "vertical" : "horizontal"} className="w-full sm:w-auto" size={10}>
-                            <Button 
-                                icon={<LockOutlined />} 
+                            <Button
+                                icon={<LockOutlined />}
                                 onClick={() => setIsPasswordResetModalOpen(true)}
                                 className="border-amber-600 text-amber-600 hover:text-amber-700 hover:border-amber-700 font-semibold font-cairo tap-scale"
                                 block={isMobile}
@@ -4754,9 +4813,9 @@
                             >
                                 تغيير كلمة المرور الخاصة بي
                             </Button>
-                            <Button 
-                                type="primary" 
-                                icon={<PlusOutlined />} 
+                            <Button
+                                type="primary"
+                                icon={<PlusOutlined />}
                                 onClick={() => { setSelectedUser(null); form.resetFields(); setIsModalOpen(true); }}
                                 className="font-semibold font-cairo tap-scale"
                                 block={isMobile}
@@ -4805,8 +4864,8 @@
 
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-gray-500 font-semibold">العمارات المخصصة:</span>
-                                                    <Space 
-                                                        className={isMainAdmin ? "" : "cursor-pointer"} 
+                                                    <Space
+                                                        className={isMainAdmin ? "" : "cursor-pointer"}
                                                         onClick={() => handleOpenAssignBuildings(record)}
                                                     >
                                                         {isMainAdmin ? (
@@ -4904,10 +4963,10 @@
                             <Form.Item name="email" label="اسم المستخدم" rules={[{ required: true }]}>
                                 <Input placeholder="مثال: khaled" disabled={!!selectedUser} />
                             </Form.Item>
-                            
-                            <Form.Item 
-                                name={selectedUser ? "new_password" : "password"} 
-                                label={selectedUser ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"} 
+
+                            <Form.Item
+                                name={selectedUser ? "new_password" : "password"}
+                                label={selectedUser ? "كلمة المرور الجديدة (اختياري)" : "كلمة المرور"}
                                 rules={[{ required: !selectedUser, min: 6 }]}
                             >
                                 <Input.Password placeholder={selectedUser ? "اتركها فارغة إذا كنت لا تريد تغييرها" : "أدخل كلمة مرور للمستخدم"} />
@@ -4916,7 +4975,7 @@
                             <Form.Item name="role" label="الدور" initialValue="user">
                                 <Select options={[{ label: 'مسؤول', value: 'admin' }, { label: 'مستخدم', value: 'user' }]} />
                             </Form.Item>
-                            
+
                             <div className="flex gap-4 mb-4">
                                 <Form.Item name="can_add" valuePropName="checked" noStyle><Checkbox>إضافة</Checkbox></Form.Item>
                                 <Form.Item name="can_edit" valuePropName="checked" noStyle><Checkbox>تعديل</Checkbox></Form.Item>
@@ -5020,7 +5079,7 @@
                                     );
                                 })}
                             </Select>
-                            
+
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {cities.map(city => {
                                     const cityBuildings = (allBuildings || []).filter(b => b.city_id === city.id);
@@ -5056,11 +5115,11 @@
                         title={<div className="font-bold text-primary text-lg border-b pb-2 mb-4">🔐 تغيير كلمة المرور للمسؤول</div>}
                         footer={[
                             <Button key="cancel" onClick={handleCancelPasswordReset} className="no-print">إغلاق</Button>,
-                            <Button 
-                                key="submit" 
-                                type="primary" 
-                                danger 
-                                disabled={formLocked} 
+                            <Button
+                                key="submit"
+                                type="primary"
+                                danger
+                                disabled={formLocked}
                                 onClick={handleResetMyPassword}
                                 className="bg-red-600 hover:bg-red-700 text-white font-semibold"
                             >
@@ -5120,11 +5179,11 @@
                         title={<div className="font-bold text-primary text-lg border-b pb-2 mb-4">🔐 تعديل بيانات الحساب والأمان للمستخدم</div>}
                         footer={[
                             <Button key="cancel" onClick={handleCancelCredentialModal} className="no-print">إغلاق</Button>,
-                            <Button 
-                                key="submit" 
-                                type="primary" 
-                                danger 
-                                disabled={credentialFormLocked} 
+                            <Button
+                                key="submit"
+                                type="primary"
+                                danger
+                                disabled={credentialFormLocked}
                                 onClick={handleAdminOverwriteCredentials}
                                 className="bg-red-600 hover:bg-red-700 text-white font-semibold"
                             >
@@ -5177,7 +5236,7 @@
                 </div>
             );
         };
-                               const SystemLogsView = ({ profile }) => {
+        const SystemLogsView = ({ profile }) => {
             const { isMobile } = useAppSession();
             const [logs, setLogs] = useState([]);
             const [loading, setLoading] = useState(false);
@@ -5207,7 +5266,7 @@
 
             const filteredLogs = useMemo(() => {
                 return logs.filter(l => {
-                    const matchesSearch = !searchText || 
+                    const matchesSearch = !searchText ||
                         l.user_email?.toLowerCase().includes(searchText.toLowerCase()) ||
                         l.description?.toLowerCase().includes(searchText.toLowerCase());
                     const matchesAction = actionFilter === 'all' || l.action_type === actionFilter;
@@ -5326,11 +5385,11 @@
                         <div className="flex flex-wrap gap-4 mb-4">
                             <div style={{ flex: '1 1 200px' }}>
                                 <Text type="secondary" className="block mb-1">البحث في السجلات</Text>
-                                <Input 
-                                    placeholder="ابحث بالبريد الإلكتروني أو الوصف..." 
-                                    value={searchText} 
-                                    onChange={e => setSearchText(e.target.value)} 
-                                    allowClear 
+                                <Input
+                                    placeholder="ابحث بالبريد الإلكتروني أو الوصف..."
+                                    value={searchText}
+                                    onChange={e => setSearchText(e.target.value)}
+                                    allowClear
                                 />
                             </div>
                             <div style={{ width: '150px' }}>
@@ -5366,7 +5425,7 @@
                                     if (record.action_type === 'DELETE') color = 'volcano';
                                     if (record.action_type === 'LOGIN') color = 'purple';
                                     if (record.action_type === 'RENEWAL') color = 'cyan';
-                                    
+
                                     return (
                                         <div key={record.id} className="mobile-list-card">
                                             <div className="flex justify-between items-center mb-2">
@@ -5395,12 +5454,12 @@
                                 )}
                             </div>
                         ) : (
-                            <Table 
-                                columns={columns} 
-                                dataSource={filteredLogs} 
-                                rowKey="id" 
+                            <Table
+                                columns={columns}
+                                dataSource={filteredLogs}
+                                rowKey="id"
                                 loading={loading}
-                                pagination={{ defaultPageSize: 15, showSizeChanger: true, pageSizeOptions: ['10', '15', '25', '50', '100'] }} 
+                                pagination={{ defaultPageSize: 15, showSizeChanger: true, pageSizeOptions: ['10', '15', '25', '50', '100'] }}
                                 bordered
                             />
                         )}
@@ -5505,11 +5564,11 @@
                 return true;
             };
 
-            
+
             // Helper to render report cards on mobile screens
             const renderMobileReportCards = () => {
                 if (processedData.length === 0) return null;
-                
+
                 if (selectedReport === 'financial') {
                     return (
                         <div className="space-y-3">
@@ -5554,7 +5613,7 @@
                         </div>
                     );
                 }
-                
+
                 if (selectedReport === 'occupancy') {
                     return (
                         <div className="space-y-3">
@@ -5724,8 +5783,8 @@
                                             <span className="mobile-card-label">التسوية:</span>
                                             <span className="mobile-card-value">
                                                 {r['طريقة التسوية'] === 'Settled' ? <Tag color="success">تمت التسوية نقدياً</Tag> :
-                                                 r['طريقة التسوية'] === 'Rolled_Over' ? <Tag color="processing">تم الترحيل للعقد الجديد</Tag> :
-                                                 r['طريقة التسوية'] === 'Waived' ? <Tag color="warning">إسقاط المبالغ / إعفاء</Tag> : '-'}
+                                                    r['طريقة التسوية'] === 'Rolled_Over' ? <Tag color="processing">تم الترحيل للعقد الجديد</Tag> :
+                                                        r['طريقة التسوية'] === 'Waived' ? <Tag color="warning">إسقاط المبالغ / إعفاء</Tag> : '-'}
                                             </span>
                                         </div>
                                     )}
@@ -5734,7 +5793,7 @@
                         </div>
                     );
                 }
-                
+
                 return null;
             };
 
@@ -5880,7 +5939,7 @@
 
                 const translateCategory = (cat) => {
                     if (!cat) return '-';
-                    switch(cat) {
+                    switch (cat) {
                         case 'Maintenance': return 'صيانة';
                         case 'Utilities': return 'خدمات';
                         case 'General': return 'أخرى';
@@ -5959,9 +6018,9 @@
 
                 const archivedRows = (archiveData || []).map(a => {
                     const b = buildings.find(bld => bld.id === a.building_id);
-                    
-                    const olderArchives = (archiveData || []).filter(x => 
-                        String(x.unit_id) === String(a.unit_id) && 
+
+                    const olderArchives = (archiveData || []).filter(x =>
+                        String(x.unit_id) === String(a.unit_id) &&
                         new Date(x.archived_at) < new Date(a.archived_at)
                     );
                     const prevArchive = olderArchives[0];
@@ -6052,7 +6111,7 @@
             const matchPayment = (row, paymentMethods) => {
                 if (!paymentMethods || paymentMethods.length === 0) return true;
                 const rowPayment = row['طريقة الدفع'];
-                if (!rowPayment) return true; 
+                if (!rowPayment) return true;
                 return paymentMethods.some(method => {
                     if (method === 'Cash') return rowPayment === 'كاش' || rowPayment === 'نقدي' || rowPayment === 'نقدي / كاش';
                     if (method === 'Bank Transfer') return rowPayment === 'تحويل بنكي';
@@ -6063,7 +6122,7 @@
             const matchDirection = (row, directions) => {
                 if (!directions || directions.length === 0) return true;
                 const rowType = row['النوع'] || row['type'];
-                if (!rowType) return true; 
+                if (!rowType) return true;
                 return directions.some(dir => {
                     if (dir === 'Receipt') return rowType === 'سند قبض';
                     if (dir === 'Expense') return rowType === 'سند صرف';
@@ -6081,7 +6140,7 @@
                 } else if (reportType === 'leases') {
                     amt = row['قيمة الإيجار'] || 0;
                 } else {
-                    return true; 
+                    return true;
                 }
                 return amt >= range[0] && amt <= range[1];
             };
@@ -6107,7 +6166,7 @@
                 if (sortParams.field && sortParams.order) {
                     const isAsc = sortParams.order === 'ascend';
                     const field = sortParams.field;
-                    
+
                     result.sort((a, b) => {
                         let valA = a[field];
                         let valB = b[field];
@@ -6127,8 +6186,8 @@
 
                         const strA = String(valA);
                         const strB = String(valB);
-                        return isAsc 
-                            ? strA.localeCompare(strB, 'ar', { numeric: true }) 
+                        return isAsc
+                            ? strA.localeCompare(strB, 'ar', { numeric: true })
                             : strB.localeCompare(strA, 'ar', { numeric: true });
                     });
                 }
@@ -6252,15 +6311,17 @@
                         { title: 'قيمة العقد الجديد الأساسية (ر.س)', dataIndex: 'قيمة العقد الجديد الأساسية', key: 'base_rent', render: (v) => sarFormatter(v) },
                         { title: 'إجمالي المطلوب المحقق (ر.س)', dataIndex: 'إجمالي المطلوب المحقق', key: 'combined_total', render: (v) => <span className="font-bold">{sarFormatter(v)}</span> },
                         { title: 'المتبقي (ر.س)', dataIndex: 'المتبقي', key: 'remaining', sorter: true, sortOrder: getSortOrder('المتبقي'), render: (v) => <span className={v > 0 ? 'text-red-600 font-bold' : ''}>{sarFormatter(v)}</span> },
-                        { title: 'طريقة التسوية', dataIndex: 'طريقة التسوية', key: 'settlement', render: (v, r) => {
-                            const remaining = r['المتبقي'] || 0;
-                            if (remaining <= 0 && r['الحالة'] === 'ساري') return '-';
-                            if (v === 'Settled') return <Tag color="success">تمت التسوية نقدياً</Tag>;
-                            if (v === 'Rolled_Over') return <Tag color="processing">تم الترحيل للعقد الجديد</Tag>;
-                            if (v === 'Waived') return <Tag color="warning">إسقاط المبالغ / إعفاء</Tag>;
-                            if (v === 'Pending') return <Tag color="default">معلّق (لم تتم التسوية)</Tag>;
-                            return '-';
-                        }},
+                        {
+                            title: 'طريقة التسوية', dataIndex: 'طريقة التسوية', key: 'settlement', render: (v, r) => {
+                                const remaining = r['المتبقي'] || 0;
+                                if (remaining <= 0 && r['الحالة'] === 'ساري') return '-';
+                                if (v === 'Settled') return <Tag color="success">تمت التسوية نقدياً</Tag>;
+                                if (v === 'Rolled_Over') return <Tag color="processing">تم الترحيل للعقد الجديد</Tag>;
+                                if (v === 'Waived') return <Tag color="warning">إسقاط المبالغ / إعفاء</Tag>;
+                                if (v === 'Pending') return <Tag color="default">معلّق (لم تتم التسوية)</Tag>;
+                                return '-';
+                            }
+                        },
                         { title: 'قيمة المبالغ المرحلة (ر.س)', dataIndex: 'قيمة المبالغ المرحلة', key: 'carried_debt', render: (v) => v > 0 ? <span className="text-orange-600 font-bold">{sarFormatter(v)}</span> : '-' }
                     ];
                 }
@@ -6395,7 +6456,7 @@
                             const isNumber = typeof processedData[0]?.[exportKeys[C]] === 'number';
                             const rowData = processedData[R - 1];
                             const hasActiveCarriedDebt = selectedReport === 'leases' && rowData && (rowData['قيمة المبالغ المرحلة'] || 0) > 0 && rowData['_source'] === 'active';
-                            
+
                             if (hasActiveCarriedDebt) {
                                 ws[cellRef].s = isNumber ? highlightMoneyStyle : highlightStyle;
                             } else {
@@ -6684,11 +6745,10 @@
                                                     setFilterResolutions([]);
                                                     setSortParams({ field: null, order: null });
                                                 }}
-                                                className={`cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-                                                    selectedReport === r.key
+                                                className={`cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${selectedReport === r.key
                                                         ? 'border-primary bg-emerald-50/50 shadow-md ring-2 ring-primary/20'
                                                         : 'border-gray-200 bg-white hover:border-gray-300'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="text-3xl mb-3">{r.icon}</div>
                                                 <h4 className="font-bold text-base mb-1" style={{ color: r.color }}>{r.title}</h4>
@@ -6779,10 +6839,10 @@
                                                     {/* Alphanumeric text search */}
                                                     <Col xs={24} md={6}>
                                                         <Text type="secondary" className="block mb-1 font-cairo">البحث السريع في البيانات</Text>
-                                                        <Input 
-                                                            placeholder="ابحث بالاسم، الرقم، العقار..." 
-                                                            value={searchVal} 
-                                                            onChange={e => setSearchVal(e.target.value)} 
+                                                        <Input
+                                                            placeholder="ابحث بالاسم، الرقم، العقار..."
+                                                            value={searchVal}
+                                                            onChange={e => setSearchVal(e.target.value)}
                                                             allowClear
                                                             className="font-cairo"
                                                         />
@@ -6797,11 +6857,11 @@
                                                                     {sarFormatter(filterAmountRange[0])} - {sarFormatter(filterAmountRange[1])}
                                                                 </Text>
                                                             </div>
-                                                            <antd.Slider 
-                                                                range 
-                                                                min={0} 
-                                                                max={maxAmountInDataset} 
-                                                                value={filterAmountRange} 
+                                                            <antd.Slider
+                                                                range
+                                                                min={0}
+                                                                max={maxAmountInDataset}
+                                                                value={filterAmountRange}
                                                                 onChange={setFilterAmountRange}
                                                                 tipFormatter={(val) => sarFormatter(val)}
                                                             />
@@ -7061,7 +7121,7 @@
                         buildingsQuery,
                         unitsQuery
                     ]);
-                    
+
                     if (rRes.error) throw rRes.error;
                     if (eRes.error) throw eRes.error;
                     if (bRes.error) throw bRes.error;
@@ -7358,126 +7418,126 @@
                                 <Collapse.Panel header={<span className="font-bold text-primary font-cairo">🔍 تصفية وبحث السندات الموحدة</span>} key="1">
                                     <div className="pt-2">
                                         <div className="space-y-4">
-                            {/* Row 1: City -> Building -> Unit */}
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">المدينة (City)</div>
-                                    <Select
-                                        className="w-full"
-                                        placeholder="كل المدن"
-                                        allowClear
-                                        value={selectedCity}
-                                        onChange={handleCityChange}
-                                        options={cities.map(c => ({ label: c.name_ar, value: c.id }))}
-                                    />
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">العمارة (Building)</div>
-                                    <Select
-                                        className="w-full"
-                                        placeholder="كل العمارات"
-                                        allowClear
-                                        value={selectedBuilding}
-                                        onChange={handleBuildingChange}
-                                        options={filteredBuildingsOptions.map(b => ({ label: b.name, value: b.id }))}
-                                    />
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">الوحدة (Unit)</div>
-                                    <Select
-                                        className="w-full"
-                                        placeholder="كل الوحدات"
-                                        allowClear
-                                        disabled={!selectedBuilding}
-                                        value={selectedUnit}
-                                        onChange={setSelectedUnit}
-                                        options={filteredUnitsOptions.map(u => ({ label: `وحدة ${u.unit_number}`, value: u.id }))}
-                                    />
-                                </Col>
-                            </Row>
+                                            {/* Row 1: City -> Building -> Unit */}
+                                            <Row gutter={[16, 16]}>
+                                                <Col xs={24} sm={8}>
+                                                    <div className="text-xs text-gray-500 mb-1">المدينة (City)</div>
+                                                    <Select
+                                                        className="w-full"
+                                                        placeholder="كل المدن"
+                                                        allowClear
+                                                        value={selectedCity}
+                                                        onChange={handleCityChange}
+                                                        options={cities.map(c => ({ label: c.name_ar, value: c.id }))}
+                                                    />
+                                                </Col>
+                                                <Col xs={24} sm={8}>
+                                                    <div className="text-xs text-gray-500 mb-1">العمارة (Building)</div>
+                                                    <Select
+                                                        className="w-full"
+                                                        placeholder="كل العمارات"
+                                                        allowClear
+                                                        value={selectedBuilding}
+                                                        onChange={handleBuildingChange}
+                                                        options={filteredBuildingsOptions.map(b => ({ label: b.name, value: b.id }))}
+                                                    />
+                                                </Col>
+                                                <Col xs={24} sm={8}>
+                                                    <div className="text-xs text-gray-500 mb-1">الوحدة (Unit)</div>
+                                                    <Select
+                                                        className="w-full"
+                                                        placeholder="كل الوحدات"
+                                                        allowClear
+                                                        disabled={!selectedBuilding}
+                                                        value={selectedUnit}
+                                                        onChange={setSelectedUnit}
+                                                        options={filteredUnitsOptions.map(u => ({ label: `وحدة ${u.unit_number}`, value: u.id }))}
+                                                    />
+                                                </Col>
+                                            </Row>
 
-                            {/* Row 2: Voucher Type, Date Calendars, Search */}
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={6}>
-                                    <div className="text-xs text-gray-500 mb-1">نوع السند (Voucher Type)</div>
-                                    <Select
-                                        className="w-full"
-                                        value={voucherType}
-                                        onChange={setVoucherType}
-                                        options={[
-                                            { label: 'الكل (All)', value: 'all' },
-                                            { label: 'سند قبض (Receipt)', value: 'receipt' },
-                                            { label: 'سند صرف (Expense)', value: 'expense' }
-                                        ]}
-                                    />
-                                </Col>
+                                            {/* Row 2: Voucher Type, Date Calendars, Search */}
+                                            <Row gutter={[16, 16]}>
+                                                <Col xs={24} sm={6}>
+                                                    <div className="text-xs text-gray-500 mb-1">نوع السند (Voucher Type)</div>
+                                                    <Select
+                                                        className="w-full"
+                                                        value={voucherType}
+                                                        onChange={setVoucherType}
+                                                        options={[
+                                                            { label: 'الكل (All)', value: 'all' },
+                                                            { label: 'سند قبض (Receipt)', value: 'receipt' },
+                                                            { label: 'سند صرف (Expense)', value: 'expense' }
+                                                        ]}
+                                                    />
+                                                </Col>
 
-                                <Col xs={24} sm={10}>
-                                    <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
-                                    <div className="flex gap-2 items-center">
-                                        <Radio.Group 
-                                            value={calendarMode} 
-                                            onChange={e => setCalendarMode(e.target.value)}
-                                            size="middle"
-                                            className="flex-shrink-0"
-                                        >
-                                            <Radio.Button value="Gregorian">ميلادي</Radio.Button>
-                                            <Radio.Button value="Hijri">هجري</Radio.Button>
-                                        </Radio.Group>
-                                        {calendarMode === 'Gregorian' ? (
-                                            <DatePicker.RangePicker 
-                                                className="w-full"
-                                                value={gregorianRange}
-                                                onChange={setGregorianRange}
-                                                placeholder={['من تاريخ', 'إلى تاريخ']}
-                                            />
-                                        ) : (
-                                            <div className="flex gap-1 w-full">
-                                                <Select 
-                                                    className="w-1/2"
-                                                    placeholder="السنة"
-                                                    value={hijriYear}
-                                                    onChange={setHijriYear}
-                                                    allowClear
-                                                    options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
-                                                />
-                                                <Select 
-                                                    className="w-1/2"
-                                                    value={hijriMonth}
-                                                    onChange={setHijriMonth}
-                                                    options={[
-                                                        { value: 'all', label: 'كل الأشهر' },
-                                                        { value: 1, label: '1 - محرم' },
-                                                        { value: 2, label: '2 - صفر' },
-                                                        { value: 3, label: '3 - ربيع الأول' },
-                                                        { value: 4, label: '4 - ربيع الثاني' },
-                                                        { value: 5, label: '5 - جمادى الأولى' },
-                                                        { value: 6, label: '6 - جمادى الآخرة' },
-                                                        { value: 7, label: '7 - رجب' },
-                                                        { value: 8, label: '8 - شعبان' },
-                                                        { value: 9, label: '9 - رمضان' },
-                                                        { value: 10, label: '10 - شوال' },
-                                                        { value: 11, label: '11 - ذو القعدة' },
-                                                        { value: 12, label: '12 - ذو الحجة' }
-                                                    ]}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </Col>
+                                                <Col xs={24} sm={10}>
+                                                    <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
+                                                    <div className="flex gap-2 items-center">
+                                                        <Radio.Group
+                                                            value={calendarMode}
+                                                            onChange={e => setCalendarMode(e.target.value)}
+                                                            size="middle"
+                                                            className="flex-shrink-0"
+                                                        >
+                                                            <Radio.Button value="Gregorian">ميلادي</Radio.Button>
+                                                            <Radio.Button value="Hijri">هجري</Radio.Button>
+                                                        </Radio.Group>
+                                                        {calendarMode === 'Gregorian' ? (
+                                                            <DatePicker.RangePicker
+                                                                className="w-full"
+                                                                value={gregorianRange}
+                                                                onChange={setGregorianRange}
+                                                                placeholder={['من تاريخ', 'إلى تاريخ']}
+                                                            />
+                                                        ) : (
+                                                            <div className="flex gap-1 w-full">
+                                                                <Select
+                                                                    className="w-1/2"
+                                                                    placeholder="السنة"
+                                                                    value={hijriYear}
+                                                                    onChange={setHijriYear}
+                                                                    allowClear
+                                                                    options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
+                                                                />
+                                                                <Select
+                                                                    className="w-1/2"
+                                                                    value={hijriMonth}
+                                                                    onChange={setHijriMonth}
+                                                                    options={[
+                                                                        { value: 'all', label: 'كل الأشهر' },
+                                                                        { value: 1, label: '1 - محرم' },
+                                                                        { value: 2, label: '2 - صفر' },
+                                                                        { value: 3, label: '3 - ربيع الأول' },
+                                                                        { value: 4, label: '4 - ربيع الثاني' },
+                                                                        { value: 5, label: '5 - جمادى الأولى' },
+                                                                        { value: 6, label: '6 - جمادى الآخرة' },
+                                                                        { value: 7, label: '7 - رجب' },
+                                                                        { value: 8, label: '8 - شعبان' },
+                                                                        { value: 9, label: '9 - رمضان' },
+                                                                        { value: 10, label: '10 - شوال' },
+                                                                        { value: 11, label: '11 - ذو القعدة' },
+                                                                        { value: 12, label: '12 - ذو الحجة' }
+                                                                    ]}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </Col>
 
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">بحث نصي ديناميكي (البحث)</div>
-                                    <Input
-                                        placeholder="ابحث بالرقم، اسم المستأجر أو البيان..."
-                                        value={searchText}
-                                        onChange={e => setSearchText(e.target.value)}
-                                        prefix={<SearchOutlined className="text-gray-400" />}
-                                        allowClear
-                                    />
-                                </Col>
-                            </Row>
-                        </div>
+                                                <Col xs={24} sm={8}>
+                                                    <div className="text-xs text-gray-500 mb-1">بحث نصي ديناميكي (البحث)</div>
+                                                    <Input
+                                                        placeholder="ابحث بالرقم، اسم المستأجر أو البيان..."
+                                                        value={searchText}
+                                                        onChange={e => setSearchText(e.target.value)}
+                                                        prefix={<SearchOutlined className="text-gray-400" />}
+                                                        allowClear
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        </div>
                                     </div>
                                 </Collapse.Panel>
                             </Collapse>
@@ -7487,126 +7547,126 @@
                                     <span>🔍</span> تصفية وبحث السندات الموحدة
                                 </div>
                                 <div className="space-y-4">
-                            {/* Row 1: City -> Building -> Unit */}
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">المدينة (City)</div>
-                                    <Select
-                                        className="w-full"
-                                        placeholder="كل المدن"
-                                        allowClear
-                                        value={selectedCity}
-                                        onChange={handleCityChange}
-                                        options={cities.map(c => ({ label: c.name_ar, value: c.id }))}
-                                    />
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">العمارة (Building)</div>
-                                    <Select
-                                        className="w-full"
-                                        placeholder="كل العمارات"
-                                        allowClear
-                                        value={selectedBuilding}
-                                        onChange={handleBuildingChange}
-                                        options={filteredBuildingsOptions.map(b => ({ label: b.name, value: b.id }))}
-                                    />
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">الوحدة (Unit)</div>
-                                    <Select
-                                        className="w-full"
-                                        placeholder="كل الوحدات"
-                                        allowClear
-                                        disabled={!selectedBuilding}
-                                        value={selectedUnit}
-                                        onChange={setSelectedUnit}
-                                        options={filteredUnitsOptions.map(u => ({ label: `وحدة ${u.unit_number}`, value: u.id }))}
-                                    />
-                                </Col>
-                            </Row>
-
-                            {/* Row 2: Voucher Type, Date Calendars, Search */}
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={6}>
-                                    <div className="text-xs text-gray-500 mb-1">نوع السند (Voucher Type)</div>
-                                    <Select
-                                        className="w-full"
-                                        value={voucherType}
-                                        onChange={setVoucherType}
-                                        options={[
-                                            { label: 'الكل (All)', value: 'all' },
-                                            { label: 'سند قبض (Receipt)', value: 'receipt' },
-                                            { label: 'سند صرف (Expense)', value: 'expense' }
-                                        ]}
-                                    />
-                                </Col>
-
-                                <Col xs={24} sm={10}>
-                                    <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
-                                    <div className="flex gap-2 items-center">
-                                        <Radio.Group 
-                                            value={calendarMode} 
-                                            onChange={e => setCalendarMode(e.target.value)}
-                                            size="middle"
-                                            className="flex-shrink-0"
-                                        >
-                                            <Radio.Button value="Gregorian">ميلادي</Radio.Button>
-                                            <Radio.Button value="Hijri">هجري</Radio.Button>
-                                        </Radio.Group>
-                                        {calendarMode === 'Gregorian' ? (
-                                            <DatePicker.RangePicker 
+                                    {/* Row 1: City -> Building -> Unit */}
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} sm={8}>
+                                            <div className="text-xs text-gray-500 mb-1">المدينة (City)</div>
+                                            <Select
                                                 className="w-full"
-                                                value={gregorianRange}
-                                                onChange={setGregorianRange}
-                                                placeholder={['من تاريخ', 'إلى تاريخ']}
+                                                placeholder="كل المدن"
+                                                allowClear
+                                                value={selectedCity}
+                                                onChange={handleCityChange}
+                                                options={cities.map(c => ({ label: c.name_ar, value: c.id }))}
                                             />
-                                        ) : (
-                                            <div className="flex gap-1 w-full">
-                                                <Select 
-                                                    className="w-1/2"
-                                                    placeholder="السنة"
-                                                    value={hijriYear}
-                                                    onChange={setHijriYear}
-                                                    allowClear
-                                                    options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
-                                                />
-                                                <Select 
-                                                    className="w-1/2"
-                                                    value={hijriMonth}
-                                                    onChange={setHijriMonth}
-                                                    options={[
-                                                        { value: 'all', label: 'كل الأشهر' },
-                                                        { value: 1, label: '1 - محرم' },
-                                                        { value: 2, label: '2 - صفر' },
-                                                        { value: 3, label: '3 - ربيع الأول' },
-                                                        { value: 4, label: '4 - ربيع الثاني' },
-                                                        { value: 5, label: '5 - جمادى الأولى' },
-                                                        { value: 6, label: '6 - جمادى الآخرة' },
-                                                        { value: 7, label: '7 - رجب' },
-                                                        { value: 8, label: '8 - شعبان' },
-                                                        { value: 9, label: '9 - رمضان' },
-                                                        { value: 10, label: '10 - شوال' },
-                                                        { value: 11, label: '11 - ذو القعدة' },
-                                                        { value: 12, label: '12 - ذو الحجة' }
-                                                    ]}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </Col>
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <div className="text-xs text-gray-500 mb-1">العمارة (Building)</div>
+                                            <Select
+                                                className="w-full"
+                                                placeholder="كل العمارات"
+                                                allowClear
+                                                value={selectedBuilding}
+                                                onChange={handleBuildingChange}
+                                                options={filteredBuildingsOptions.map(b => ({ label: b.name, value: b.id }))}
+                                            />
+                                        </Col>
+                                        <Col xs={24} sm={8}>
+                                            <div className="text-xs text-gray-500 mb-1">الوحدة (Unit)</div>
+                                            <Select
+                                                className="w-full"
+                                                placeholder="كل الوحدات"
+                                                allowClear
+                                                disabled={!selectedBuilding}
+                                                value={selectedUnit}
+                                                onChange={setSelectedUnit}
+                                                options={filteredUnitsOptions.map(u => ({ label: `وحدة ${u.unit_number}`, value: u.id }))}
+                                            />
+                                        </Col>
+                                    </Row>
 
-                                <Col xs={24} sm={8}>
-                                    <div className="text-xs text-gray-500 mb-1">بحث نصي ديناميكي (البحث)</div>
-                                    <Input
-                                        placeholder="ابحث بالرقم، اسم المستأجر أو البيان..."
-                                        value={searchText}
-                                        onChange={e => setSearchText(e.target.value)}
-                                        prefix={<SearchOutlined className="text-gray-400" />}
-                                        allowClear
-                                    />
-                                </Col>
-                            </Row>
-                        </div>
+                                    {/* Row 2: Voucher Type, Date Calendars, Search */}
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} sm={6}>
+                                            <div className="text-xs text-gray-500 mb-1">نوع السند (Voucher Type)</div>
+                                            <Select
+                                                className="w-full"
+                                                value={voucherType}
+                                                onChange={setVoucherType}
+                                                options={[
+                                                    { label: 'الكل (All)', value: 'all' },
+                                                    { label: 'سند قبض (Receipt)', value: 'receipt' },
+                                                    { label: 'سند صرف (Expense)', value: 'expense' }
+                                                ]}
+                                            />
+                                        </Col>
+
+                                        <Col xs={24} sm={10}>
+                                            <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
+                                            <div className="flex gap-2 items-center">
+                                                <Radio.Group
+                                                    value={calendarMode}
+                                                    onChange={e => setCalendarMode(e.target.value)}
+                                                    size="middle"
+                                                    className="flex-shrink-0"
+                                                >
+                                                    <Radio.Button value="Gregorian">ميلادي</Radio.Button>
+                                                    <Radio.Button value="Hijri">هجري</Radio.Button>
+                                                </Radio.Group>
+                                                {calendarMode === 'Gregorian' ? (
+                                                    <DatePicker.RangePicker
+                                                        className="w-full"
+                                                        value={gregorianRange}
+                                                        onChange={setGregorianRange}
+                                                        placeholder={['من تاريخ', 'إلى تاريخ']}
+                                                    />
+                                                ) : (
+                                                    <div className="flex gap-1 w-full">
+                                                        <Select
+                                                            className="w-1/2"
+                                                            placeholder="السنة"
+                                                            value={hijriYear}
+                                                            onChange={setHijriYear}
+                                                            allowClear
+                                                            options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
+                                                        />
+                                                        <Select
+                                                            className="w-1/2"
+                                                            value={hijriMonth}
+                                                            onChange={setHijriMonth}
+                                                            options={[
+                                                                { value: 'all', label: 'كل الأشهر' },
+                                                                { value: 1, label: '1 - محرم' },
+                                                                { value: 2, label: '2 - صفر' },
+                                                                { value: 3, label: '3 - ربيع الأول' },
+                                                                { value: 4, label: '4 - ربيع الثاني' },
+                                                                { value: 5, label: '5 - جمادى الأولى' },
+                                                                { value: 6, label: '6 - جمادى الآخرة' },
+                                                                { value: 7, label: '7 - رجب' },
+                                                                { value: 8, label: '8 - شعبان' },
+                                                                { value: 9, label: '9 - رمضان' },
+                                                                { value: 10, label: '10 - شوال' },
+                                                                { value: 11, label: '11 - ذو القعدة' },
+                                                                { value: 12, label: '12 - ذو الحجة' }
+                                                            ]}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Col>
+
+                                        <Col xs={24} sm={8}>
+                                            <div className="text-xs text-gray-500 mb-1">بحث نصي ديناميكي (البحث)</div>
+                                            <Input
+                                                placeholder="ابحث بالرقم، اسم المستأجر أو البيان..."
+                                                value={searchText}
+                                                onChange={e => setSearchText(e.target.value)}
+                                                prefix={<SearchOutlined className="text-gray-400" />}
+                                                allowClear
+                                            />
+                                        </Col>
+                                    </Row>
+                                </div>
                             </div>
                         )}
                     </Card>
@@ -7671,8 +7731,8 @@
                                     }
 
                                     return (
-                                        <div 
-                                            key={record.id} 
+                                        <div
+                                            key={record.id}
                                             className="mobile-list-card cursor-pointer hover:border-primary transition-all duration-300"
                                             onClick={() => handleViewRow(record)}
                                         >
@@ -7720,10 +7780,10 @@
                                             <div className="flex gap-2 justify-end" onClick={e => e.stopPropagation()}>
                                                 <Button size="small" type="primary" ghost onClick={() => handleViewRow(record)} className="tap-scale flex-1 text-xs">تصفح</Button>
                                                 {(profile?.can_report || profile?.role === 'admin') && (
-                                                    <Button 
-                                                        size="small" 
-                                                        type="primary" 
-                                                        ghost 
+                                                    <Button
+                                                        size="small"
+                                                        type="primary"
+                                                        ghost
                                                         className="border-primary text-primary tap-scale flex-1 flex items-center justify-center gap-1 text-xs"
                                                         onClick={(e) => handlePrintRow(record, e)}
                                                     >
@@ -7816,12 +7876,12 @@
                                             <Space onClick={e => e.stopPropagation()}>
                                                 <Button size="small" type="link" onClick={() => handleViewRow(record)}>تصفح</Button>
                                                 {(profile?.can_report || profile?.role === 'admin') && (
-                                                    <Button 
-                                                        size="small" 
-                                                        type="primary" 
-                                                        ghost 
+                                                    <Button
+                                                        size="small"
+                                                        type="primary"
+                                                        ghost
                                                         className="border-primary text-primary"
-                                                        icon={<span>🖨️</span>} 
+                                                        icon={<span>🖨️</span>}
                                                         onClick={(e) => handlePrintRow(record, e)}
                                                     >
                                                         طباعة
@@ -7903,7 +7963,7 @@
                         expensesQuery,
                         buildingsQuery
                     ]);
-                    
+
                     if (rRes.error) throw rRes.error;
                     if (eRes.error) throw eRes.error;
                     if (bRes.error) throw bRes.error;
@@ -7943,7 +8003,7 @@
             // Helper to check if a date is within Gregorian range
             const isWithinDateFilter = useCallback((dateStr) => {
                 if (!dateStr) return false;
-                
+
                 if (calendarMode === 'Gregorian' && gregorianRange && gregorianRange.length === 2) {
                     const start = gregorianRange[0].startOf('day');
                     const end = gregorianRange[1].endOf('day');
@@ -8119,8 +8179,8 @@
                                 <Col xs={24} sm={8}>
                                     <div className="text-xs text-gray-500 mb-1">نوع التقويم والنطاق الزمني</div>
                                     <div className="flex gap-2 items-center">
-                                        <Radio.Group 
-                                            value={calendarMode} 
+                                        <Radio.Group
+                                            value={calendarMode}
                                             onChange={e => setCalendarMode(e.target.value)}
                                             size="middle"
                                             className="flex-shrink-0"
@@ -8129,7 +8189,7 @@
                                             <Radio.Button value="Hijri">هجري</Radio.Button>
                                         </Radio.Group>
                                         {calendarMode === 'Gregorian' ? (
-                                            <DatePicker.RangePicker 
+                                            <DatePicker.RangePicker
                                                 className="w-full"
                                                 value={gregorianRange}
                                                 onChange={setGregorianRange}
@@ -8137,7 +8197,7 @@
                                             />
                                         ) : (
                                             <div className="flex gap-1 w-full">
-                                                <Select 
+                                                <Select
                                                     className="w-1/2"
                                                     placeholder="السنة"
                                                     value={hijriYear}
@@ -8145,7 +8205,7 @@
                                                     allowClear
                                                     options={[1445, 1446, 1447, 1448, 1449, 1450].map(y => ({ label: `${y} هـ`, value: y }))}
                                                 />
-                                                <Select 
+                                                <Select
                                                     className="w-1/2"
                                                     value={hijriMonth}
                                                     onChange={setHijriMonth}
@@ -8239,7 +8299,7 @@
                                     let cardStyle = "border border-slate-200 bg-white hover:border-slate-300";
                                     let badgeColor = "default";
                                     let badgeText = "مستقر";
-                                    
+
                                     if (box.status === 'error') {
                                         cardStyle = "border-2 border-red-500 bg-red-50/10 shadow-sm relative animate-overdraft-pulse";
                                         badgeColor = "red";
@@ -8472,7 +8532,7 @@
                 // RBAC: Filter receipts and expenses by assigned buildings
                 const rData = (rDataRaw || []).filter(r => bIds.includes(r.building_id));
                 const eData = (eDataRaw || []).filter(e => bIds.includes(e.building_id) && e.approval_status === 'approved');
-                
+
                 // Cumulative receipt metrics (current + previous periods)
                 const collectedCash = rData.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0);
                 const collectedBank = rData.filter(r => r.payment_method === 'Bank Transfer').reduce((acc, r) => acc + (r.amount_received || 0), 0);
@@ -8642,10 +8702,10 @@
                                     <Space>
                                         <Text type="secondary" className="hidden sm:inline">{dayjs().format('DD MMMM YYYY')}</Text>
                                         {isMobile && (
-                                            <Button 
-                                                icon={<LogoutOutlined />} 
-                                                danger 
-                                                type="text" 
+                                            <Button
+                                                icon={<LogoutOutlined />}
+                                                danger
+                                                type="text"
                                                 onClick={handleLogout}
                                                 className="touch-target flex items-center justify-center"
                                                 style={{ width: 44, height: 44 }}
@@ -8655,10 +8715,10 @@
                                 </Header>
                                 <Content className={isMobile ? "p-3 overflow-auto" : "p-6 overflow-auto"}>
                                     {activeTab === 'dashboard' && (
-                                        <Dashboard 
-                                            stats={stats} 
-                                            profile={profile} 
-                                            onNavigateToUnit={handleNavigateToUnit} 
+                                        <Dashboard
+                                            stats={stats}
+                                            profile={profile}
+                                            onNavigateToUnit={handleNavigateToUnit}
                                         />
                                     )}
                                     {activeTab === 'properties' && (
@@ -8711,8 +8771,8 @@
                                     (profile?.can_report || profile?.role === 'admin') ? { key: 'reports', icon: <FileTextOutlined />, label: 'التقارير' } : null,
                                     (profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL) ? { key: 'admin', icon: <TeamOutlined />, label: 'النظام' } : null,
                                 ].filter(Boolean).map(item => (
-                                    <div 
-                                        key={item.key} 
+                                    <div
+                                        key={item.key}
                                         className={`mobile-bottom-nav-item ${activeTab === item.key ? 'mobile-bottom-nav-item-active' : ''}`}
                                         onClick={() => {
                                             setActiveTab(item.key);
