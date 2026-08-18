@@ -355,3 +355,63 @@ ALTER TABLE public.receipts
 DROP CONSTRAINT IF EXISTS receipts_unit_id_fkey,
 ADD CONSTRAINT receipts_unit_id_fkey
 FOREIGN KEY (unit_id) REFERENCES public.units(id) ON DELETE CASCADE;
+
+-- Step 6: Fix vouchers_expense.building_id and receipts.building_id → ON DELETE CASCADE
+ALTER TABLE public.vouchers_expense
+DROP CONSTRAINT IF EXISTS vouchers_expense_building_id_fkey,
+ADD CONSTRAINT vouchers_expense_building_id_fkey
+FOREIGN KEY (building_id) REFERENCES public.buildings(id) ON DELETE CASCADE;
+
+ALTER TABLE public.receipts
+DROP CONSTRAINT IF EXISTS receipts_building_id_fkey,
+ADD CONSTRAINT receipts_building_id_fkey
+FOREIGN KEY (building_id) REFERENCES public.buildings(id) ON DELETE CASCADE;
+
+-- ============================================================================
+-- 11. MIGRATION: High Performance Indexes & RLS Optimization
+-- ============================================================================
+-- Optimizes query speed (< 250ms benchmark) and prevents Full Table Scans
+-- during RLS policy evaluations and financial reports.
+
+-- Receipts Indexes
+CREATE INDEX IF NOT EXISTS idx_receipts_building_id ON public.receipts(building_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_unit_id ON public.receipts(unit_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_created_at ON public.receipts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_receipts_building_payment ON public.receipts(building_id, payment_method);
+
+-- Expense Vouchers Indexes
+CREATE INDEX IF NOT EXISTS idx_vouchers_expense_building_id ON public.vouchers_expense(building_id);
+CREATE INDEX IF NOT EXISTS idx_vouchers_expense_unit_id ON public.vouchers_expense(unit_id);
+CREATE INDEX IF NOT EXISTS idx_vouchers_expense_created_at ON public.vouchers_expense(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vouchers_expense_approval_status ON public.vouchers_expense(approval_status);
+CREATE INDEX IF NOT EXISTS idx_vouchers_expense_building_status ON public.vouchers_expense(building_id, approval_status);
+
+-- Units & Buildings Indexes
+CREATE INDEX IF NOT EXISTS idx_units_building_id ON public.units(building_id);
+CREATE INDEX IF NOT EXISTS idx_units_is_rented ON public.units(is_rented);
+CREATE INDEX IF NOT EXISTS idx_buildings_city_id ON public.buildings(city_id);
+
+-- System Logs & Profiles Indexes
+CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON public.system_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON public.system_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+
+-- STABLE volatility for RLS helper (Caches execution within single query context)
+CREATE OR REPLACE FUNCTION public.check_user_building_access(user_id uuid, target_building_id text)
+RETURNS boolean AS $$
+DECLARE
+    user_role text;
+    user_buildings text[];
+BEGIN
+    SELECT role, assigned_buildings INTO user_role, user_buildings
+    FROM public.profiles
+    WHERE id = user_id;
+
+    IF user_role = 'admin' THEN
+        RETURN true;
+    END IF;
+
+    RETURN target_building_id = ANY(user_buildings);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+

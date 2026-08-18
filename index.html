@@ -6997,7 +6997,7 @@
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, fetchData)
                     .subscribe();
                 return () => {
-                    channel.unsubscribe();
+                    supabase.removeChannel(channel);
                 };
             }, [fetchData]);
 
@@ -7836,7 +7836,7 @@
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'buildings' }, fetchData)
                     .subscribe();
                 return () => {
-                    channel.unsubscribe();
+                    supabase.removeChannel(channel);
                 };
             }, [fetchData]);
 
@@ -8388,7 +8388,8 @@
                 const collectedBank = rData.filter(r => r.payment_method === 'Bank Transfer').reduce((acc, r) => acc + (r.amount_received || 0), 0);
                 const totalPaid = collectedCash + collectedBank;
                 const totalApprovedExpenses = eData.reduce((acc, e) => acc + (e.amount || 0), 0);
-                const globalCashBalance = collectedCash - totalApprovedExpenses;
+                const totalApprovedCashExpenses = eData.filter(e => e.payment_method === 'Cash' || !e.payment_method).reduce((acc, e) => acc + (e.amount || 0), 0);
+                const globalCashBalance = collectedCash - totalApprovedCashExpenses;
                 const activePaid = rentedUnitsData.reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
 
                 const buildingSummaries = bData.map(b => {
@@ -8397,8 +8398,8 @@
                     const expected = rentedUnits.reduce((acc, u) => acc + (u.monthly_rent || 0), 0);
                     const paid = rentedUnits.reduce((acc, u) => acc + (u.amount_paid || 0), 0);
                     const bReceipts = rData.filter(r => r.building_id === b.id);
-                    const bExpenses = eData.filter(e => e.building_id === b.id).reduce((acc, e) => acc + (e.amount || 0), 0);
-                    const cashBalance = bReceipts.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0) - bExpenses;
+                    const bCashExpenses = eData.filter(e => e.building_id === b.id && (e.payment_method === 'Cash' || !e.payment_method)).reduce((acc, e) => acc + (e.amount || 0), 0);
+                    const cashBalance = bReceipts.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0) - bCashExpenses;
                     return {
                         id: b.id,
                         key: b.id,
