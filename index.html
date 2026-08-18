@@ -1795,6 +1795,62 @@
             const [balanceWarning, setBalanceWarning] = useState('');
             const [expensePaymentMethod, setExpensePaymentMethod] = useState('Cash');
             const [unitsPageSize, setUnitsPageSize] = useState(15);
+            const [unitsPage, setUnitsPage] = useState(1);
+
+            // Custom scheme unit sorting:
+            // 1. Shops (محلات) 1..7
+            // 2. Family Apartments (شقق عوائل) 1..24
+            // 3. Bachelor Apartments (شقق عزاب) 1..8
+            // 4. Rooms (غرف)
+            const sortedUnits = useMemo(() => {
+                const parseNum = (str) => {
+                    if (!str) return 999;
+                    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+                    let normalized = String(str);
+                    arabicDigits.forEach((digit, i) => {
+                        normalized = normalized.replaceAll(digit, i);
+                    });
+                    const match = normalized.match(/\d+/);
+                    return match ? parseInt(match[0], 10) : 999;
+                };
+
+                const getCategoryRank = (unitNumStr) => {
+                    const s = String(unitNumStr || '').toLowerCase();
+                    const num = parseNum(s);
+
+                    // Rank 1: Shops (محلات)
+                    if (s.includes('محل') || s.includes('محلات') || s.includes('دكان') || s.includes('معرض')) {
+                        return { rank: 1, num };
+                    }
+                    // Rank 2: Family Apartments (شقق عوائل)
+                    if (s.includes('عوائل') || s.includes('عائلة') || s.includes('عائله') || s.includes('عائلي')) {
+                        return { rank: 2, num };
+                    }
+                    // Rank 3: Bachelor Apartments (شقق عزاب)
+                    if (s.includes('عزاب') || s.includes('عزب') || s.includes('عازب') || s.includes('عزابي')) {
+                        return { rank: 3, num };
+                    }
+                    // Rank 4: Rooms (غرف)
+                    if (s.includes('غرفة') || s.includes('غرفه') || s.includes('غرف')) {
+                        return { rank: 4, num };
+                    }
+                    // Rank 2 fallback for general apartments
+                    if (s.includes('شقة') || s.includes('شقه')) {
+                        return { rank: 2, num };
+                    }
+                    return { rank: 5, num };
+                };
+
+                return [...units].sort((a, b) => {
+                    const catA = getCategoryRank(a.unit_number);
+                    const catB = getCategoryRank(b.unit_number);
+
+                    if (catA.rank !== catB.rank) {
+                        return catA.rank - catB.rank;
+                    }
+                    return catA.num - catB.num;
+                });
+            }, [units]);
 
             // RBAC: 403 Guard - Block access to unassigned buildings
             if (!isAssignedBuilding(profile, building?.id)) {
@@ -2792,7 +2848,7 @@
                                             إضافة وحدة جديدة
                                         </Button>
                                     )}
-                                    {units.map(record => {
+                                    {sortedUnits.map(record => {
                                         const remaining = record.is_rented ? Math.max(0, (record.monthly_rent || 0) - (record.amount_paid || 0)) : 0;
                                         let statusColor = 'error';
                                         let statusText = 'شاغرة';
@@ -2939,15 +2995,22 @@
                             ) : (
                                 <div className="w-full overflow-hidden">
                                     <Table
-                                        dataSource={units}
+                                        dataSource={sortedUnits}
                                         loading={loading}
                                         size="small"
                                         pagination={{
+                                            current: unitsPage,
                                             pageSize: unitsPageSize,
                                             showSizeChanger: true,
                                             pageSizeOptions: ['10', '15', '25', '50', '100'],
-                                            onChange: (page, size) => { if (size) setUnitsPageSize(size); },
-                                            onShowSizeChange: (current, size) => { if (size) setUnitsPageSize(size); }
+                                            onChange: (page, size) => {
+                                                setUnitsPage(page);
+                                                if (size) setUnitsPageSize(size);
+                                            },
+                                            onShowSizeChange: (current, size) => {
+                                                setUnitsPage(1);
+                                                if (size) setUnitsPageSize(size);
+                                            }
                                         }}
                                         rowKey="id"
                                         rowClassName={(record) => {
@@ -2957,6 +3020,17 @@
                                             return '';
                                         }}
                                         columns={[
+                                            {
+                                                title: '#',
+                                                key: 'seq_num',
+                                                width: 45,
+                                                align: 'center',
+                                                render: (_, __, index) => (
+                                                    <span className="font-mono font-bold text-slate-500 text-xs">
+                                                        {(index + 1) + (unitsPage - 1) * unitsPageSize}
+                                                    </span>
+                                                )
+                                            },
                                             { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number', render: v => <span className="font-bold text-slate-800 whitespace-nowrap">{v}</span> },
                                             { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number', render: v => <span className="whitespace-nowrap font-mono text-xs">{v || '-'}</span> },
                                             { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name', render: v => <span className="font-semibold text-slate-800 whitespace-nowrap">{v || '-'}</span> },
