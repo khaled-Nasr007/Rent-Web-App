@@ -1794,6 +1794,7 @@
             const [showCustomCategory, setShowCustomCategory] = useState(false);
             const [balanceWarning, setBalanceWarning] = useState('');
             const [expensePaymentMethod, setExpensePaymentMethod] = useState('Cash');
+            const [unitsPageSize, setUnitsPageSize] = useState(15);
 
             // RBAC: 403 Guard - Block access to unassigned buildings
             if (!isAssignedBuilding(profile, building?.id)) {
@@ -2941,7 +2942,13 @@
                                         dataSource={units}
                                         loading={loading}
                                         size="small"
-                                        pagination={{ pageSize: 15, showSizeChanger: true, pageSizeOptions: ['10', '15', '25', '50'] }}
+                                        pagination={{
+                                            pageSize: unitsPageSize,
+                                            showSizeChanger: true,
+                                            pageSizeOptions: ['10', '15', '25', '50', '100'],
+                                            onChange: (page, size) => { if (size) setUnitsPageSize(size); },
+                                            onShowSizeChange: (current, size) => { if (size) setUnitsPageSize(size); }
+                                        }}
                                         rowKey="id"
                                         rowClassName={(record) => {
                                             if (record.is_rented && isLeaseExpired(record.period_end)) {
@@ -5319,7 +5326,7 @@
                                 dataSource={filteredLogs} 
                                 rowKey="id" 
                                 loading={loading}
-                                pagination={{ pageSize: 15, showSizeChanger: true }} 
+                                pagination={{ defaultPageSize: 15, showSizeChanger: true, pageSizeOptions: ['10', '15', '25', '50', '100'] }} 
                                 bordered
                             />
                         )}
@@ -6874,7 +6881,7 @@
                                             rowKey="key"
                                             bordered
                                             size="small"
-                                            pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
+                                            pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
                                             scroll={{ x: 'max-content' }}
                                             summary={() => renderSummary()}
                                             onChange={handleTableChange}
