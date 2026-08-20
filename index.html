@@ -228,7 +228,12 @@
             width: 100% !important;
             overflow-x: auto !important;
             overflow-y: visible !important;
+            transform: rotateX(180deg);
             -webkit-overflow-scrolling: touch;
+        }
+
+        .custom-table-scroll-wrapper > * {
+            transform: rotateX(180deg);
         }
 
         .custom-table-scroll-wrapper::-webkit-scrollbar,
