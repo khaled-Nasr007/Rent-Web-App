@@ -219,9 +219,43 @@
             background: linear-gradient(135deg, #006B3F 0%, #004D2E 100%);
         }
 
-        /* Custom RTL Fixes for AntD if any */
+        /* Custom RTL Fixes & Horizontal Scrollbar styling for Data Tables */
         .ant-menu-rtl {
             text-align: right;
+        }
+
+        .custom-table-scroll-wrapper {
+            width: 100% !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .custom-table-scroll-wrapper::-webkit-scrollbar,
+        .ant-table-body::-webkit-scrollbar,
+        .ant-table-content::-webkit-scrollbar {
+            height: 10px !important;
+            width: 10px !important;
+        }
+
+        .custom-table-scroll-wrapper::-webkit-scrollbar-track,
+        .ant-table-body::-webkit-scrollbar-track,
+        .ant-table-content::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-radius: 6px !important;
+        }
+
+        .custom-table-scroll-wrapper::-webkit-scrollbar-thumb,
+        .ant-table-body::-webkit-scrollbar-thumb,
+        .ant-table-content::-webkit-scrollbar-thumb {
+            background: #006B3F !important;
+            border-radius: 6px !important;
+        }
+
+        .custom-table-scroll-wrapper::-webkit-scrollbar-thumb:hover,
+        .ant-table-body::-webkit-scrollbar-thumb:hover,
+        .ant-table-content::-webkit-scrollbar-thumb:hover {
+            background: #004D2E !important;
         }
 
         /* Premium Receipt Styles */
@@ -3155,11 +3189,13 @@
                                     )}
                                 </div>
                             ) : (
-                                <div className="w-full overflow-hidden">
+                                <div className="w-full custom-table-scroll-wrapper relative rounded-xl border border-slate-200 shadow-sm">
                                     <Table
                                         dataSource={sortedUnits}
                                         loading={loading}
                                         size="small"
+                                        scroll={{ x: 'max-content' }}
+                                        sticky={{ offsetHeader: 0 }}
                                         pagination={{
                                             current: unitsPage,
                                             pageSize: unitsPageSize,
@@ -3185,15 +3221,16 @@
                                             {
                                                 title: '#',
                                                 key: 'seq_num',
-                                                width: 45,
+                                                width: 50,
                                                 align: 'center',
+                                                fixed: 'right',
                                                 render: (_, __, index) => (
                                                     <span className="font-mono font-bold text-slate-500 text-xs">
                                                         {(index + 1) + (unitsPage - 1) * unitsPageSize}
                                                     </span>
                                                 )
                                             },
-                                            { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number', render: v => <span className="font-bold text-slate-800 whitespace-nowrap">{v}</span> },
+                                            { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number', width: 110, fixed: 'right', render: v => <span className="font-bold text-slate-800 whitespace-nowrap">{v}</span> },
                                             { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number', render: v => <span className="whitespace-nowrap font-mono text-xs">{v || '-'}</span> },
                                             { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name', render: v => <span className="font-semibold text-slate-800 whitespace-nowrap">{v || '-'}</span> },
                                             { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number', render: v => <span className="font-mono text-xs whitespace-nowrap">{v || '-'}</span> },
@@ -3251,6 +3288,8 @@
                                             {
                                                 title: 'إجراءات',
                                                 key: 'actions',
+                                                fixed: 'left',
+                                                width: 275,
                                                 render: (_, record) => (
                                                     <div className="flex items-center gap-1 whitespace-nowrap">
                                                         <Tooltip title="ملف الوحدة">
