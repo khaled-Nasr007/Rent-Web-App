@@ -232,7 +232,7 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        .custom-table-scroll-wrapper > * {
+        .custom-table-scroll-wrapper>* {
             transform: rotateX(180deg);
         }
 
@@ -398,7 +398,7 @@
 
             /* Ensure all modal containers and portal wrapper elements are visible */
             body,
-            body > div,
+            body>div,
             .ant-modal-root,
             .ant-modal-root *,
             .ant-modal-wrap,
@@ -477,13 +477,13 @@
                 font-size: 54px !important;
             }
 
-            .ant-card-small > .ant-card-head {
+            .ant-card-small>.ant-card-head {
                 min-height: 28px !important;
                 padding: 0 10px !important;
                 font-size: 12px !important;
             }
 
-            .ant-card-small > .ant-card-body {
+            .ant-card-small>.ant-card-body {
                 padding: 8px 12px !important;
             }
 
@@ -506,7 +506,7 @@
                 margin-bottom: 8px !important;
             }
 
-            .space-y-6 > * + * {
+            .space-y-6>*+* {
                 margin-top: 10px !important;
             }
 
@@ -6893,8 +6893,8 @@
                                                     setSortParams({ field: null, order: null });
                                                 }}
                                                 className={`cursor-pointer p-5 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${selectedReport === r.key
-                                                        ? 'border-primary bg-emerald-50/50 shadow-md ring-2 ring-primary/20'
-                                                        : 'border-gray-200 bg-white hover:border-gray-300'
+                                                    ? 'border-primary bg-emerald-50/50 shadow-md ring-2 ring-primary/20'
+                                                    : 'border-gray-200 bg-white hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="text-3xl mb-3">{r.icon}</div>
