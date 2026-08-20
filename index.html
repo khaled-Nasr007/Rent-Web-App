@@ -224,29 +224,38 @@
             text-align: right;
         }
 
-        .custom-table-scroll-wrapper {
+        /* Force Horizontal Scrollbar to the TOP ROW of Data Tables */
+        .custom-table-scroll-wrapper,
+        .custom-table-scroll-wrapper .ant-table-content,
+        .custom-table-scroll-wrapper .ant-table-body,
+        .custom-table-scroll-wrapper .ant-table-container {
             width: 100% !important;
             overflow-x: auto !important;
             overflow-y: visible !important;
-            transform: rotateX(180deg);
+            transform: rotateX(180deg) !important;
             -webkit-overflow-scrolling: touch;
         }
 
-        .custom-table-scroll-wrapper>* {
-            transform: rotateX(180deg);
+        .custom-table-scroll-wrapper>*,
+        .custom-table-scroll-wrapper .ant-table-content>table,
+        .custom-table-scroll-wrapper .ant-table-body>table,
+        .custom-table-scroll-wrapper .ant-table-thead,
+        .custom-table-scroll-wrapper .ant-table-tbody,
+        .custom-table-scroll-wrapper .ant-table-header {
+            transform: rotateX(180deg) !important;
         }
 
         .custom-table-scroll-wrapper::-webkit-scrollbar,
         .ant-table-body::-webkit-scrollbar,
         .ant-table-content::-webkit-scrollbar {
-            height: 10px !important;
-            width: 10px !important;
+            height: 12px !important;
+            width: 12px !important;
         }
 
         .custom-table-scroll-wrapper::-webkit-scrollbar-track,
         .ant-table-body::-webkit-scrollbar-track,
         .ant-table-content::-webkit-scrollbar-track {
-            background: #f1f5f9 !important;
+            background: #e2e8f0 !important;
             border-radius: 6px !important;
         }
 
@@ -255,6 +264,7 @@
         .ant-table-content::-webkit-scrollbar-thumb {
             background: #006B3F !important;
             border-radius: 6px !important;
+            border: 2px solid #e2e8f0 !important;
         }
 
         .custom-table-scroll-wrapper::-webkit-scrollbar-thumb:hover,
