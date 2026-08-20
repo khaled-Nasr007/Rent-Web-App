@@ -3218,7 +3218,7 @@
                                             className="w-full overflow-x-auto custom-top-scroll-bar rounded cursor-pointer"
                                             style={{ scrollbarWidth: 'auto' }}
                                         >
-                                            <div style={{ width: '1600px', height: '8px' }} />
+                                            <div style={{ width: '1850px', height: '8px' }} />
                                         </div>
                                     </div>
 
@@ -3227,7 +3227,7 @@
                                             dataSource={sortedUnits}
                                             loading={loading}
                                             size="small"
-                                            scroll={{ x: 1600 }}
+                                            scroll={{ x: 1850 }}
                                             sticky={{ offsetHeader: 0 }}
                                             pagination={{
                                                 current: unitsPage,
@@ -3264,13 +3264,14 @@
                                                     )
                                                 },
                                                 { title: 'رقم الوحدة', dataIndex: 'unit_number', key: 'unit_number', width: 110, fixed: 'right', render: v => <span className="font-bold text-slate-800 whitespace-nowrap">{v}</span> },
-                                                { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number', render: v => <span className="whitespace-nowrap font-mono text-xs">{v || '-'}</span> },
-                                                { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name', render: v => <span className="font-semibold text-slate-800 whitespace-nowrap">{v || '-'}</span> },
-                                                { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number', render: v => <span className="font-mono text-xs whitespace-nowrap">{v || '-'}</span> },
-                                                { title: 'رقم الجوال', dataIndex: 'phone_number', key: 'phone_number', render: (v) => v ? <a href={`tel:${v}`} className="whitespace-nowrap font-mono text-xs text-primary font-bold">{v}</a> : '-' },
+                                                { title: 'رقم العقد', dataIndex: 'contract_number', key: 'contract_number', width: 130, render: v => <span className="whitespace-nowrap font-mono text-xs">{v || '-'}</span> },
+                                                { title: 'المستأجر', dataIndex: 'tenant_name', key: 'tenant_name', width: 250, render: v => <div className="font-semibold text-slate-800 break-words leading-tight px-1">{v || '-'}</div> },
+                                                { title: 'رقم الهوية', dataIndex: 'id_number', key: 'id_number', width: 130, render: v => <span className="font-mono text-xs whitespace-nowrap">{v || '-'}</span> },
+                                                { title: 'رقم الجوال', dataIndex: 'phone_number', key: 'phone_number', width: 120, render: (v) => v ? <a href={`tel:${v}`} className="whitespace-nowrap font-mono text-xs text-primary font-bold">{v}</a> : '-' },
                                                 {
                                                     title: 'بداية العقد',
                                                     key: 'period_start_full',
+                                                    width: 120,
                                                     render: (_, record) => record.period_start ? (
                                                         <div className="whitespace-nowrap text-xs">
                                                             <div>{record.period_start} م</div>
@@ -3281,6 +3282,7 @@
                                                 {
                                                     title: 'نهاية العقد',
                                                     key: 'period_end_full',
+                                                    width: 120,
                                                     render: (_, record) => record.period_end ? (
                                                         <div className="whitespace-nowrap text-xs">
                                                             <div>{record.period_end} م</div>
@@ -3291,6 +3293,7 @@
                                                 {
                                                     title: 'الحالة',
                                                     key: 'lease_status',
+                                                    width: 100,
                                                     render: (_, record) => {
                                                         if (!record.is_rented) {
                                                             return <Tag color="error" className="m-0 whitespace-nowrap">شاغرة</Tag>;
@@ -3301,11 +3304,12 @@
                                                         return <Tag color="success" className="m-0 whitespace-nowrap">مؤجرة</Tag>;
                                                     }
                                                 },
-                                                { title: 'قيمة العقد', dataIndex: 'monthly_rent', key: 'monthly_rent', render: v => <span className="whitespace-nowrap font-semibold">{sarFormatter(v)}</span> },
-                                                { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', render: (v, record) => <span className="whitespace-nowrap text-emerald-600 font-bold">{sarFormatter(record.is_rented ? v : 0)}</span> },
+                                                { title: 'قيمة العقد', dataIndex: 'monthly_rent', key: 'monthly_rent', width: 120, render: v => <span className="whitespace-nowrap font-semibold">{sarFormatter(v)}</span> },
+                                                { title: 'المحصل', dataIndex: 'amount_paid', key: 'amount_paid', width: 120, render: (v, record) => <span className="whitespace-nowrap text-emerald-600 font-bold">{sarFormatter(record.is_rented ? v : 0)}</span> },
                                                 {
                                                     title: 'المتبقى',
                                                     key: 'remaining',
+                                                    width: 120,
                                                     render: (_, record) => {
                                                         if (!record.is_rented) return <span className="whitespace-nowrap">{sarFormatter(0)}</span>;
                                                         const remaining = (record.monthly_rent || 0) - (record.amount_paid || 0);
@@ -3316,6 +3320,7 @@
                                                     title: 'طريقة الدفع',
                                                     dataIndex: 'payment_method',
                                                     key: 'payment_method',
+                                                    width: 110,
                                                     render: (method) => <span className="whitespace-nowrap text-xs">{method === 'Bank Transfer' ? 'تحويل بنكى' : 'كاش'}</span>
                                                 },
                                                 {
