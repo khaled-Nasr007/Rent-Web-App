@@ -3211,14 +3211,11 @@
                             ) : (
                                 <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                     {/* Synchronized Sticky Top Scrollbar */}
-                                    <div className="sticky top-0 z-20 bg-emerald-50/90 backdrop-blur border-b border-emerald-200 px-3 py-2 flex items-center gap-2 no-print">
-                                        <span className="text-xs font-bold text-emerald-900 whitespace-nowrap flex items-center gap-1">
-                                            <span>↔️</span> شريط التمرير الأفقي العلوي:
-                                        </span>
+                                    <div className="sticky top-0 z-20 bg-emerald-50/90 backdrop-blur border-b border-emerald-200 px-2 py-1 w-full no-print">
                                         <div
                                             ref={unitsTopScrollbarRef}
                                             onScroll={handleUnitsTopScroll}
-                                            className="flex-1 overflow-x-auto custom-top-scroll-bar rounded py-1 cursor-pointer"
+                                            className="w-full overflow-x-auto custom-top-scroll-bar rounded cursor-pointer"
                                             style={{ scrollbarWidth: 'auto' }}
                                         >
                                             <div style={{ width: '1600px', height: '8px' }} />
