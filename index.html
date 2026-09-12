@@ -2972,33 +2972,30 @@
                     }
 
                     // Perform targeted update on receipts table
-                    const updatePayload = {
+                    let updateReceiptErr = null;
+                    const primaryPayload = {
                         amount_received: newAmount,
                         payment_method: newMethod,
-                        created_at: newDate,
-                        notes: newNotes,
-                        updated_at: new Date().toISOString()
+                        created_at: newDate
                     };
 
-                    let updateReceiptErr = null;
-                    try {
-                        const { error } = await supabase
-                            .from('receipts')
-                            .update(updatePayload)
-                            .eq('id', editingReceipt.id);
-                        if (error) updateReceiptErr = error;
-                    } catch (err) {
-                        // Fallback if notes or updated_at columns are omitted in schema
-                        const fallbackPayload = {
+                    const { error: primaryErr } = await supabase
+                        .from('receipts')
+                        .update(primaryPayload)
+                        .eq('id', editingReceipt.id);
+
+                    if (primaryErr) {
+                        console.warn("Primary payload update warning:", primaryErr.message);
+                        const corePayload = {
                             amount_received: newAmount,
-                            payment_method: newMethod,
-                            created_at: newDate
+                            payment_method: newMethod
                         };
-                        const { error: fbErr } = await supabase
+                        const { error: coreErr } = await supabase
                             .from('receipts')
-                            .update(fallbackPayload)
+                            .update(corePayload)
                             .eq('id', editingReceipt.id);
-                        if (fbErr) updateReceiptErr = fbErr;
+
+                        updateReceiptErr = coreErr;
                     }
 
                     if (updateReceiptErr) {
