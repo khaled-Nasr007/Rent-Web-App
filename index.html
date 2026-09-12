@@ -4399,10 +4399,10 @@
                                                                             setActiveReceipt(record);
                                                                             setReceiptModalVisible(true);
                                                                         }}>عرض السند</Button>
-                                                                        {(profile?.role === 'admin' || profile?.can_edit || profile?.can_delete) && (
+                                                                        {(profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL || profile?.email === 'khalednasr007@gmail.com' || profile?.can_edit || profile?.can_delete) && (
                                                                             <>
-                                                                                {(profile?.role === 'admin' || profile?.can_edit) && (
-                                                                                    <Button size="small" type="text" className="text-blue-500 hover:text-blue-600" onClick={() => handleEditReceiptAmount(record)}>تعديل المبلغ</Button>
+                                                                                {(profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL || profile?.email === 'khalednasr007@gmail.com') && (
+                                                                                    <Button size="small" type="text" icon={<EditOutlined />} className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-cairo" onClick={() => handleOpenEditReceipt(record)}>تعديل السند</Button>
                                                                                 )}
                                                                                 {isAuthorizedToDelete && (
                                                                                     <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)}>حذف</Button>
