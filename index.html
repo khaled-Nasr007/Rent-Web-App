@@ -2917,10 +2917,18 @@
             };
 
             const handleOpenEditReceipt = (receipt) => {
+                const canEditReceipt = profile?.email === SUPER_ADMIN_EMAIL || profile?.email === 'khalednasr007@gmail.com' || profile?.role === 'admin';
+                if (!canEditReceipt) {
+                    message.error("عذراً، هذا الإجراء متاح للمسؤولين فقط.");
+                    return;
+                }
                 setEditingReceipt(receipt);
                 editReceiptForm.setFieldsValue({
+                    receipt_number: receipt.receipt_number,
                     amount_received: receipt.amount_received,
-                    payment_method: normalizePaymentMethod(receipt.payment_method)
+                    payment_method: normalizePaymentMethod(receipt.payment_method),
+                    created_at: receipt.created_at ? dayjs(receipt.created_at) : dayjs(),
+                    notes: receipt.notes || receipt.description || ''
                 });
                 setEditReceiptModalOpen(true);
             };
@@ -2930,54 +2938,101 @@
                 try {
                     const newAmount = parseFloat(values.amount_received);
                     const newMethod = normalizePaymentMethod(values.payment_method);
+                    const newDate = values.created_at ? values.created_at.toISOString() : editingReceipt.created_at;
+                    const newNotes = values.notes || '';
+
                     if (isNaN(newAmount) || newAmount < 0) {
                         message.error("الرجاء إدخال مبلغ صحيح");
                         return;
                     }
 
-                    const { data: curUnit, error: fetchErr } = await supabase
-                        .from('units')
-                        .select('amount_paid')
-                        .eq('id', editingReceipt.unit_id)
-                        .single();
-                    if (fetchErr) throw fetchErr;
-
                     const oldAmount = editingReceipt.amount_received || 0;
                     const oldMethod = editingReceipt.payment_method;
-                    const curPaid = curUnit ? (curUnit.amount_paid || 0) : 0;
-                    const diff = newAmount - oldAmount;
-                    const newPaid = Math.max(0, curPaid + diff);
 
-                    if (diff !== 0 && editingReceipt.unit_id) {
-                        const { error: updateUnitErr } = await supabase
+                    // Update unit paid total if amount changed
+                    if (editingReceipt.unit_id) {
+                        const { data: curUnit, error: fetchErr } = await supabase
                             .from('units')
-                            .update({ amount_paid: newPaid })
-                            .eq('id', editingReceipt.unit_id);
-                        if (updateUnitErr) throw updateUnitErr;
+                            .select('amount_paid')
+                            .eq('id', editingReceipt.unit_id)
+                            .single();
+                        if (fetchErr) throw fetchErr;
+
+                        const curPaid = curUnit ? (curUnit.amount_paid || 0) : 0;
+                        const diff = newAmount - oldAmount;
+                        const newPaid = Math.max(0, curPaid + diff);
+
+                        if (diff !== 0) {
+                            const { error: updateUnitErr } = await supabase
+                                .from('units')
+                                .update({ amount_paid: newPaid })
+                                .eq('id', editingReceipt.unit_id);
+                            if (updateUnitErr) throw updateUnitErr;
+                        }
                     }
 
-                    const { error: updateReceiptErr } = await supabase
-                        .from('receipts')
-                        .update({
-                            amount_received: newAmount,
-                            payment_method: newMethod
-                        })
-                        .eq('id', editingReceipt.id);
-                    if (updateReceiptErr) throw updateReceiptErr;
+                    // Perform targeted update on receipts table
+                    const updatePayload = {
+                        amount_received: newAmount,
+                        payment_method: newMethod,
+                        created_at: newDate,
+                        notes: newNotes,
+                        updated_at: new Date().toISOString()
+                    };
 
-                    message.success('تم تعديل بيانات السند وتحديث المحصل بنجاح');
-                    logActivity('UPDATE', 'RECEIPTS', editingReceipt.id, `تم تعديل سند القبض رقم: ${editingReceipt.receipt_number} (المبلغ: ${oldAmount} -> ${newAmount} ر.س، طريقة الدفع: ${renderPaymentMethod(oldMethod)} -> ${renderPaymentMethod(newMethod)})`);
+                    let updateReceiptErr = null;
+                    try {
+                        const { error } = await supabase
+                            .from('receipts')
+                            .update(updatePayload)
+                            .eq('id', editingReceipt.id);
+                        if (error) updateReceiptErr = error;
+                    } catch (err) {
+                        // Fallback if notes or updated_at columns are omitted in schema
+                        const fallbackPayload = {
+                            amount_received: newAmount,
+                            payment_method: newMethod,
+                            created_at: newDate
+                        };
+                        const { error: fbErr } = await supabase
+                            .from('receipts')
+                            .update(fallbackPayload)
+                            .eq('id', editingReceipt.id);
+                        if (fbErr) updateReceiptErr = fbErr;
+                    }
+
+                    if (updateReceiptErr) {
+                        message.error("تعذر تعديل السند، يرجى المحاولة لاحقاً");
+                        console.error("Receipt update error:", updateReceiptErr);
+                        return;
+                    }
+
+                    // Task 4: Success Toast
+                    message.success("تم تحديث بيانات سند القبض بنجاح");
+
+                    // Task 5: Permanent Audit Log
+                    const oldMethodStr = renderPaymentMethod(oldMethod);
+                    const newMethodStr = renderPaymentMethod(newMethod);
+                    const logMsg = `قام المدير بتعديل سند القبض رقم ${editingReceipt.receipt_number} - المبلغ: [${oldAmount} -> ${newAmount} ر.س] | طريقة الدفع: [${oldMethodStr} -> ${newMethodStr}]${newNotes ? ` | ملاحظات: ${newNotes}` : ''}`;
+
+                    await logActivity('UPDATE', 'RECEIPTS', editingReceipt.id, logMsg);
 
                     setEditReceiptModalOpen(false);
                     setEditingReceipt(null);
+
+                    // Task 4: Live State Synchronization & Mathematical Recalculation
                     fetchUnits();
                     await fetchFinancialData();
                     if (selectedUnit) {
                         showReceiptHistory(selectedUnit);
-                        setSelectedUnit(prev => ({ ...prev, amount_paid: newPaid }));
+                        const { data: refreshedUnit } = await supabase.from('units').select('*').eq('id', selectedUnit.id).single();
+                        if (refreshedUnit) {
+                            setSelectedUnit(refreshedUnit);
+                        }
                     }
                 } catch (e) {
-                    message.error('فشل تعديل السند: ' + e.message);
+                    message.error("تعذر تعديل السند، يرجى المحاولة لاحقاً");
+                    console.error(e);
                 }
             };
 
@@ -4310,8 +4365,8 @@
                                                                     setActiveReceipt(record);
                                                                     setReceiptModalVisible(true);
                                                                 }} className="tap-scale flex-1 text-xs">عرض السند</Button>
-                                                                {(profile?.role === 'admin' || profile?.can_edit) && (
-                                                                    <Button size="small" className="text-blue-500 hover:text-blue-600 tap-scale" onClick={() => handleEditReceiptAmount(record)}>تعديل</Button>
+                                                                {(profile?.role === 'admin' || profile?.email === SUPER_ADMIN_EMAIL || profile?.email === 'khalednasr007@gmail.com') && (
+                                                                    <Button size="small" icon={<EditOutlined />} className="text-blue-600 hover:text-blue-700 tap-scale flex items-center gap-1 font-cairo text-xs" onClick={() => handleOpenEditReceipt(record)}>تعديل السند</Button>
                                                                 )}
                                                                 {isAuthorizedToDelete && (
                                                                     <Button size="small" danger type="text" onClick={() => handleDeleteReceipt(record)} className="tap-scale">حذف</Button>
@@ -4659,12 +4714,12 @@
                         onClose={() => setExpensePreviewVisible(false)}
                     />
 
-                    {/* Edit Receipt Voucher Modal */}
+                    {/* Enhanced Edit Receipt Voucher Modal */}
                     <Modal
                         title={
-                            <div className="flex items-center gap-2">
-                                <EditOutlined className="text-blue-600" />
-                                <span>تعديل بيانات سند القبض رقم: {editingReceipt?.receipt_number || ''}</span>
+                            <div className="flex items-center gap-2 font-cairo text-lg font-bold text-slate-800 border-b pb-3">
+                                <EditOutlined className="text-blue-600 text-xl" />
+                                <span>تعديل بيانات سند القبض</span>
                             </div>
                         }
                         open={editReceiptModalOpen}
@@ -4672,28 +4727,75 @@
                         onOk={() => editReceiptForm.submit()}
                         okText="حفظ التعديلات"
                         cancelText="إلغاء"
+                        width={560}
+                        className="font-cairo"
                     >
                         <Form
                             form={editReceiptForm}
                             layout="vertical"
                             onFinish={handleSaveEditedReceipt}
+                            className="pt-2 font-cairo font-semibold"
                         >
-                            <Form.Item
-                                name="amount_received"
-                                label="المبلغ المستلم (ر.س)"
-                                rules={[{ required: true, message: 'الرجاء إدخال المبلغ' }]}
-                            >
-                                <InputNumber className="w-full" min={0} precision={2} />
+                            {/* Receipt Reference Number */}
+                            <Form.Item name="receipt_number" label="رقم السند المرجعي">
+                                <Input
+                                    disabled
+                                    prefix={<FileTextOutlined className="text-blue-600" />}
+                                    className="font-mono font-bold text-blue-700 bg-slate-100 cursor-not-allowed text-base"
+                                />
                             </Form.Item>
+
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item
+                                        name="amount_received"
+                                        label="المبلغ المستلم (ر.س)"
+                                        rules={[{ required: true, message: 'الرجاء إدخال المبلغ' }]}
+                                    >
+                                        <InputNumber
+                                            className="w-full font-bold"
+                                            min={0}
+                                            precision={2}
+                                            formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                            parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item
+                                        name="created_at"
+                                        label="تاريخ التحصيل"
+                                        rules={[{ required: true, message: 'الرجاء اختيار التاريخ' }]}
+                                    >
+                                        <DatePicker className="w-full font-cairo" format="YYYY-MM-DD" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
                             <Form.Item
                                 name="payment_method"
                                 label="طريقة الدفع"
                                 rules={[{ required: true, message: 'الرجاء اختيار طريقة الدفع' }]}
                             >
-                                <Select options={[
-                                    { label: 'كاش / نقدي', value: 'Cash' },
-                                    { label: 'تحويل بنكي', value: 'Bank Transfer' }
-                                ]} />
+                                <Radio.Group buttonStyle="solid" className="w-full flex">
+                                    <Radio.Button value="Cash" className="flex-1 text-center font-cairo font-bold">
+                                        💵 كاش (Cash)
+                                    </Radio.Button>
+                                    <Radio.Button value="Bank Transfer" className="flex-1 text-center font-cairo font-bold">
+                                        🏦 تحويل بنكي (Bank Transfer)
+                                    </Radio.Button>
+                                </Radio.Group>
+                            </Form.Item>
+
+                            <Form.Item
+                                name="notes"
+                                label="البيان والتفاصيل (سبب التعديل)"
+                            >
+                                <Input.TextArea
+                                    rows={3}
+                                    placeholder="اكتب تفاصيل أو سبب تعديل السند لمراجعتها لاحقاً..."
+                                    className="font-cairo"
+                                />
                             </Form.Item>
                         </Form>
                     </Modal>
