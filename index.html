@@ -778,6 +778,42 @@
             }).format(val);
         };
 
+        const renderPaymentMethod = (method) => {
+            if (!method) return '-';
+            const normalized = String(method).trim().toLowerCase();
+            if (normalized === 'cash' || normalized === 'نقدي' || normalized === 'كاش') {
+                return 'كاش';
+            }
+            if (normalized === 'bank' || normalized === 'bank_transfer' || normalized === 'bank transfer' || normalized === 'تحويل' || normalized === 'تحويل بنكي') {
+                return 'تحويل بنكي';
+            }
+            return method;
+        };
+
+        const normalizePaymentMethod = (method) => {
+            if (!method) return 'Cash';
+            const normalized = String(method).trim().toLowerCase();
+            if (normalized === 'cash' || normalized === 'نقدي' || normalized === 'كاش') {
+                return 'Cash';
+            }
+            if (normalized === 'bank' || normalized === 'bank_transfer' || normalized === 'bank transfer' || normalized === 'تحويل' || normalized === 'تحويل بنكي') {
+                return 'Bank Transfer';
+            }
+            return method;
+        };
+
+        const isCashPaymentMethod = (method) => {
+            if (!method) return false;
+            const normalized = String(method).trim().toLowerCase();
+            return normalized === 'cash' || normalized === 'نقدي' || normalized === 'كاش';
+        };
+
+        const isBankPaymentMethod = (method) => {
+            if (!method) return false;
+            const normalized = String(method).trim().toLowerCase();
+            return normalized === 'bank' || normalized === 'bank_transfer' || normalized === 'bank transfer' || normalized === 'تحويل' || normalized === 'تحويل بنكي';
+        };
+
         const logActivity = async (actionType, targetModule, recordId, description) => {
             try {
                 const sessionRes = await supabase.auth.getSession();
@@ -1071,7 +1107,7 @@
                                         </Col>
                                         <Col xs={24} sm={8} className="text-left mobile-text-right" style={{ textAlign: isMobile ? 'right' : 'left' }}>
                                             <Tag color="success" className="text-sm px-3 py-1 receipt-badge-gold">
-                                                {receipt.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'نقدي / كاش'}
+                                                {renderPaymentMethod(receipt.payment_method)}
                                             </Tag>
                                         </Col>
                                     </Row>
@@ -1968,6 +2004,9 @@
             const [selectedUnitExpenses, setSelectedUnitExpenses] = useState([]);
             const [activeReceipt, setActiveReceipt] = useState(null);
             const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+            const [editReceiptModalOpen, setEditReceiptModalOpen] = useState(false);
+            const [editingReceipt, setEditingReceipt] = useState(null);
+            const [editReceiptForm] = Form.useForm();
 
             // Live Date States for Form
             const [liveStartDate, setLiveStartDate] = useState(null);
@@ -2386,8 +2425,11 @@
 
                 const newPaidTotal = prevPaid + finalReceived;
 
+                const finalPaymentMethod = normalizePaymentMethod(values.payment_method || selectedUnit?.payment_method || 'Cash');
+
                 const unitData = {
                     ...rest,
+                    payment_method: finalPaymentMethod,
                     building_id: building.id,
                     period_start: rent_period && rent_period[0] ? rent_period[0].format('YYYY-MM-DD') : null,
                     period_end: rent_period && rent_period[1] ? rent_period[1].format('YYYY-MM-DD') : null,
@@ -2430,7 +2472,7 @@
                             building_name: building.name,
                             city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
                             amount_received: finalReceived,
-                            payment_method: values.payment_method,
+                            payment_method: finalPaymentMethod,
                             period_start: rent_period && rent_period[0] ? rent_period[0].format('YYYY-MM-DD') : null,
                             period_end: rent_period && rent_period[1] ? rent_period[1].format('YYYY-MM-DD') : null,
                             period_start_hijri: rent_period && rent_period[0] ? toHijri(rent_period[0].toDate()) : null,
@@ -2666,7 +2708,7 @@
                             building_name: building.name,
                             city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
                             amount_received: settledAmount,
-                            payment_method: values.settled_payment_method || 'Cash',
+                            payment_method: normalizePaymentMethod(values.settled_payment_method || selectedUnit.payment_method || 'Cash'),
                             period_start: selectedUnit.period_start,
                             period_end: selectedUnit.period_end,
                             period_start_hijri: selectedUnit.period_start ? toHijri(selectedUnit.period_start) : null,
@@ -2710,7 +2752,7 @@
                             contract_number: selectedUnit.contract_number,
                             monthly_rent: selectedUnit.monthly_rent || 0,
                             amount_paid: oldContractFinalAmountPaid,
-                            payment_method: selectedUnit.payment_method || 'Cash',
+                            payment_method: normalizePaymentMethod(selectedUnit.payment_method || 'Cash'),
                             period_start: selectedUnit.period_start,
                             period_end: selectedUnit.period_end,
                             settlement_status: settlementStatus,
@@ -2754,7 +2796,7 @@
                             building_name: building.name,
                             city_name: cities.find(c => c.id === building.city_id)?.name_ar || '',
                             amount_received: values.amount_received,
-                            payment_method: values.payment_method || 'Cash',
+                            payment_method: normalizePaymentMethod(values.payment_method || selectedUnit?.payment_method || 'Cash'),
                             period_start: startDateStr,
                             period_end: endDateStr,
                             period_start_hijri: start ? toHijri(start.toDate()) : null,
@@ -2787,7 +2829,7 @@
                         period_start: startDateStr,
                         period_end: endDateStr,
                         amount_paid: values.amount_received || 0,
-                        payment_method: values.payment_method || 'Cash'
+                        payment_method: normalizePaymentMethod(values.payment_method || selectedUnit?.payment_method || 'Cash')
                     };
 
                     const { error: updateErr } = await supabase
@@ -2874,46 +2916,64 @@
                 });
             };
 
-            const handleEditReceiptAmount = async (receipt) => {
-                const newAmountStr = prompt(`تعديل مبلغ السند ${receipt.receipt_number}:`, receipt.amount_received);
-                if (newAmountStr === null) return;
-                const newAmount = parseFloat(newAmountStr);
-                if (isNaN(newAmount) || newAmount < 0) {
-                    message.error("الرجاء إدخال مبلغ صحيح");
-                    return;
-                }
+            const handleOpenEditReceipt = (receipt) => {
+                setEditingReceipt(receipt);
+                editReceiptForm.setFieldsValue({
+                    amount_received: receipt.amount_received,
+                    payment_method: normalizePaymentMethod(receipt.payment_method)
+                });
+                setEditReceiptModalOpen(true);
+            };
 
+            const handleSaveEditedReceipt = async (values) => {
+                if (!editingReceipt) return;
                 try {
+                    const newAmount = parseFloat(values.amount_received);
+                    const newMethod = normalizePaymentMethod(values.payment_method);
+                    if (isNaN(newAmount) || newAmount < 0) {
+                        message.error("الرجاء إدخال مبلغ صحيح");
+                        return;
+                    }
+
                     const { data: curUnit, error: fetchErr } = await supabase
                         .from('units')
                         .select('amount_paid')
-                        .eq('id', receipt.unit_id)
+                        .eq('id', editingReceipt.unit_id)
                         .single();
                     if (fetchErr) throw fetchErr;
 
-                    const oldAmount = receipt.amount_received || 0;
-                    const curPaid = curUnit.amount_paid || 0;
+                    const oldAmount = editingReceipt.amount_received || 0;
+                    const oldMethod = editingReceipt.payment_method;
+                    const curPaid = curUnit ? (curUnit.amount_paid || 0) : 0;
                     const diff = newAmount - oldAmount;
                     const newPaid = Math.max(0, curPaid + diff);
 
-                    const { error: updateUnitErr } = await supabase
-                        .from('units')
-                        .update({ amount_paid: newPaid })
-                        .eq('id', receipt.unit_id);
-                    if (updateUnitErr) throw updateUnitErr;
+                    if (diff !== 0 && editingReceipt.unit_id) {
+                        const { error: updateUnitErr } = await supabase
+                            .from('units')
+                            .update({ amount_paid: newPaid })
+                            .eq('id', editingReceipt.unit_id);
+                        if (updateUnitErr) throw updateUnitErr;
+                    }
 
                     const { error: updateReceiptErr } = await supabase
                         .from('receipts')
-                        .update({ amount_received: newAmount })
-                        .eq('id', receipt.id);
+                        .update({
+                            amount_received: newAmount,
+                            payment_method: newMethod
+                        })
+                        .eq('id', editingReceipt.id);
                     if (updateReceiptErr) throw updateReceiptErr;
 
-                    message.success('تم تعديل مبلغ السند وتحديث المحصل بنجاح');
-                    logActivity('UPDATE', 'RECEIPTS', receipt.id, `تم تعديل قيمة سند القبض رقم: ${receipt.receipt_number} من ${oldAmount} إلى ${newAmount} ر.س`);
+                    message.success('تم تعديل بيانات السند وتحديث المحصل بنجاح');
+                    logActivity('UPDATE', 'RECEIPTS', editingReceipt.id, `تم تعديل سند القبض رقم: ${editingReceipt.receipt_number} (المبلغ: ${oldAmount} -> ${newAmount} ر.س، طريقة الدفع: ${renderPaymentMethod(oldMethod)} -> ${renderPaymentMethod(newMethod)})`);
 
+                    setEditReceiptModalOpen(false);
+                    setEditingReceipt(null);
                     fetchUnits();
-                    showReceiptHistory(selectedUnit || { id: receipt.unit_id });
+                    await fetchFinancialData();
                     if (selectedUnit) {
+                        showReceiptHistory(selectedUnit);
                         setSelectedUnit(prev => ({ ...prev, amount_paid: newPaid }));
                     }
                 } catch (e) {
@@ -2926,8 +2986,8 @@
             const totalCollected = receipts.reduce((acc, r) => acc + (r.amount_received || 0), 0);
             const totalSpent = expenses.filter(e => e.approval_status === 'approved').reduce((acc, e) => acc + (e.amount || 0), 0);
 
-            const cashCollected = receipts.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0);
-            const cashSpent = expenses.filter(e => e.payment_method === 'Cash' && e.approval_status === 'approved').reduce((acc, e) => acc + (e.amount || 0), 0);
+            const cashCollected = receipts.filter(r => isCashPaymentMethod(r.payment_method)).reduce((acc, r) => acc + (r.amount_received || 0), 0);
+            const cashSpent = expenses.filter(e => isCashPaymentMethod(e.payment_method) && e.approval_status === 'approved').reduce((acc, e) => acc + (e.amount || 0), 0);
             const netCashBalance = cashCollected - cashSpent;
 
             const computedLedger = useMemo(() => {
@@ -2941,7 +3001,7 @@
                         description: `دفعة إيجار - الوحدة ${r.unit_number} - المستأجر: ${r.tenant_name || '-'}`,
                         income: r.amount_received || 0,
                         expense: 0,
-                        paymentMethod: r.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                        paymentMethod: renderPaymentMethod(r.payment_method),
                         rawItem: r
                     })),
                     ...expenses.filter(e => e.approval_status === 'approved').map(e => {
@@ -2956,7 +3016,7 @@
                             description: `${e.description || '-'} (الوحدة: ${relatedUnit ? relatedUnit.unit_number : 'عام للمبنى'})`,
                             income: 0,
                             expense: e.amount || 0,
-                            paymentMethod: e.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                            paymentMethod: renderPaymentMethod(e.payment_method),
                             rawItem: e
                         };
                     })
@@ -3134,7 +3194,7 @@
                                                         </div>
                                                         <div className="mobile-card-row">
                                                             <span className="mobile-card-label">طريقة الدفع:</span>
-                                                            <span className="mobile-card-value">{record.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</span>
+                                                            <span className="mobile-card-value">{renderPaymentMethod(record.payment_method)}</span>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -3321,7 +3381,7 @@
                                                     dataIndex: 'payment_method',
                                                     key: 'payment_method',
                                                     width: 110,
-                                                    render: (method) => <span className="whitespace-nowrap text-xs">{method === 'Bank Transfer' ? 'تحويل بنكى' : 'كاش'}</span>
+                                                    render: (method) => <span className="whitespace-nowrap text-xs">{renderPaymentMethod(method)}</span>
                                                 },
                                                 {
                                                     title: 'إجراءات',
@@ -3599,7 +3659,7 @@
                                                         </div>
                                                         <div className="mobile-card-row">
                                                             <span className="mobile-card-label">طريقة الدفع:</span>
-                                                            <span className="mobile-card-value">{record.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</span>
+                                                            <span className="mobile-card-value">{renderPaymentMethod(record.payment_method)}</span>
                                                         </div>
                                                         <div className="mobile-card-row">
                                                             <span className="mobile-card-label">التاريخ:</span>
@@ -3699,7 +3759,7 @@
                                                         render: (cat) => cat === 'Maintenance' ? 'صيانة' : cat === 'Utilities' ? 'خدمات' : 'أخرى'
                                                     },
                                                     { title: 'المبلغ المنصرف', dataIndex: 'amount', key: 'amount', render: v => sarFormatter(v) },
-                                                    { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
+                                                    { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => renderPaymentMethod(v) },
                                                     { title: 'تاريخ الصرف', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD HH:mm') },
                                                     { title: 'البيان', dataIndex: 'description', key: 'description' },
                                                     {
@@ -4057,7 +4117,7 @@
                                                 </div>
                                                 <div className="bg-slate-50 p-3 rounded-xl border border-gray-100 shadow-sm">
                                                     <div className="text-gray-400 text-xs mb-1">طريقة الدفع</div>
-                                                    <div className="font-semibold text-slate-800 text-xs">{selectedUnit.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</div>
+                                                    <div className="font-semibold text-slate-800 text-xs">{renderPaymentMethod(selectedUnit.payment_method)}</div>
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
@@ -4094,7 +4154,7 @@
                                                     {sarFormatter(Math.max(0, (selectedUnit.monthly_rent || 0) - (selectedUnit.amount_paid || 0)))}
                                                 </span>
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="طريقة الدفع">{selectedUnit.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</Descriptions.Item>
+                                            <Descriptions.Item label="طريقة الدفع">{renderPaymentMethod(selectedUnit.payment_method)}</Descriptions.Item>
                                         </Descriptions>
                                     )}
                                 </Card>
@@ -4242,7 +4302,7 @@
                                                             </div>
                                                             <div className="mobile-card-row">
                                                                 <span className="mobile-card-label">طريقة الدفع:</span>
-                                                                <span className="mobile-card-value">{record.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</span>
+                                                                <span className="mobile-card-value">{renderPaymentMethod(record.payment_method)}</span>
                                                             </div>
                                                             <Divider className="my-2" />
                                                             <div className="flex gap-2 justify-end">
@@ -4273,7 +4333,7 @@
                                                         columns={[
                                                             { title: 'رقم السند', dataIndex: 'receipt_number', key: 'receipt_number' },
                                                             { title: 'المبلغ المستلم', dataIndex: 'amount_received', key: 'amount_received', render: v => sarFormatter(v) },
-                                                            { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => v === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش' },
+                                                            { title: 'طريقة الدفع', dataIndex: 'payment_method', render: v => renderPaymentMethod(v) },
                                                             { title: 'تاريخ التحصيل', dataIndex: 'created_at', render: v => dayjs(v).format('YYYY-MM-DD') },
                                                             {
                                                                 title: 'إجراءات',
@@ -4598,6 +4658,45 @@
                         visible={expensePreviewVisible}
                         onClose={() => setExpensePreviewVisible(false)}
                     />
+
+                    {/* Edit Receipt Voucher Modal */}
+                    <Modal
+                        title={
+                            <div className="flex items-center gap-2">
+                                <EditOutlined className="text-blue-600" />
+                                <span>تعديل بيانات سند القبض رقم: {editingReceipt?.receipt_number || ''}</span>
+                            </div>
+                        }
+                        open={editReceiptModalOpen}
+                        onCancel={() => { setEditReceiptModalOpen(false); setEditingReceipt(null); }}
+                        onOk={() => editReceiptForm.submit()}
+                        okText="حفظ التعديلات"
+                        cancelText="إلغاء"
+                    >
+                        <Form
+                            form={editReceiptForm}
+                            layout="vertical"
+                            onFinish={handleSaveEditedReceipt}
+                        >
+                            <Form.Item
+                                name="amount_received"
+                                label="المبلغ المستلم (ر.س)"
+                                rules={[{ required: true, message: 'الرجاء إدخال المبلغ' }]}
+                            >
+                                <InputNumber className="w-full" min={0} precision={2} />
+                            </Form.Item>
+                            <Form.Item
+                                name="payment_method"
+                                label="طريقة الدفع"
+                                rules={[{ required: true, message: 'الرجاء اختيار طريقة الدفع' }]}
+                            >
+                                <Select options={[
+                                    { label: 'كاش / نقدي', value: 'Cash' },
+                                    { label: 'تحويل بنكي', value: 'Bank Transfer' }
+                                ]} />
+                            </Form.Item>
+                        </Form>
+                    </Modal>
                 </Drawer>
             );
         };
@@ -6006,7 +6105,7 @@
                             unit: r.unit_number || '-',
                             amount: r.amount_received || 0,
                             sign: 1,
-                            paymentMethod: r.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                            paymentMethod: renderPaymentMethod(r.payment_method),
                             description: r.description || r.tenant_name || '-'
                         });
                     }
@@ -6021,7 +6120,7 @@
                             unit: units.find(u => u.id === e.unit_id)?.unit_number || 'عام',
                             amount: e.amount || 0,
                             sign: -1,
-                            paymentMethod: e.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                            paymentMethod: renderPaymentMethod(e.payment_method),
                             description: e.description || '-'
                         });
                     }
@@ -6103,7 +6202,7 @@
                         'قيمة العقد': contractValue,
                         'المحصّل': collected,
                         المتبقي: remaining,
-                        'طريقة الدفع': u.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                        'طريقة الدفع': renderPaymentMethod(u.payment_method),
                         'حالة التحصيل': status
                     };
                 });
@@ -6142,7 +6241,7 @@
                         الوحدة: u?.unit_number || 'عام للمبنى',
                         التصنيف: translateCategory(e.category),
                         المبلغ: e.amount || 0,
-                        'طريقة الدفع': e.payment_method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش',
+                        'طريقة الدفع': renderPaymentMethod(e.payment_method),
                         البيان: e.description || '-',
                         'المعتمد بواسطة': e.approved_by || '-',
                         'حالة الاعتماد': statusText,
@@ -6294,8 +6393,8 @@
                 const rowPayment = row['طريقة الدفع'];
                 if (!rowPayment) return true;
                 return paymentMethods.some(method => {
-                    if (method === 'Cash') return rowPayment === 'كاش' || rowPayment === 'نقدي' || rowPayment === 'نقدي / كاش';
-                    if (method === 'Bank Transfer') return rowPayment === 'تحويل بنكي';
+                    if (isCashPaymentMethod(method)) return isCashPaymentMethod(rowPayment);
+                    if (isBankPaymentMethod(method)) return isBankPaymentMethod(rowPayment);
                     return false;
                 });
             };
@@ -7945,7 +8044,7 @@
                                             </div>
                                             <div className="mobile-card-row">
                                                 <span className="mobile-card-label">طريقة الدفع:</span>
-                                                <span className="mobile-card-value">{record.paymentMethod === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'}</span>
+                                                <span className="mobile-card-value">{renderPaymentMethod(record.paymentMethod)}</span>
                                             </div>
                                             <div className="mobile-card-row">
                                                 <span className="mobile-card-label">المبلغ:</span>
@@ -8027,7 +8126,7 @@
                                         title: 'طريقة الدفع (Payment)',
                                         dataIndex: 'paymentMethod',
                                         key: 'paymentMethod',
-                                        render: (method) => method === 'Bank Transfer' ? 'تحويل بنكي' : 'كاش'
+                                        render: (method) => renderPaymentMethod(method)
                                     },
                                     { title: 'البيان والتفاصيل (Details)', dataIndex: 'description', key: 'description', className: 'text-gray-500 max-w-[200px] truncate' },
                                     {
@@ -8233,17 +8332,17 @@
                 let globalExpensesBank = 0;
 
                 filteredReceipts.forEach(r => {
-                    if (r.payment_method === 'Cash') {
+                    if (isCashPaymentMethod(r.payment_method)) {
                         globalReceiptsCash += r.amount_received || 0;
-                    } else if (r.payment_method === 'Bank Transfer') {
+                    } else if (isBankPaymentMethod(r.payment_method)) {
                         globalReceiptsBank += r.amount_received || 0;
                     }
                 });
 
                 filteredExpenses.forEach(e => {
-                    if (e.payment_method === 'Cash') {
+                    if (isCashPaymentMethod(e.payment_method)) {
                         globalExpensesCash += e.amount || 0;
-                    } else if (e.payment_method === 'Bank Transfer') {
+                    } else if (isBankPaymentMethod(e.payment_method)) {
                         globalExpensesBank += e.amount || 0;
                     }
                 });
@@ -8269,13 +8368,13 @@
                     let bBankOut = 0;
 
                     bReceipts.forEach(r => {
-                        if (r.payment_method === 'Cash') bCashIn += r.amount_received || 0;
-                        else if (r.payment_method === 'Bank Transfer') bBankIn += r.amount_received || 0;
+                        if (isCashPaymentMethod(r.payment_method)) bCashIn += r.amount_received || 0;
+                        else if (isBankPaymentMethod(r.payment_method)) bBankIn += r.amount_received || 0;
                     });
 
                     bExpenses.forEach(e => {
-                        if (e.payment_method === 'Cash') bCashOut += e.amount || 0;
-                        else if (e.payment_method === 'Bank Transfer') bBankOut += e.amount || 0;
+                        if (isCashPaymentMethod(e.payment_method)) bCashOut += e.amount || 0;
+                        else if (isBankPaymentMethod(e.payment_method)) bBankOut += e.amount || 0;
                     });
 
                     const cashBox = bCashIn - bCashOut;
@@ -8715,11 +8814,11 @@
                 const eData = (eDataRaw || []).filter(e => bIds.includes(e.building_id) && e.approval_status === 'approved');
 
                 // Cumulative receipt metrics (current + previous periods)
-                const collectedCash = rData.filter(r => r.payment_method === 'Cash').reduce((acc, r) => acc + (r.amount_received || 0), 0);
-                const collectedBank = rData.filter(r => r.payment_method === 'Bank Transfer').reduce((acc, r) => acc + (r.amount_received || 0), 0);
+                const collectedCash = rData.filter(r => isCashPaymentMethod(r.payment_method)).reduce((acc, r) => acc + (r.amount_received || 0), 0);
+                const collectedBank = rData.filter(r => isBankPaymentMethod(r.payment_method)).reduce((acc, r) => acc + (r.amount_received || 0), 0);
                 const totalPaid = collectedCash + collectedBank;
                 const totalApprovedExpenses = eData.reduce((acc, e) => acc + (e.amount || 0), 0);
-                const totalApprovedCashExpenses = eData.filter(e => e.payment_method === 'Cash' || !e.payment_method).reduce((acc, e) => acc + (e.amount || 0), 0);
+                const totalApprovedCashExpenses = eData.filter(e => isCashPaymentMethod(e.payment_method) || !e.payment_method).reduce((acc, e) => acc + (e.amount || 0), 0);
                 const globalCashBalance = collectedCash - totalApprovedCashExpenses;
                 const activePaid = rentedUnitsData.reduce((acc, u) => acc + (u.amount_paid || 0), 0) || 0;
 
